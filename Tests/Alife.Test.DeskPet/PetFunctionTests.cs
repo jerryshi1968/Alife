@@ -22,7 +22,7 @@ public class PetFunctionTests
     {
         server.PlayExpression("繁星眼");
         AskUser("真央的表情是否变成了星星眼（繁星眼）？");
-        
+
         server.PlayExpression("微笑");
     }
 
@@ -41,7 +41,7 @@ public class PetFunctionTests
         Assert.That(y, Is.GreaterThanOrEqualTo(0));
 
         await server.MoveAsync(100, 100, 1000);
-        
+
         AskUser("真央是否平滑地向右下方移动了 100 像素？");
     }
 
@@ -50,7 +50,7 @@ public class PetFunctionTests
     {
         recordedInteractions.Clear();
         MessageBox.Show(
-            "测试 [鼠标交互]: \n1. 请点击真央头部 (head)\n2. 请点击真央身体 (body)\n3. 请快速连击 (mouse_combo)\n4. 请绕着真央转 6 圈 (mouse_shake)\n\n完成后点击确定。", 
+            "测试 [鼠标交互]: \n1. 请点击真央头部 (head)\n2. 请点击真央身体 (body)\n3. 请快速连击 (mouse_combo)\n4. 请绕着真央转 6 圈 (mouse_shake)\n\n完成后点击确定。",
             "人工指令", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
 
         Assert.That(recordedInteractions, Does.Contain("head"), "未检测到头部点击");
@@ -64,7 +64,7 @@ public class PetFunctionTests
     {
         recordedInteractions.Clear();
         MessageBox.Show(
-            "测试 [窗口位移交互]: \n1. 请长程甩动窗口 (window_move)\n2. 请快速来回晃动窗口 (window_shake)\n\n完成后点击确定。", 
+            "测试 [窗口位移交互]: \n1. 请长程甩动窗口 (window_move)\n2. 请快速来回晃动窗口 (window_shake)\n\n完成后点击确定。",
             "人工指令", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
 
         Assert.That(recordedInteractions, Does.Contain("window_move"), "未检测到快速位移");
@@ -76,7 +76,7 @@ public class PetFunctionTests
     {
         recordedInputs.Clear();
         MessageBox.Show(
-            "测试 [文本输入]: 请在桌宠底部的对话框输入 'Hello World' 并按回车。\n完成后点击确定。", 
+            "测试 [文本输入]: 请在桌宠底部的对话框输入 'Hello World' 并按回车。\n完成后点击确定。",
             "人工指令", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
 
         Assert.That(recordedInputs, Does.Contain("Hello World"), "未收到正确的聊天输入 [Hello World]");
@@ -93,16 +93,12 @@ public class PetFunctionTests
     }
 
     [OneTimeSetUp]
-    public void Setup()
+    public async Task Setup()
     {
         server = new PetServer();
         server.OnInteracted += key => recordedInteractions.Add(key);
         server.OnInput += text => recordedInputs.Add(text);
-        
-        server.OnReady += () => Console.WriteLine("Pet Process Ready.");
-        
-        // 由于 PetServer 构造函数中已经启动了进程，这里可以静候其就绪
-        Thread.Sleep(3000);
+        await server.WaitReadyAsync();
     }
 
     [OneTimeTearDown]

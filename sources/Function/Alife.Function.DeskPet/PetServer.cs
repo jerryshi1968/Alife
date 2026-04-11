@@ -10,19 +10,17 @@ namespace Alife.Function.DeskPet;
 /// </summary>
 public class PetServer : IAsyncDisposable
 {
-    public event Action? OnReady;
     public event Action<string>? OnInput;
     public event Action<string>? OnInteracted;
-    public PetModelMetadata Metadata { get; }
 
-    public IEnumerable<string> SupportedExpressions => Metadata.Expressions;
-    public IDictionary<string, (string Group, int Index)> SupportedMotions => Metadata.Motions;
+    public IEnumerable<string> SupportedExpressions => metadata.Expressions;
+    public IDictionary<string, (string Group, int Index)> SupportedMotions => metadata.Motions;
 
     public PetServer()
     {
         //加载模型信息
         string modelJsonPath = Path.Combine(Environment.OutputsFolderPath, "wwwroot/model/Mao/Mao.model3.json");
-        Metadata = PetModelMetadata.Load(modelJsonPath);
+        metadata = PetModelMetadata.Load(modelJsonPath);
 
         //创建进程
         string petExePath = Path.Combine(Environment.OutputsFolderPath, "Alife.Function.DeskPet.exe");
@@ -63,6 +61,7 @@ public class PetServer : IAsyncDisposable
         petProcess.Dispose();
         await Task.CompletedTask;
     }
+    public Task WaitReadyAsync() => readyTask.Task;
 
     public void ShowBubble(string text) => petProcess.SendInput(new BubbleCommand(text));
 
@@ -78,41 +77,43 @@ public class PetServer : IAsyncDisposable
         await Task.Delay(duration + 200);
     }
 
+
     public async Task<(double x, double y)> GetPositionAsync()
     {
-        posTcs = new TaskCompletionSource<(double, double)>(TaskCreationOptions.RunContinuationsAsynchronously);
+        positionTask = new TaskCompletionSource<(double, double)>(TaskCreationOptions.RunContinuationsAsynchronously);
         petProcess.SendInput(new GetPositionCommand());
 
-        Task completedTask = await Task.WhenAny(posTcs.Task, Task.Delay(2000));
-        if (completedTask == posTcs.Task)
+        Task completedTask = await Task.WhenAny(positionTask.Task, Task.Delay(2000));
+        if (completedTask == positionTask.Task)
         {
-            (double x, double y) result = await posTcs.Task;
-            posTcs = null;
+            (double x, double y) result = await positionTask.Task;
+            positionTask = null;
             return result;
         }
 
-        posTcs = null;
+        positionTask = null;
         throw new TimeoutException("获取桌宠位置超时");
     }
 
     public void ResetInteractions()
     {
-        posTcs?.TrySetCanceled();
+        positionTask?.TrySetCanceled();
     }
 
     readonly Process nativeProcess;
     readonly PetProcess petProcess;
-    TaskCompletionSource<(double, double)>? posTcs;
-
+    readonly PetModelMetadata metadata;
+    readonly TaskCompletionSource readyTask = new();
+    TaskCompletionSource<(double, double)>? positionTask;
 
     void OnEventReceived(IpcEvent ev)
     {
         switch (ev)
         {
-            case ReadyEvent: OnReady?.Invoke(); break;
+            case ReadyEvent: readyTask.TrySetResult(); break;
             case InputEvent input: OnInput?.Invoke(input.Text); break;
             case InteractionEvent interaction: OnInteracted?.Invoke(interaction.Interaction); break;
-            case PositionEvent position: posTcs?.TrySetResult((position.X, position.Y)); break;
+            case PositionEvent position: positionTask?.TrySetResult((position.X, position.Y)); break;
         }
     }
 }
