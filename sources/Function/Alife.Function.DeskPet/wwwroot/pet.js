@@ -64,6 +64,8 @@ window.chrome.webview.addEventListener("message", (e) => {
         model.anchor.set(0.5, 0.5);
         model.position.set(window.innerWidth / 2, window.innerHeight / 2);
         model.interactive = true;
+
+        postMessage({type: "loaded"});
     }
 });
 

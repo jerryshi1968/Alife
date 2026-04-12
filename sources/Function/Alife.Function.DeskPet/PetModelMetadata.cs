@@ -75,10 +75,9 @@ public class PetModelMetadata
             }
 
             // 2. 解析交互配置
-            if (root.TryGetProperty("Interaction", out JsonElement interactJson) &&
-                interactJson.TryGetProperty("Dialogues", out JsonElement dialogues))
+            if (root.TryGetProperty("Interaction", out JsonElement interactJson))
             {
-                foreach (JsonProperty poolProp in dialogues.EnumerateObject())
+                foreach (JsonProperty poolProp in interactJson.EnumerateObject())
                 {
                     metadata.Interactions[poolProp.Name] = JsonSerializer.Deserialize<List<InteractionItem>>(poolProp.Value.GetRawText(), PetProcess.JsonOptions) ?? new();
                 }

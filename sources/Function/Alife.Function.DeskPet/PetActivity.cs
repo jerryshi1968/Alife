@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace Alife.Function.DeskPet;
 
 /// <summary>
@@ -23,7 +25,6 @@ public class PetActivity : IDisposable
         cancellationTokenSource.Dispose();
     }
 
-
     readonly PetProcess process;
     readonly PetBridge bridge;
     readonly MainWindow window;
@@ -42,42 +43,49 @@ public class PetActivity : IDisposable
 
     async void OnPetReady()
     {
-        //加载live2d
-        bridge.LoadModel(metadata.ModelPath);
-        HandleInteraction("startup");
+        try
+        {
+            //加载live2d
+            await bridge.LoadModel(metadata.ModelPath);
+            HandleInteraction("startup");
 
-        //监听客户端输入
-        process.InputReceived += OnCommandReceived;
-        process.ListenInput();
+            //监听客户端输入
+            process.InputReceived += OnCommandReceived;
+            process.ListenInput();
 
-        //监听桌宠端输入
-        bridge.OnPoke += areas => HandleMousePoke(areas);
-        bridge.OnInput += text => process.SendOutput(new InputEvent(text));
-        bridge.OnDragStart += () => isDragging = true;
-        bridge.OnDragEnd += () => isDragging = false;
+            //监听桌宠端输入
+            bridge.OnPoke += areas => HandleMousePoke(areas);
+            bridge.OnInput += text => process.SendOutput(new InputEvent(text));
+            bridge.OnDragStart += () => isDragging = true;
+            bridge.OnDragEnd += () => isDragging = false;
 
-        //监听鼠标移动
-        tracker.MouseMoved += (x, y) => OnMouseMove(x, y);
-        tracker.Start();
+            //监听鼠标移动
+            tracker.MouseMoved += (x, y) => OnMouseMove(x, y);
+            tracker.Start();
 
-        //监听特殊运动交互
-        detector.WindowShaken += () => {
-            HandleInteraction("window_shake");
-            process.SendOutput(new InteractionEvent("桌宠被大幅晃动"));
-        };
-        detector.WindowMoved += () => {
-            HandleInteraction("window_move");
-            process.SendOutput(new InteractionEvent("桌宠被快速移动"));
-        };
-        detector.MouseShaken += () => {
-            HandleInteraction("mouse_shake");
-            process.SendOutput(new InteractionEvent("鼠标在快速转圈"));
-        };
+            //监听特殊运动交互
+            detector.WindowShaken += () => {
+                HandleInteraction("window_shake");
+                process.SendOutput(new InteractionEvent("桌宠被大幅晃动"));
+            };
+            detector.WindowMoved += () => {
+                HandleInteraction("window_move");
+                process.SendOutput(new InteractionEvent("桌宠被快速移动"));
+            };
+            detector.MouseShaken += () => {
+                HandleInteraction("mouse_shake");
+                process.SendOutput(new InteractionEvent("鼠标在快速转圈"));
+            };
 
-        //自动重置视线功能
-        HandleFocusReset(cancellationTokenSource.Token);
+            //自动重置视线功能
+            HandleFocusReset(cancellationTokenSource.Token);
 
-        process.SendOutput(new ReadyEvent());
+            process.SendOutput(new ReadyEvent());
+        }
+        catch (Exception e)
+        {
+            await File.AppendAllTextAsync("pet.log", e + Environment.NewLine);
+        }
     }
 
     void OnMouseMove(int x, int y)
@@ -139,9 +147,9 @@ public class PetActivity : IDisposable
             return;
 
         InteractionItem item = pool[Random.Shared.Next(pool.Count)];
+        if (string.IsNullOrEmpty(item.Text) == false) bridge.ShowBubble(item.Text);
         if (string.IsNullOrEmpty(item.Exp) == false) bridge.PlayExpression(item.Exp);
         if (item.Mtn != null) bridge.PlayMotion(item.Mtn.Group, item.Mtn.Index);
-        if (string.IsNullOrEmpty(item.Text) == false) bridge.ShowBubble(item.Text);
     }
     async void HandleFocusReset(CancellationToken cancellationToken)
     {
@@ -160,7 +168,7 @@ public class PetActivity : IDisposable
         catch (OperationCanceledException) { }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            File.AppendAllText("pet.log", e + Environment.NewLine);
         }
     }
 

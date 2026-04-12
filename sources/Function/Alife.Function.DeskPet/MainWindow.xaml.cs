@@ -49,13 +49,13 @@ public partial class MainWindow
 
         return (1.0, 1.0);
     }
-    public void ProgrammaticMove(double targetX, double targetY, int durationMs)
+    public void ProgrammaticMove(double offsetX, double offsetY, int durationMs)
     {
         (double ScaleX, double ScaleY) dpi = GetDpi();
         double startX = Left;
         double startY = Top;
-        double endX = targetX / dpi.ScaleX - Width / 2;
-        double endY = targetY / dpi.ScaleY - Height / 2;
+        double endX = startX + offsetX / dpi.ScaleX;
+        double endY = startY + offsetY / dpi.ScaleY;
 
         DoubleAnimation xAnim = new DoubleAnimation(startX, endX, TimeSpan.FromMilliseconds(durationMs)) { EasingFunction = new QuadraticEase() };
         DoubleAnimation yAnim = new DoubleAnimation(startY, endY, TimeSpan.FromMilliseconds(durationMs)) { EasingFunction = new QuadraticEase() };

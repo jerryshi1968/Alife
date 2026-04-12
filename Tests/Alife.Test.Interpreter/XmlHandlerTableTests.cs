@@ -60,7 +60,7 @@ MockSystemHandler
 
         string actual = XmlHandleLog.ToString();
         const string Expected = @"========
-MockPetHandler.Speak
+MockSpeechHandler.Speak
 测试文本
 {
   ""Parameters"": {
@@ -69,13 +69,13 @@ MockPetHandler.Speak
   ""Content"": ""测试文本""
 }
 ========
-MockSpeechHandler.Speak
-测试文本[已弹出气泡]
+MockPetHandler.Speak
+测试文本[已语音]
 {
   ""Parameters"": {
     ""text"": ""异常参数""
   },
-  ""Content"": ""测试文本[已弹出气泡]""
+  ""Content"": ""测试文本[已语音]""
 }
 ========
 MockPetHandler.PetMove
@@ -105,19 +105,19 @@ x=12.34, y=1, duration=1000
         }
 
         [XmlFunction]
-        public void Speak(XmlContext context, ref string text)
+        public void Speak(XmlContext context, [XmlContent] string text)
         {
             LogXmlHandle(context, "MockPetHandler.Speak", text);
-            text += "[已弹出气泡]";
         }
     }
     [Description("Mock 语音处理器：用于验证语音输出标签。")]
     class MockSpeechHandler
     {
-        [XmlFunction("speak")]
-        public void Speak(XmlContext context, string tone, [Description("需要转语音的文本")] [XmlContent] string text = "")
+        [XmlFunction("speak", -10)]
+        public void Speak(XmlContext context, string tone, [Description("需要转语音的文本")] ref string text)
         {
             LogXmlHandle(context, "MockSpeechHandler.Speak", text);
+            text += "[已语音]";
         }
     }
     class MockSystemHandler

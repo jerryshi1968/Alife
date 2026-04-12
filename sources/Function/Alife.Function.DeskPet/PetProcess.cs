@@ -42,7 +42,7 @@ public class PetProcess : IDisposable
 
     public void Dispose()
     {
-        cts?.Cancel();
+        listeningCancellation?.Cancel();
     }
 
     void Send(object msg)
@@ -52,25 +52,42 @@ public class PetProcess : IDisposable
         writer.Flush();
     }
 
-    void StartListening<T>(Action<T>? callback)
+    async void StartListening<T>(Action<T>? callback)
     {
-        cts = new CancellationTokenSource();
-        CancellationToken token = cts.Token;
-        Task.Run(async () => {
-            while (token.IsCancellationRequested == false)
-            {
-                string? line = await reader.ReadLineAsync(token);
-                if (string.IsNullOrEmpty(line)) break;
+        try
+        {
+            SynchronizationContext? syncContext = SynchronizationContext.Current;
 
-                T? msg = JsonSerializer.Deserialize<T>(line, JsonOptions);
-                if (msg != null) callback?.Invoke(msg);
-            }
-        }, token);
+            listeningCancellation = new CancellationTokenSource();
+            CancellationToken token = listeningCancellation.Token;
+            await Task.Run(async () => {
+                while (token.IsCancellationRequested == false)
+                {
+                    string? line = await reader.ReadLineAsync(token);
+                    if (string.IsNullOrEmpty(line)) break;
+
+                    T? msg = JsonSerializer.Deserialize<T>(line, JsonOptions);
+                    if (msg == null) break;
+
+                    if (syncContext != null)
+                        syncContext.Post(_ => callback?.Invoke(msg), null);
+                    else
+                        callback?.Invoke(msg);
+
+                    await File.AppendAllTextAsync("D:\\123.txt", line, token);
+                }
+            }, token);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception e)
+        {
+            await File.AppendAllTextAsync("pet.log", e + Environment.NewLine);
+        }
     }
 
     readonly TextWriter writer;
     readonly TextReader reader;
-    CancellationTokenSource? cts;
+    CancellationTokenSource? listeningCancellation;
 }
 
 // --- IPC Protocol ---

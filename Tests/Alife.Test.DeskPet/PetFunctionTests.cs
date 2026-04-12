@@ -12,8 +12,8 @@ public class PetFunctionTests
     [Test, Order(1)]
     public void TestBubble()
     {
-        server.ShowBubble("你好，这是一段定稿后的气泡测试文字！喵~");
-        AskUser("真央是否显示了对话气泡？");
+        server.ShowBubble("Hello World！喵~");
+        AskUser("真央是否显示了 “Hello World” 气泡？");
         server.HideBubble();
     }
 
@@ -50,13 +50,11 @@ public class PetFunctionTests
     {
         recordedInteractions.Clear();
         MessageBox.Show(
-            "测试 [鼠标交互]: \n1. 请点击真央头部 (head)\n2. 请点击真央身体 (body)\n3. 请快速连击 (mouse_combo)\n4. 请绕着真央转 6 圈 (mouse_shake)\n\n完成后点击确定。",
+            "测试 [鼠标交互]: \n1. 请快速连击 (mouse_combo)\n2. 请绕着真央转 6 圈 (mouse_shake)\n\n完成后点击确定。",
             "人工指令", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
-
-        Assert.That(recordedInteractions, Does.Contain("head"), "未检测到头部点击");
-        Assert.That(recordedInteractions, Does.Contain("body"), "未检测到身体点击");
-        Assert.That(recordedInteractions, Does.Contain("mouse_combo"), "未检测到鼠标连击");
-        Assert.That(recordedInteractions, Does.Contain("mouse_shake"), "未检测到围绕转圈");
+        
+        Assert.That(recordedInteractions, Does.Contain("桌宠被连续戳击"), "未检测到鼠标连击");
+        Assert.That(recordedInteractions, Does.Contain("鼠标在快速转圈"), "未检测到围绕转圈");
     }
 
     [Test, Order(6)]
@@ -67,8 +65,8 @@ public class PetFunctionTests
             "测试 [窗口位移交互]: \n1. 请长程甩动窗口 (window_move)\n2. 请快速来回晃动窗口 (window_shake)\n\n完成后点击确定。",
             "人工指令", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
 
-        Assert.That(recordedInteractions, Does.Contain("window_move"), "未检测到快速位移");
-        Assert.That(recordedInteractions, Does.Contain("window_shake"), "未检测到幅度晃动");
+        Assert.That(recordedInteractions, Does.Contain("桌宠被快速移动"), "未检测到快速位移");
+        Assert.That(recordedInteractions, Does.Contain("桌宠被大幅晃动"), "未检测到幅度晃动");
     }
 
     [Test, Order(7)]
@@ -95,7 +93,7 @@ public class PetFunctionTests
     [OneTimeSetUp]
     public async Task Setup()
     {
-        server = new PetServer();
+        server = new PetServer("Mao/Mao.model3.json");
         server.OnInteracted += key => recordedInteractions.Add(key);
         server.OnInput += text => recordedInputs.Add(text);
         await server.WaitReadyAsync();

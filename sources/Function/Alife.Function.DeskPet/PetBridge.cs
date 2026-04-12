@@ -1,6 +1,8 @@
+using System.IO;
 using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
+using Newtonsoft.Json.Linq;
 
 namespace Alife.Function.DeskPet;
 
@@ -29,9 +31,24 @@ public class PetBridge : IDisposable
         cancellationTokenSource.Dispose();
     }
 
-    public void LoadModel(string url)
+    public async Task LoadModel(string url)
     {
+        TaskCompletionSource taskCompletionSource = new();
+
+        webView.CoreWebView2.WebMessageReceived += WaitLoaded;
         SendCommand(new { type = "load", url });
+
+        await taskCompletionSource.Task;
+
+        void WaitLoaded(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            JObject jObject = JObject.Parse(e.WebMessageAsJson);
+            if (jObject["type"]?.Value<string>() == "loaded")
+            {
+                webView.CoreWebView2.WebMessageReceived -= WaitLoaded;
+                taskCompletionSource.SetResult();
+            }
+        }
     }
     public void PlayExpression(string? id)
     {
@@ -146,7 +163,7 @@ public class PetBridge : IDisposable
         catch (OperationCanceledException) { }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            await File.AppendAllTextAsync("pet.log", e + Environment.NewLine, cancellationToken);
         }
     }
 }

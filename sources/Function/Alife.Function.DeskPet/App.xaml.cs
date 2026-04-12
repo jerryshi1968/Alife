@@ -1,3 +1,5 @@
+using System.IO;
+using System.Text;
 using System.Windows;
 
 namespace Alife.Function.DeskPet;
@@ -6,11 +8,15 @@ public partial class App
 {
     PetActivity activity = null!;
 
-    protected override async void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs startupEvent)
     {
         try
         {
-            base.OnStartup(e);
+            Console.InputEncoding = new UTF8Encoding(false);
+            Console.OutputEncoding = new UTF8Encoding(false);
+            File.Create("pet.log").Close();
+
+            base.OnStartup(startupEvent);
 
             PetModelMetadata metadata = PetModelMetadata.Load(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot/model/Mao/Mao.model3.json"));
             MainWindow mainWindow = await Alife.Function.DeskPet.MainWindow.Create();
@@ -20,9 +26,9 @@ public partial class App
             MainWindow = mainWindow;
             activity = new(petProcess, bridge, metadata, mainWindow);
         }
-        catch (Exception exception)
+        catch (Exception e)
         {
-            Console.WriteLine(exception);
+            await File.AppendAllTextAsync("pet.log", e + Environment.NewLine);
         }
     }
 }

@@ -16,10 +16,10 @@ public class PetServer : IAsyncDisposable
     public IEnumerable<string> SupportedExpressions => metadata.Expressions;
     public IDictionary<string, (string Group, int Index)> SupportedMotions => metadata.Motions;
 
-    public PetServer()
+    public PetServer(string modelPath)
     {
         //加载模型信息
-        string modelJsonPath = Path.Combine(Environment.OutputsFolderPath, "wwwroot/model/Mao/Mao.model3.json");
+        string modelJsonPath = Path.Combine(Environment.OutputsFolderPath, $"wwwroot/model/{modelPath}");
         metadata = PetModelMetadata.Load(modelJsonPath);
 
         //创建进程
@@ -33,8 +33,8 @@ public class PetServer : IAsyncDisposable
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-                StandardInputEncoding = Encoding.UTF8,
-                StandardOutputEncoding = Encoding.UTF8,
+                StandardInputEncoding = new UTF8Encoding(false),
+                StandardOutputEncoding = new UTF8Encoding(false),
                 CreateNoWindow = true,
                 WorkingDirectory = Path.GetDirectoryName(petExePath)
             }
