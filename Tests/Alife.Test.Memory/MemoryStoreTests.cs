@@ -5,10 +5,10 @@ using Alife.Function.Memory;
 namespace Alife.Test.Memory;
 
 [TestFixture]
-public class VectorMemoryStoreTests
+public class MemoryStoreTests
 {
     string tempDbDir = string.Empty;
-    VectorMemoryStore? store;
+    MemoryStore? store;
 
     [OneTimeSetUp]
     public void Setup()
@@ -18,7 +18,7 @@ public class VectorMemoryStoreTests
         
         // 直接使用真实的向量化器（冷启动）
         var realVectorizer = new TextVectorizer(AlifePath.ModelsFolderPath);
-        store = new VectorMemoryStore(tempDbDir, realVectorizer);
+        store = new MemoryStore(tempDbDir, realVectorizer);
     }
 
     [OneTimeTearDown]

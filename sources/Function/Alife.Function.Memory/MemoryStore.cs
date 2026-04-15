@@ -13,9 +13,9 @@ public record SearchResult(int Level, string Name, string Text, DateTimeOffset S
 /// 文本向量、检索标引等元数据则存放到 DuckDB 中。
 /// 利用 DuckDB 原生强大的单文件分析性能及 array_cosine_similarity()，无需插件即可执行数百万级的极速相似度搜索并与标量过滤联动。
 /// </summary>
-public class VectorMemoryStore
+public class MemoryStore
 {
-    public VectorMemoryStore(string rootPath, ITextVectorizer vectorizer)
+    public MemoryStore(string rootPath, ITextVectorizer vectorizer)
     {
         this.rootPath = rootPath;
         this.vectorizer = vectorizer;

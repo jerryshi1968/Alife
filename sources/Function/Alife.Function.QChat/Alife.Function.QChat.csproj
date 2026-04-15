@@ -8,7 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <ProjectReference Include="..\..\Basic\Alife.Basic\Alife.Basic.csproj" />
   </ItemGroup>
 </Project>

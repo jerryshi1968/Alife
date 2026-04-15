@@ -73,6 +73,9 @@
   &lt;Or&gt;&#xD;
     &lt;Project Location="C:\Users\13309\Desktop\Alife\Tests\Alife.Test.Interpreter" Presentation="&amp;lt;Tests&amp;gt;\&amp;lt;Alife.Test.Interpreter&amp;gt;" /&gt;&#xD;
     &lt;Project Location="C:\Users\13309\Desktop\Alife\Tests\Alife.Test.DeskPet" Presentation="&amp;lt;Tests&amp;gt;\&amp;lt;Alife.Test.DeskPet&amp;gt;" /&gt;&#xD;
+    &lt;TestAncestor&gt;&#xD;
+      &lt;TestId&gt;NUnit3x::6A05EEB9-7E82-5593-462E-12498C03913A::net10.0-windows::Alife.Test.QChat.QChatFunctionTests&lt;/TestId&gt;&#xD;
+    &lt;/TestAncestor&gt;&#xD;
   &lt;/Or&gt;&#xD;
 &lt;/SessionState&gt;</s:String>
 	

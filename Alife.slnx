@@ -32,5 +32,6 @@
     <Project Path="Tests/Alife.Test.DeskPet/Alife.Test.DeskPet.csproj" />
     <Project Path="Tests/Alife.Test.Interpreter/Alife.Test.Interpreter.csproj" />
     <Project Path="Tests\Alife.Test.Memory\Alife.Test.Memory.csproj" Type="Classic C#" />
+    <Project Path="Tests\Alife.Test.QChat\Alife.Test.QChat.csproj" Type="Classic C#" />
   </Folder>
 </Solution>
