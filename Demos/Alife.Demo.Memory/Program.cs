@@ -21,7 +21,6 @@ public class Program
             Prompt = "你是一个拥有长期记忆能力的助手。请尽量简洁地回答用户。",
             Plugins = new HashSet<Type> {
                 typeof(InterpreterService),
-                typeof(LocalEmbeddingService),
                 typeof(MemoryService),
                 typeof(OpenAIChatService),
             }

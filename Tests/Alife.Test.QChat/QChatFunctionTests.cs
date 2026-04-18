@@ -3,7 +3,6 @@ using NUnit.Framework;
 using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows;
 
@@ -38,8 +37,8 @@ public class QChatFunctionTests
         await EnsurePrivateAnchor();
 
         // 使用一个网图进行测试
-        const string testImageUrl = "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png";
-        await client.SendPrivateImage(lastPrivateUserId, testImageUrl);
+        const string TestImageUrl = "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png";
+        await client.SendPrivateImage(lastPrivateUserId, TestImageUrl);
 
         MessageBoxResult result = MessageBox.Show("Bot 是否发送了一张图片（Google Logo）给你？", "图片发送验证", MessageBoxButton.YesNo);
         Assert.That(result, Is.EqualTo(MessageBoxResult.Yes));

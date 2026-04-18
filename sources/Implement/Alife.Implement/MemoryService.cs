@@ -32,15 +32,16 @@ public class MemoryService : Plugin, IConfigurable<MemoryConfig>
     }
     [XmlFunction]
     [Description($"在归档的记忆记录中搜索内容（搜索到的结果是存储索引，你需要用 {nameof(Recall)} 打开）。")]
-    public async Task Search(XmlExecutorContext ctx, [XmlContent] string _,
+    public async Task Search(XmlExecutorContext ctx,
+        [Description("搜索的问题")] string query,
         [Description("可选，格式为yyyy-MM-dd")] string? startTime = null,
         [Description("可选，格式为yyyy-MM-dd")] string? endTime = null,
         [Description("可选，搜索条数")] int count = 5)
     {
-        if (ctx.CallMode != CallMode.Closing)
+        if (ctx.CallMode != CallMode.OneShot)
             return;
 
-        string query = ctx.FullContent.Trim();
+        query = query.Trim();
         bool hasStartTime = DateTime.TryParse(startTime, out DateTime start);
         bool hasEndTime = DateTime.TryParse(endTime, out DateTime end);
         if (hasEndTime)
@@ -59,7 +60,7 @@ public class MemoryService : Plugin, IConfigurable<MemoryConfig>
                  匹配度：{searchResult.Score}
                  发生时间：{searchResult.StartTime}到{searchResult.EndTime}
                  完整内容索引：{searchResult.Name}
-                 前两百字预览：```{searchResult.Text[..200]}```
+                 事件概述：```{searchResult.Summary}```
                  """);
         }
         chatBot.Poke(stringBuilder.ToString());

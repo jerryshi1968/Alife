@@ -66,23 +66,23 @@ public class MemoryManager
                 //压缩记忆
                 DateTime startTime = GetMemoryMetaData(chatHistory[areaStart]).StartTime;
                 DateTime endTime = currentMemoryMeta.EndTime;
-                string original = PickContent(chatHistory, areaStart, areaStart + areaCompressionCount);
-                string compressed = await compressor.Compress(original);
+                string content = PickContent(chatHistory, areaStart, areaStart + areaCompressionCount);
+                string summary = await compressor.Compress(content);
 
                 //提取并保存旧的记录
-                string name = await SaveMemory(new MemoryMeta(areaLevel, startTime, endTime), original);
+                string name = await SaveMemory(new MemoryMeta(areaLevel, startTime, endTime), summary, content);
                 for (int index = areaStart + areaCompressionCount - 1; index >= areaStart; index--)
                     memoryMetaDatas.Remove(chatHistory[index]);
                 chatHistory.RemoveRange(areaStart, areaCompressionCount);
 
                 //增加新的记录
-                compressed = $"""
+                summary = $"""
                               [记忆存档(L{areaLevel})]
                               完整内容索引：{name}
                               发生时间：{startTime}到{endTime}
-                              事件概述：{compressed}
+                              事件概述：{summary}
                               """;
-                ChatMessageContent compressedContent = new(AuthorRole.Assistant, compressed);
+                ChatMessageContent compressedContent = new(AuthorRole.Assistant, summary);
                 chatHistory.Insert(areaStart, compressedContent);
                 memoryMetaDatas[compressedContent] = new MemoryMeta(areaLevel + 1, startTime, endTime);
 
@@ -157,10 +157,10 @@ public class MemoryManager
 
         return data;
     }
-    async Task<string> SaveMemory(MemoryMeta memoryMeta, string content)
+    async Task<string> SaveMemory(MemoryMeta memoryMeta, string summary, string content)
     {
         string name = $"{memoryMeta.Level}-{memoryMeta.StartTime:yyyyMMddhhmmss}-{memoryMeta.EndTime:yyyyMMddhhmmss}";
-        await memoryStorage.SaveAsync(memoryMeta.Level, name, content, memoryMeta.StartTime, memoryMeta.EndTime);
+        await memoryStorage.SaveAsync(name, memoryMeta.Level, summary, content, memoryMeta.StartTime, memoryMeta.EndTime);
         return name;
     }
     string PickContent(ChatHistory chatHistory, int start, int end)
