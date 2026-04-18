@@ -16,15 +16,17 @@ public class VisionAnalyzer : IDisposable
     /// 模型生成的最大字长限制（Token 数量）。
     /// </summary>
     public int MaxResponseTokens { get; set; } = 100;
-    
+
     public VisionAnalyzer(int timeoutSeconds = 120, Action<string>? onLog = null)
     {
+        AlifeCommand.Command("pip", "install torch torchvision Pillow transformers timm einops --index-url https://download.pytorch.org/whl/cu121 --extra-index-url https://pypi.org/simple");
+
         const string ModelId = "OpenGVLab/InternVL2_5-1B";
         string modelPath = ModelDownloader.EnsureModel(ModelId);
         string script = Path.Combine(AppContext.BaseDirectory, "vision_bridge.py");
         string arguments = $"\"{script}\" --model_path \"{modelPath}\"";
 
-        ProcessStartInfo psi = new ProcessStartInfo {
+        ProcessStartInfo psi = new() {
             FileName = "python",
             Arguments = arguments,
             RedirectStandardInput = true,
