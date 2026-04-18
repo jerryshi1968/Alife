@@ -10,23 +10,18 @@ namespace Alife.Function.Memory;
 /// </summary>
 public class TextVectorizer
 {
-    public TextVectorizer(string modelRootPath)
+    public TextVectorizer()
     {
-        string targetDir = Path.Combine(modelRootPath, "bge-small-zh-v1.5");
-        
         // 自动自检并下载组件
-        ResourceDownloader.Ensure("记忆语义模型 (BGE)", targetDir,
-            ("model.onnx", "https://modelscope.cn/models/BAAI/bge-small-zh-v1.5/resolve/master/model.onnx"),
-            ("vocab.txt", "https://modelscope.cn/models/BAAI/bge-small-zh-v1.5/resolve/master/vocab.txt")
-        );
-
-        string modelPath = Path.Combine(targetDir, "model.onnx");
-        string vocabPath = Path.Combine(targetDir, "vocab.txt");
+        ModelDownloader.EnsureModel("BAAI/bge-small-zh-v1.5");
+        string modelDir = $"{ModelDownloader.ModelScopeCachePath}/BAAI/bge-small-zh-v1___5";
+        string modelPath = $"{modelDir}/model.onnx";
+        string vocabPath = $"{modelDir}/vocab.txt";
 
         if (!File.Exists(modelPath))
-            throw new FileNotFoundException($"找不到嵌入模型，请将 model.onnx 放置到：{modelPath}");
+            throw new FileNotFoundException($"找不到嵌入模型：{modelPath}");
         if (!File.Exists(vocabPath))
-            throw new FileNotFoundException($"找不到词表文件，请将 vocab.txt 放置到：{vocabPath}");
+            throw new FileNotFoundException($"找不到词表文件：{vocabPath}");
 
         IKernelBuilder builder = Kernel.CreateBuilder();
         builder.AddBertOnnxEmbeddingGenerator(modelPath, vocabPath);

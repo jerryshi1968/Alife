@@ -179,7 +179,7 @@ public class VisionService : Plugin, IAsyncDisposable
         _initialized = true;
 
         // 使用统一的环境库获取模型路径
-        string modelsDir = AlifePath.ModelsFolderPath;
+        string modelsDir = ModelDownloader.ModelScopeCachePath;
         string modelPath = Path.Combine(modelsDir, "InternVL2_5-1B");
 
         await _analyzer.InitAsync(modelPath: modelPath, timeoutSeconds: 300, onLog: msg => Console.Write(msg));

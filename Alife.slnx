@@ -13,7 +13,6 @@
   </Folder>
   <Folder Name="/Sources/Basic/">
     <Project Path="Sources/Basic/Alife.Basic/Alife.Basic.csproj" />
-    <Project Path="Sources/Basic/Alife.Basic.Downloader/Alife.Basic.Downloader.csproj" />
   </Folder>
   <Folder Name="/Sources/Framework/">
     <Project Path="Sources/Framework/Alife.Framework/Alife.Framework.csproj" />

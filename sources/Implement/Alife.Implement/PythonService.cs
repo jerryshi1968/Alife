@@ -25,8 +25,8 @@ public class PythonService : Plugin
 
         string filePath = storageSystem.GetTempPath("pythonScript.py");
         await File.WriteAllTextAsync(filePath, context.FullContent);
-        ProcessStartInfo startInfo = new ProcessStartInfo {
-            FileName = AlifePython.ExecutablePath,
+        ProcessStartInfo startInfo = new() {
+            FileName = "python",
             Arguments = filePath,
             UseShellExecute = false,
             RedirectStandardOutput = true,
@@ -67,6 +67,7 @@ public class PythonService : Plugin
 
     public PythonService(StorageSystem storageSystem, InterpreterService interpreterService)
     {
+        AlifeCommand.EnsureInitialized();
         this.storageSystem = storageSystem;
         interpreterService.RegisterHandler(this);
     }

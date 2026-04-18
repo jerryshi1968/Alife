@@ -26,26 +26,29 @@ public class SpeechRecognizer : IDisposable
     readonly VoiceActivityDetector vad;
     readonly WaveInEvent waveIn;
 
-    public SpeechRecognizer(string modelRootPath)
+    public SpeechRecognizer()
     {
+        string senseVoiceId = "iic/SenseVoiceSmall";
+        string vadId = "pengzhendong/silero-vad";
+
         // 自动自检并下载组件
-        ResourceDownloader.Ensure("语音识别与检测模型", modelRootPath,
-            ("sensevoice-small/model.int8.onnx", "https://modelscope.cn/models/iic/SenseVoiceSmall/resolve/master/model.int8.onnx"),
-            ("sensevoice-small/tokens.txt", "https://modelscope.cn/models/iic/SenseVoiceSmall/resolve/master/tokens.txt"),
-            ("silero-vad/silero_vad.onnx", "https://modelscope.cn/models/deepghs/silero-vad-onnx/resolve/master/silero_vad.onnx")
-        );
+        ModelDownloader.EnsureModel(senseVoiceId, "model.int8.onnx");
+        ModelDownloader.EnsureModel(vadId, "silero_vad.onnx");
+
+        string senseVoicePath = Path.Combine(ModelDownloader.ModelScopeCachePath, senseVoiceId.Replace('/', Path.DirectorySeparatorChar));
+        string vadPath = Path.Combine(ModelDownloader.ModelScopeCachePath, vadId.Replace('/', Path.DirectorySeparatorChar));
 
         OfflineRecognizerConfig config = new();
-        config.ModelConfig.SenseVoice.Model = Path.Combine(modelRootPath, "sensevoice-small", "model.int8.onnx");
+        config.ModelConfig.SenseVoice.Model = Path.Combine(senseVoicePath, "model.int8.onnx");
         config.ModelConfig.SenseVoice.Language = "zh";
         config.ModelConfig.SenseVoice.UseInverseTextNormalization = 1;
-        config.ModelConfig.Tokens = Path.Combine(modelRootPath, "sensevoice-small", "tokens.txt");
+        config.ModelConfig.Tokens = Path.Combine(senseVoicePath, "tokens.txt");
         config.ModelConfig.NumThreads = 1;
         config.ModelConfig.Debug = 0;
         recognizer = new OfflineRecognizer(config);
 
         VadModelConfig vadConfig = new();
-        vadConfig.SileroVad.Model = Path.Combine(modelRootPath, "silero-vad", "silero_vad.onnx");
+        vadConfig.SileroVad.Model = Path.Combine(vadPath, "silero_vad.onnx");
         vadConfig.SileroVad.Threshold = 0.5f;
         vadConfig.SileroVad.MinSilenceDuration = 0.5f;
         vadConfig.SileroVad.MinSpeechDuration = 0.25f;

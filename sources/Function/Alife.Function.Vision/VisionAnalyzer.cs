@@ -38,18 +38,16 @@ public class VisionAnalyzer : IDisposable
     {
         if (_ready) return;
 
-        // 自动自检并下载组件
-        if (!string.IsNullOrEmpty(modelPath))
+        string modelId = "OpenGVLab/InternVL2_5-1B";
+
+        // 如果未指定路径，则直接使用 ModelScope 默认缓存路径
+        if (string.IsNullOrEmpty(modelPath))
         {
-            ResourceDownloader.Ensure("视觉大模型 (InternVL2.5)", modelPath,
-                ("config.json", "https://modelscope.cn/models/OpenGVLab/InternVL2_5-1B/resolve/master/config.json"),
-                ("generation_config.json", "https://modelscope.cn/models/OpenGVLab/InternVL2_5-1B/resolve/master/generation_config.json"),
-                ("model.safetensors", "https://modelscope.cn/models/OpenGVLab/InternVL2_5-1B/resolve/master/model.safetensors"),
-                ("tokenizer.json", "https://modelscope.cn/models/OpenGVLab/InternVL2_5-1B/resolve/master/tokenizer.json"),
-                ("tokenizer_config.json", "https://modelscope.cn/models/OpenGVLab/InternVL2_5-1B/resolve/master/tokenizer_config.json"),
-                ("preprocessor_config.json", "https://modelscope.cn/models/OpenGVLab/InternVL2_5-1B/resolve/master/preprocessor_config.json")
-            );
+            modelPath = Path.Combine(ModelDownloader.ModelScopeCachePath, modelId.Replace('/', Path.DirectorySeparatorChar));
         }
+
+        // 自动自检并下载组件
+        ModelDownloader.EnsureModel(modelId);
 
         string script = scriptPath
                         ?? Path.Combine(AppContext.BaseDirectory, "qwen_vision_bridge.py");
@@ -64,7 +62,7 @@ public class VisionAnalyzer : IDisposable
         }
 
         var psi = new ProcessStartInfo {
-            FileName = AlifePython.ExecutablePath,
+            FileName = "python",
             Arguments = arguments,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,

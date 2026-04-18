@@ -105,7 +105,7 @@ public class SpeechService : Plugin, IAsyncDisposable
         interpreterService.RegisterHandler(this);
 
         //创建识别器
-        recognizer = new SpeechRecognizer(AlifePath.ModelsFolderPath);
+        recognizer = new SpeechRecognizer();
         recognizer.Recognized += OnRecognized;
 
         //创建合成器

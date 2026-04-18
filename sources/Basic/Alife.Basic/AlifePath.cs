@@ -2,8 +2,7 @@ namespace Alife.Basic;
 
 public static class AlifePath
 {
-    public static string ResourcesPath { get; private set; }
-    public static string ModelsFolderPath { get; private set; }
+    public static string ResourcesPath { get; }
     public static string StorageFolderPath { get; private set; }
     public static string OutputsFolderPath { get; private set; }
     public static string TempFolderPath { get; private set; }
@@ -21,7 +20,6 @@ public static class AlifePath
             }
 
             ResourcesPath = Path.Combine(current, "Resources");
-            ModelsFolderPath = Path.Combine(ResourcesPath, "Models").Replace(Path.DirectorySeparatorChar, '/');
             OutputsFolderPath = Path.Combine(current, "Outputs").Replace(Path.DirectorySeparatorChar, '/');
         }
 
