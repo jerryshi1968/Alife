@@ -31,6 +31,15 @@ public abstract record OneBotBaseEvent
     public long SelfId { get; init; }
 }
 
+public record OneBotSender
+{
+    [JsonPropertyName("nickname")]
+    public string Nickname { get; init; } = "";
+
+    [JsonPropertyName("card")]
+    public string Card { get; init; } = "";
+}
+
 public record OneBotMessageEvent : OneBotBaseEvent
 {
     [JsonPropertyName("message_type")]
@@ -41,6 +50,12 @@ public record OneBotMessageEvent : OneBotBaseEvent
 
     [JsonPropertyName("group_id")]
     public long GroupId { get; init; }
+
+    [JsonPropertyName("group_name")]
+    public string? GroupName { get; init; }
+
+    [JsonPropertyName("sender")]
+    public OneBotSender? Sender { get; init; }
 
     [JsonPropertyName("message")]
     public object? Message { get; init; }

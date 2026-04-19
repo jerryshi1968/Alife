@@ -31,8 +31,7 @@ public class QChatService : Plugin, IAsyncDisposable, IConfigurable<QChatConfig>
 
         if (type == OneBotMessageType.Group)
         {
-            if (isGroupEnabled == false)
-                QGroupSwitch(true);
+            OnAIGroupActivity();
             await oneBotClient.SendGroupMessage(target, content);
         }
         else
@@ -84,7 +83,10 @@ public class QChatService : Plugin, IAsyncDisposable, IConfigurable<QChatConfig>
         }
 
         if (type == OneBotMessageType.Group)
+        {
+            OnAIGroupActivity();
             await oneBotClient.SendGroupImage(target, file);
+        }
         else
             await oneBotClient.SendPrivateImage(target, file);
     }
@@ -99,7 +101,10 @@ public class QChatService : Plugin, IAsyncDisposable, IConfigurable<QChatConfig>
 
         string fileName = Path.GetFileName(file);
         if (type == OneBotMessageType.Group)
+        {
+             OnAIGroupActivity();
             await oneBotClient.UploadGroupFile(target, file, fileName);
+        }
         else
             await oneBotClient.UploadPrivateFile(target, file, fileName);
     }
@@ -129,6 +134,7 @@ public class QChatService : Plugin, IAsyncDisposable, IConfigurable<QChatConfig>
     QChatConfig config = null!;
     ChatActivity chatActivity = null!;
     readonly Dictionary<long, StringBuilder> groupBuffers = new();
+    DateTime lastGroupActivityTime;
     bool isGroupEnabled;
 
     public QChatService(InterpreterService interpreterService)
@@ -200,6 +206,14 @@ public class QChatService : Plugin, IAsyncDisposable, IConfigurable<QChatConfig>
             while (true)
             {
                 await Task.Delay(10000);
+
+                // 自动关闭检查：如果群监听开启且超过 5 分钟没有 AI 活动
+                if (isGroupEnabled && DateTime.Now - lastGroupActivityTime > TimeSpan.FromMinutes(3))
+                {
+                    QGroupSwitch(false);
+                    chatActivity.ChatBot.Poke("由于长时间没有发言，群聊消息监听已关闭。");
+                }
+
                 Dictionary<long, string> batches = new();
                 lock (groupBuffers)
                 {
@@ -243,7 +257,15 @@ public class QChatService : Plugin, IAsyncDisposable, IConfigurable<QChatConfig>
         }
         else
         {
-            string tag = msg.MessageType == OneBotMessageType.Group ? $"[群聊 {msg.GroupId}, 发言人 {msg.UserId}]" : $"[私聊 {msg.UserId}]";
+            string groupLabel = !string.IsNullOrEmpty(msg.GroupName) ? $"{msg.GroupName}({msg.GroupId})" : msg.GroupId.ToString();
+            string senderName = msg.Sender != null 
+                ? (!string.IsNullOrEmpty(msg.Sender.Card) ? msg.Sender.Card : msg.Sender.Nickname) 
+                : msg.UserId.ToString();
+
+            string tag = msg.MessageType == OneBotMessageType.Group 
+                ? $"[群聊 {groupLabel}, 发言人 {senderName}({msg.UserId})]" 
+                : $"[私聊 {senderName}({msg.UserId})]";
+
             string formatted = $"{tag} {message}";
 
             if (msg.MessageType == OneBotMessageType.Private && msg.UserId == config.OwnerId)
@@ -293,6 +315,13 @@ public class QChatService : Plugin, IAsyncDisposable, IConfigurable<QChatConfig>
                                           $"已保存到: {info.Path}");
             }
         }
+    }
+
+    void OnAIGroupActivity()
+    {
+        lastGroupActivityTime = DateTime.Now;
+        if (isGroupEnabled == false)
+            QGroupSwitch(true);
     }
 
     void QGroupSwitch(bool enabled)
