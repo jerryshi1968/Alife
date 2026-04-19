@@ -6,7 +6,7 @@ html {
     height: 100%;
     overflow: hidden;
     /* 使用极低不透明度背景确保能捕获鼠标事件 */
-    background-color: rgba(0, 0, 0, 0.01);
+    background-color: rgba(0, 0, 0, 0.0001);
 }
 
 #canvas {
