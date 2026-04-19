@@ -45,6 +45,10 @@ public class PythonService : Plugin
             else
                 throw new Exception(await errorTask);
         }
+        catch (OperationCanceledException)
+        {
+            throw new TimeoutException("脚本执行堵塞或超时（注意不要写需要交互的代码，如果需要展示结果等可以单独创建一个进程）");
+        }
         finally
         {
             if (process.HasExited == false)

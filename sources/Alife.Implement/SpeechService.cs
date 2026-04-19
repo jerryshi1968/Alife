@@ -127,7 +127,8 @@ public class SpeechService : Plugin, IAsyncDisposable
         chatBot = chatActivity.ChatBot;
 
         //打开语音识别
-        Recognizer.Start();
+        if (Recognizer.IsRecognizing == false)
+            Recognizer.Start();
         //后续根据耳机情况自动开关语音识别
         autoRecognizerSwitchCancellation = new CancellationTokenSource();
         AutoRecognizerSwitch(autoRecognizerSwitchCancellation.Token);

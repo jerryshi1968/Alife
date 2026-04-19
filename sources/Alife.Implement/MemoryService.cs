@@ -153,10 +153,15 @@ public class MemoryService : Plugin, IConfigurable<MemoryConfig>
             history.AddMessage(AuthorRole.User,
                 $"""
                  [{nameof(MemoryService)}] 触发上下文压缩了，压缩内容如下：
+
                  ```
                  {text}
                  ```
-                 现在请直接开始概述上述内容描述的事情（注意不要混淆其他聊天记录，仅需描述上述包裹的内容即可）。
+
+                 压缩要点：
+                 1. 不要混淆其他聊天记录，仅需描述上述包裹的内容即可。
+                 2. 注意学会反复记忆关键性的内容，以形成核心记忆。
+                 现在请直接开始概述上述内容描述的事情。
                  """);
             ChatMessageContent content = await chatCompletionService.GetChatMessageContentAsync(history);
             history.RemoveAt(history.Count - 1);

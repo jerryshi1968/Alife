@@ -112,7 +112,7 @@ public class EventService : Plugin, IConfigurable<EventServiceData>
         }
 
         timeTask[0].Item2 = () => {
-            chatBot.Poke($"[{nameof(EventService)}]系统报点：由Timer触发的自动报时。（你可以借此自由活动，比如找主人玩，看看屏幕等等）\n({configuration.AppendUpdatePrompt})");
+            chatBot.Poke($"[{nameof(EventService)}]系统报点：由Timer触发的自动报时。（你可以借此自由活动，比如继续刚刚的话题、看新闻学知识、偷窥主人屏幕、找人聊天讨论玩耍等，自由做你想做的事）\n({configuration.AppendUpdatePrompt})");
             continuousTimerCount++;
             SetTimer(null); //自动进入下一次报点
         };

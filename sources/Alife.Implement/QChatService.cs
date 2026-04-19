@@ -250,7 +250,7 @@ public class QChatService : Plugin, IAsyncDisposable, IConfigurable<QChatConfig>
             {
                 // 被 @ 时激活群聊
                 bool isAtMe = OneBotSegment.IsAt(message, oneBotClient.BotId);
-                if (isAtMe)
+                if (isAtMe && isGroupEnabled == false)
                 {
                     QGroupSwitch(true);
                     chatActivity.ChatBot.Poke("由 @ 引发的群聊消息监听已开启");
