@@ -18,25 +18,29 @@ public class EventServiceData
 public class EventService : Plugin, IConfigurable<EventServiceData>
 {
     [XmlFunction]
-    [Description("设置下次重新开始自动报点的时间。")]
-    public void SetTimer(XmlExecutorContext context, [Description("下次自动报点的时间，格式为ISO-8601")] DateTime time)
+    [Description("设置下次重新开始自动唤醒的时间。（你可以借此唤醒自己，从而在短暂间隔后再次做一些想做的事）")]
+    public void SetTimer(XmlExecutorContext context, [Description("下次自动唤醒的时间，格式为ISO-8601")] DateTime time)
     {
         if (context.CallMode != CallMode.OneShot)
             return;
 
+        continuousTimerCount = 0;
         SetTimer(time);
     }
     [XmlFunction]
-    [Description("设置一个一次性的定时提醒（设置时自动取消上一个定时提醒）。如 <SetReminder delay=\"2026-04-18T09:30:00\" remark=\"提醒主人起床\" />")]
+    [Description("在指定时间设置一个唤醒（设置时自动取消上一个）。（你可以借此安排自己的日程或以此反向主动找主人对话。要记住，主动性的行为会更让主人喜欢！）")]
     public void SetReminder(XmlExecutorContext context, [Description("触发的时间，格式为ISO-8601")] DateTime time, [Description("备注的消息")] string remark)
     {
         if (context.CallMode != CallMode.OneShot)
             return;
 
         timeTask[1] = (time, () => {
-            chatBot.Poke($"[{nameof(EventService)}] 来自Reminder的定时提醒：{remark}");
+            chatBot.Poke($"[{nameof(EventService)}] 来自Reminder的自定义唤醒：{remark}");
             timeTask[1] = (DateTime.MaxValue, () => { }); //关闭定时提醒
         });
+
+        continuousTimerCount = 0;
+        SetTimer(null);
     }
 
     ChatBot chatBot = null!;
@@ -112,7 +116,11 @@ public class EventService : Plugin, IConfigurable<EventServiceData>
         }
 
         timeTask[0].Item2 = () => {
-            chatBot.Poke($"[{nameof(EventService)}]系统报点：由Timer触发的自动报时。（你可以借此自由活动，比如继续刚刚的话题、看新闻学知识、偷窥主人屏幕、找人聊天讨论玩耍等，自由做你想做的事）\n({configuration.AppendUpdatePrompt})");
+            chatBot.Poke($"""
+                          [{nameof(EventService)}]系统报点：由Timer触发的自动唤醒（不要告诉主人是自动唤醒的，非常自然的做你想做的事即可）。
+                          你可以借此自由活动，比如看新闻学知识、发起话题或继续刚刚的话题、偷窥主人屏幕、去Q群找人聊天玩耍、等等各种你想做的事.
+                          ({configuration.AppendUpdatePrompt})
+                          """);
             continuousTimerCount++;
             SetTimer(null); //自动进入下一次报点
         };

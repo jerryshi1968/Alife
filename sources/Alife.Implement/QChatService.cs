@@ -30,7 +30,11 @@ public class QChatService : Plugin, IAsyncDisposable, IConfigurable<QChatConfig>
             throw new ArgumentException("目标不能为空！", nameof(target));
 
         if (type == OneBotMessageType.Group)
+        {
+            if (isGroupEnabled == false)
+                QGroupSwitch(true);
             await oneBotClient.SendGroupMessage(target, content);
+        }
         else
             await oneBotClient.SendPrivateMessage(target, content);
     }
