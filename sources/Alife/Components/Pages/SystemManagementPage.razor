@@ -12,9 +12,6 @@
 <div style="height: calc(100vh - 24px); margin: 12px; overflow: hidden; display: flex; flex-direction: column; background: #fff; border-radius: 8px; border: 1px solid #f0f0f0; animation: fadeIn 0.5s ease-out;">
     <div style="padding: 16px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
         <Title Level="3" Style="margin: 0;">系统管理中心</Title>
-        <Space>
-            <Button Icon="@IconType.Outline.Save" OnClick="OnGlobalSave">保存全部数据</Button>
-        </Space>
     </div>
 
     <div style="flex: 1; overflow: hidden;">
@@ -96,6 +93,12 @@
 </Modal>
 
 <style>
+    .ant-tabs-content-holder,
+    .ant-tabs-content,
+    .ant-tabs-tabpane {
+        height: 100%;
+    }
+
     .character-card-new {
         border: 2px dashed #f0f0f0 !important;
         background: transparent !important;
@@ -143,13 +146,6 @@
             CharacterSystem.DeleteCharacter(character);
             _ = NotificationService.Success(new NotificationConfig { Message = $"角色 [{character.Name}] 已删除喵。" });
         }
-    }
-
-    void OnGlobalSave()
-    {
-        CharacterSystem.SaveCharacters();
-        PluginSystem.SaveData();
-        _ = NotificationService.Success(new NotificationConfig { Message = "已成功保存所有配置喵！" });
     }
 
     public void Dispose()

@@ -51,7 +51,7 @@ else
                 </div>
             </div>
 
-            <div style="flex: 1; padding: 12px 0;">
+            <div style="flex: 1; padding: 12px 0; overflow-y: auto; overflow-x: hidden;">
                 <Menu Mode="@AntDesign.MenuMode.Inline" SelectedKeys="@(new[] { activeTab })" Style="background: transparent;">
                     <MenuItem Key="info" OnClick="@(() => activeTab = "info")">
                         <Icon Type="@IconType.Outline.Dashboard" />
@@ -130,7 +130,7 @@ else
                                     
                                     <Title Level="5">大脑插件 (Plugins)</Title>
                                     <Alert Message="提示" Description="角色运行时无法修改插件喵。" Type="@AlertType.Info" ShowIcon="true" Style="@($"margin-bottom: 12px; display: {(activity != null ? "block" : "none")}")" />
-                                    <div id="character-plugin-tree" style="border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; background: @(activity != null ? "#fafafa" : "#fff")">
+                                    <div id="character-plugin-tree" style="max-height: 400px; overflow-y: auto; border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; background: @(activity != null ? "#fafafa" : "#fff")">
                                         <StringFolderSelectorUI
                                             Context="@(PluginSystem.GetPluginFolder())"
                                             ItemTitleFilter="@(fullName => GetPluginName(fullName))"
@@ -138,6 +138,12 @@ else
                                             IsCheckingChanged="OnPluginCheckingChanged">
                                         </StringFolderSelectorUI>
                                     </div>
+                                    @if(activity == null) 
+                                    {
+                                        <div style="margin-top: 24px; text-align: right;">
+                                            <Button Type="@AntDesign.ButtonType.Primary" Size="@AntDesign.ButtonSize.Large" Icon="@IconType.Outline.Save" OnClick="SaveSettings">保存变更</Button>
+                                        </div>
+                                    }
                                 </Card>
                             </GridCol>
                         </GridRow>
@@ -363,16 +369,20 @@ else
         LoadData();
     }
 
+    void SaveSettings()
+    {
+        if (character == null || activity != null) return;
+        
+        character.Plugins = pluginIDs
+            .Select(PluginSystem.GetPlugin)
+            .Where(p => p != null)
+            .ToHashSet()!;
+        CharacterSystem.SaveCharacter(character);
+        
+        _ = NotificationService.Success(new NotificationConfig { Message = "角色配置已成功保存！" });
+    }
+
     public void Dispose()
     {
-        if (character != null && activity == null)
-        {
-            // 同步插件状态
-            character.Plugins = pluginIDs
-                .Select(PluginSystem.GetPlugin)
-                .Where(p => p != null)
-                .ToHashSet()!;
-            CharacterSystem.SaveCharacter(character);
-        }
     }
 }
