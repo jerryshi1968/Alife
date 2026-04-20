@@ -2,72 +2,78 @@
 @implements IDisposable
 @inject IJSRuntime JsRuntime
 
-<Modal Title="对话窗口"
-       Visible="Visible"
-       VisibleChanged="OnVisibleChanged"
-       MaxBodyHeight="90vh"
-       BodyStyle="display:flex;flex-direction:column;gap:12px"
-       Footer="null"
-       MaskClosable="false"
-       DefaultMaximized="true">
-    <Flex Style="height: 100%;width: 100%; flex: 1; overflow-y: scroll; "
-          Direction="FlexDirection.Vertical"
-          Gap="@(FlexGap.Small)"
-          Id="messageArea">
+<Flex Style="height: 100%; width: 100%; display: flex; flex-direction: column; overflow: hidden;"
+      Direction="@AntDesign.FlexDirection.Vertical">
+    
+    <!-- 顶部操作栏 -->
+    <Flex Justify="@AntDesign.FlexJustify.End" Style="padding: 8px 16px; background: rgba(0,0,0,0.02); border-bottom: 1px solid #f0f0f0;">
+        <Button Icon="@IconType.Outline.Clear" 
+                Type="@AntDesign.ButtonType.Link" 
+                Danger 
+                OnClick="OnClear">清除对话</Button>
+    </Flex>
+
+    <!-- 消息区域 -->
+    <div style="flex: 1; overflow-y: auto; padding: 24px;" id="messageArea">
         @if (messages.Count == 0)
         {
-            <Empty>
-                <DescriptionTemplate>
-                    <Text>暂无聊天信息</Text>
-                </DescriptionTemplate>
-            </Empty>
+            <Empty Style="margin-top: 100px" Description="@("暂无聊天信息，开始对话吧喵！")" />
         }
         else
         {
             @foreach (ChatMessage message in messages)
             {
-                <div style="width: fit-content;@(message.isUser ? "align-self:end" : "")">
-                    <Alert
-                        Description="@message.content"
-                        Type=@(message.isUser ? AlertType.Info : AlertType.Success)>
-                        <ChildContent>
-                            <Flex Direction="FlexDirection.Vertical" Gap="FlexGap.Small">
-                                <AntDesign.Text Style="white-space: pre-wrap;">
-                                    @message.content
+                <div style="display: flex; margin-bottom: 16px; width: 100%; @(message.isUser ? "flex-direction: row-reverse" : "flex-direction: row")">
+                    <div class="chat-bubble @(message.isUser ? "chat-bubble-user" : "chat-bubble-ai")">
+                         <Flex Direction="@AntDesign.FlexDirection.Vertical" Gap="@("small")">
+                            <AntDesign.Text Style="white-space: pre-wrap; font-size: 15px;">
+                                @message.content
+                            </AntDesign.Text>
+                            @if (message.isInputting)
+                            {
+                                <AntDesign.Text Style="color: rgba(0,0,0,0.45); font-size: 12px">
+                                    输入中
+                                    <Icon Type="@IconType.Outline.Loading"/>
                                 </AntDesign.Text>
-                                @if (message.isInputting)
-                                {
-                                    <AntDesign.Text Disabled>
-                                        输入中
-                                        <Icon Type="@IconType.Outline.Loading"/>
-                                    </AntDesign.Text>
-                                }
-                            </Flex>
-                        </ChildContent>
-                    </Alert>
+                            }
+                        </Flex>
+                    </div>
                 </div>
             }
         }
-    </Flex>
-    <Flex Direction="FlexDirection.Horizontal" Gap="@(FlexGap.Small)">
-        <Input @bind-Value="inputText" OnPressEnter="OnSend"></Input>
-        <Button Type="@(ButtonType.Primary)" OnClick="OnSend">发送</Button>
-    </Flex>
-</Modal>
+    </div>
+
+    <!-- 输入区域 -->
+    <div style="padding: 16px; background: #fff; border-top: 1px solid #f0f0f0;">
+        <Flex Gap="@("small")" Align="@AntDesign.FlexAlign.End">
+            <TextArea @bind-Value="inputText" 
+                     Placeholder="输入消息... (Enter 发送)" 
+                     AutoSize="true"
+                     MinRows="1"
+                     MaxRows="6"
+                     OnPressEnter="OnSend" 
+                     Style="flex: 1; border-radius: 8px;"></TextArea>
+            <Button Type="@AntDesign.ButtonType.Primary" 
+                    Icon="@IconType.Outline.Send"
+                    OnClick="OnSend" 
+                    Style="height: 32px; border-radius: 8px;">发送</Button>
+        </Flex>
+    </div>
+</Flex>
 
 <script type="text/javascript">
     window.scrollMessageArea = () => {
-        setTimeout(() => {
-            element = document.getElementById("messageArea");
-            element.scrollTop = element.scrollHeight;
-        }, 10);
+        const element = document.getElementById("messageArea");
+        if (element) {
+            setTimeout(() => {
+                element.scrollTop = element.scrollHeight;
+            }, 10);
+        }
     }
 </script>
 
 @code {
     [Parameter] public ChatBot ChatBot { get; set; } = null!;
-    [Parameter] public bool Visible { get; set; }
-    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
 
     public class ChatMessage
     {
@@ -76,20 +82,18 @@
         public bool isInputting;
     }
 
-    List<ChatMessage> messages = null!;
+    List<ChatMessage> messages = new();
     string inputText = "";
     ChatMessage? aiMessage;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-
-        messages = new List<ChatMessage>();
-
         ChatBot.ChatSent += OnChatSent;
         ChatBot.ChatReceived += OnChatReceived;
         ChatBot.ChatOver += OnChatOver;
     }
+
     public void Dispose()
     {
         ChatBot.ChatSent -= OnChatSent;
@@ -114,41 +118,33 @@
             JsRuntime.InvokeVoidAsync("scrollMessageArea");
         });
     }
+
     void OnChatReceived(string obj)
     {
-        if (aiMessage == null)
-            return;
-
+        if (aiMessage == null) return;
         aiMessage.content += obj;
-        InvokeAsync(() => {
-            StateHasChanged();
-        });
+        InvokeAsync(StateHasChanged);
     }
+
     void OnChatOver()
     {
-        if (aiMessage == null)
-            return;
-
+        if (aiMessage == null) return;
         aiMessage.isInputting = false;
-        InvokeAsync(() => {
-            StateHasChanged();
-        });
+        InvokeAsync(StateHasChanged);
     }
 
-    void OnVisibleChanged(bool obj)
+    void OnClear()
     {
-        Visible = obj;
-        VisibleChanged.InvokeAsync(obj);
+        messages.Clear();
+        aiMessage = null;
+        StateHasChanged();
     }
 
     void OnSend()
     {
         string text = inputText;
         inputText = "";
-
-        if (string.IsNullOrWhiteSpace(text))
-            return;
-
+        if (string.IsNullOrWhiteSpace(text)) return;
         ChatBot.Chat(text);
     }
 }

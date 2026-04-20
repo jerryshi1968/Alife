@@ -1,0 +1,138 @@
+@page "/system"
+@using Alife.Components.Elements.Plugin.Manager
+@using Alife.Components.Elements.Utility
+@inject CharacterSystem CharacterSystem
+@inject PluginSystem PluginSystem
+@inject ChatActivitySystem ChatActivitySystem
+@inject INotificationService NotificationService
+@implements IDisposable
+
+<div style="height: calc(100vh - 24px); margin: 12px; overflow: hidden; display: flex; flex-direction: column; background: #fff; border-radius: 8px; border: 1px solid #f0f0f0;">
+    <div style="padding: 16px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
+        <Title Level="3" Style="margin: 0;">系统管理中心</Title>
+        <Space>
+            <Button Icon="@IconType.Outline.Save" OnClick="OnGlobalSave">保存全部数据</Button>
+        </Space>
+    </div>
+
+    <div style="flex: 1; overflow: hidden;">
+        <Tabs DefaultActiveKey="1" TabPosition="@AntDesign.TabPosition.Left" Style="height: 100%;">
+            <TabPane Key="1">
+                <TabTemplate>
+                    <Flex Direction="@AntDesign.FlexDirection.Vertical" Align="@AntDesign.FlexAlign.Center" Gap="@("4")">
+                        <Icon Type="@IconType.Outline.Team" />
+                        <span style="font-size: 12px">角色列表</span>
+                    </Flex>
+                </TabTemplate>
+                <ChildContent>
+                    <div style="padding: 24px; height: 100%; overflow-y: auto; background: #fafafa;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                            <!-- 创建新角色 -->
+                            <Card Title="创建新角色" Class="character-card-new" Hoverable OnClick="@(() => isCreating = true)">
+                                <Flex Direction="@AntDesign.FlexDirection.Vertical" Align="@AntDesign.FlexAlign.Center" Justify="@AntDesign.FlexJustify.Center" Style="height: 120px; color: rgba(0,0,0,0.45)">
+                                    <Icon Type="@IconType.Outline.Plus" Style="font-size: 32px" />
+                                    <span style="margin-top: 8px">点此添加角色</span>
+                                </Flex>
+                            </Card>
+
+                            @foreach (var character in CharacterSystem.GetAllCharacters())
+                            {
+                                <CharacterUI Source="character" OnDelete="@(() => CharacterSystem.DeleteCharacter(character))" />
+                            }
+                        </div>
+                    </div>
+                </ChildContent>
+            </TabPane>
+
+            <TabPane Key="2">
+                <TabTemplate>
+                    <Flex Direction="@AntDesign.FlexDirection.Vertical" Align="@AntDesign.FlexAlign.Center" Gap="@("4")">
+                        <Icon Type="@IconType.Outline.AppstoreAdd" />
+                        <span style="font-size: 12px">插件中心</span>
+                    </Flex>
+                </TabTemplate>
+                <ChildContent>
+                    <div style="padding: 24px; height: 100%; overflow-y: auto; background: #fafafa;">
+                         <PluginFolderUI Context="@(PluginSystem.GetPluginFolder())"></PluginFolderUI>
+                    </div>
+                </ChildContent>
+            </TabPane>
+
+            <TabPane Key="3">
+                <TabTemplate>
+                    <Flex Direction="@AntDesign.FlexDirection.Vertical" Align="@AntDesign.FlexAlign.Center" Gap="@("4")">
+                        <Icon Type="@IconType.Outline.BarChart" />
+                        <span style="font-size: 12px">动态监测</span>
+                    </Flex>
+                </TabTemplate>
+                <ChildContent>
+                    <div style="padding: 24px; height: 100%; overflow-y: auto; background: #fafafa;">
+                        <Title Level="4">活跃活动</Title>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+                            @foreach (var chatActivity in ChatActivitySystem.GetAllChatActivities())
+                            {
+                                <ChatActivityUI Context="chatActivity"
+                                                Stopped="@(() => ChatActivitySystem.Stop(chatActivity.Character))"></ChatActivityUI>
+                            }
+                        </div>
+                    </div>
+                </ChildContent>
+            </TabPane>
+        </Tabs>
+    </div>
+</div>
+
+<Modal Title="创建新角色"
+       Visible="@isCreating"
+       OnOk="@OnConfirmCreate"
+       OnCancel="@(() => isCreating = false)">
+    <Text>请输入角色名称：</Text>
+    <Input @bind-Value="@newCharacterName" Placeholder="如：真央" />
+    <Text Type="@AntDesign.TextElementType.Secondary" Style="font-size: 12px; margin-top: 8px; display: block;">注意：非法字符将被自动替换，建议使用中文或英文。</Text>
+</Modal>
+
+<style>
+    .character-card-new {
+        border: 2px dashed #f0f0f0 !important;
+        background: transparent !important;
+    }
+    .character-card-new:hover {
+        border-color: #1890ff !important;
+        background: rgba(24, 144, 255, 0.05) !important;
+    }
+    .ant-tabs-left > .ant-tabs-nav .ant-tabs-tab {
+        padding: 16px 24px !important;
+        justify-content: center;
+        border-bottom: 1px solid #f0f0f0;
+    }
+</style>
+
+@code {
+    bool isCreating;
+    string newCharacterName = "";
+
+    protected override void OnInitialized()
+    {
+        CharacterSystem.OnChanged += StateHasChanged;
+    }
+
+    void OnConfirmCreate()
+    {
+        if (string.IsNullOrWhiteSpace(newCharacterName)) return;
+        CharacterSystem.CreateCharacter(newCharacterName);
+        isCreating = false;
+        newCharacterName = "";
+    }
+
+    void OnGlobalSave()
+    {
+        CharacterSystem.SaveCharacters();
+        PluginSystem.SaveData();
+        _ = NotificationService.Success(new NotificationConfig { Message = "已成功保存所有配置喵！" });
+    }
+
+    public void Dispose()
+    {
+        CharacterSystem.OnChanged -= StateHasChanged;
+    }
+}

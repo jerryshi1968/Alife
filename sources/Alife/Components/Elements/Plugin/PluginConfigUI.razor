@@ -1,0 +1,60 @@
+@using Newtonsoft.Json
+@using System.Reflection
+@inject ConfigurationSystem ConfigurationSystem
+
+<div style="display: flex; flex-direction: column; gap: 16px;">
+    @if (customUIType != null)
+    {
+        <DynamicComponent Type="customUIType" Parameters="customUIParameters"/>
+    }
+    else
+    {
+        <TextArea
+            Style="min-height: 200px; border-radius: 8px;"
+            @bind-Value="pluginConfiguration">
+        </TextArea>
+        <Flex Justify="@AntDesign.FlexJustify.End">
+            <Button Type="@AntDesign.ButtonType.Primary" OnClick="OnConfirm">保存配置</Button>
+        </Flex>
+    }
+</div>
+
+@code {
+    [Parameter] public Character Character { get; set; } = null!;
+    [Parameter] public Type PluginType { get; set; } = null!;
+
+    string pluginConfiguration = "{}";
+    Type? customUIType;
+    Dictionary<string, object> customUIParameters = new();
+
+    protected override void OnInitialized()
+    {
+        var attr = PluginType.GetCustomAttribute<PluginAttribute>();
+
+        if (attr?.ConfigurationUIType != null)
+        {
+            customUIType = attr.ConfigurationUIType;
+            customUIParameters = new Dictionary<string, object> {
+                { "PluginType", PluginType }
+            };
+        }
+        else
+        {
+            pluginConfiguration = ConfigurationSystem.GetConfigurationJson(PluginType)?.ToString(Formatting.Indented) ?? "{}";
+        }
+    }
+
+    void OnConfirm()
+    {
+        try 
+        {
+            Type type = ConfigurationSystem.GetConfigurationType(PluginType)!;
+            object configuration = JsonConvert.DeserializeObject(pluginConfiguration, type)!;
+            ConfigurationSystem.SetConfiguration(PluginType, configuration);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving plugin config: {ex.Message}");
+        }
+    }
+}

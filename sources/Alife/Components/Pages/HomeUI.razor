@@ -1,9 +1,42 @@
-﻿@page "/"
+@page "/"
 @inject CharacterSystem CharacterSystem
 @inject ChatActivitySystem ChatActivitySystem
+@inject PluginSystem PluginSystem
 @inject INotificationService NotificationService
 
-<Title Level="1">欢迎</Title>
+<div style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center;">
+    <Card Style="padding: 40px; max-width: 800px; width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05)">
+        <Avatar Size="@AntDesign.AvatarSize.Large" Icon="@IconType.Outline.Rocket" Style="background: #1890ff; margin-bottom: 32px;" />
+        <Title Level="1" Style="font-weight: 300; letter-spacing: 2px; margin-bottom: 16px;">欢迎回来喵！</Title>
+        <Text Type="@AntDesign.TextElementType.Secondary" Style="font-size: 18px; display: block; margin-bottom: 48px;">
+            Alife 已经为您准备就绪。在这里，您可以管理您的 AI 伙伴，编写 Prompt，并与他们进行深度对话。
+        </Text>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 48px;">
+            <div style="padding: 20px; background: #fafafa; border-radius: 12px;">
+                <Title Level="2" Style="margin: 0;">@CharacterSystem.GetAllCharacters().Count()</Title>
+                <Text Type="@AntDesign.TextElementType.Secondary">活跃角色</Text>
+            </div>
+            <div style="padding: 20px; background: #fafafa; border-radius: 12px;">
+                <Title Level="2" Style="margin: 0;">@ChatActivitySystem.GetAllChatActivities().Count()</Title>
+                <Text Type="@AntDesign.TextElementType.Secondary">在线运行</Text>
+            </div>
+            <div style="padding: 20px; background: #fafafa; border-radius: 12px;">
+                <Title Level="2" Style="margin: 0;">@PluginSystem.GetAllPlugins().Count()</Title>
+                <Text Type="@AntDesign.TextElementType.Secondary">已加载插件</Text>
+            </div>
+        </div>
+
+        <Flex Gap="@AntDesign.FlexGap.Large" Justify="@AntDesign.FlexJustify.Center">
+            <Button Type="@AntDesign.ButtonType.Primary" Size="@AntDesign.ButtonSize.Large" Icon="@IconType.Outline.Setting">
+                <NavLink href="system" style="color: inherit">进入系统中心</NavLink>
+            </Button>
+            <Button Size="@AntDesign.ButtonSize.Large" Icon="@IconType.Outline.Comment">
+                开始对话
+            </Button>
+        </Flex>
+    </Card>
+</div>
 
 @code
 {
@@ -16,13 +49,12 @@
         if (isFirstInitialized == false)
         {
             isFirstInitialized = true;
-
             await Task.Delay(500);
-            FirstInitialize();
+            await FirstInitialize();
         }
     }
 
-    async void FirstInitialize()
+    async Task FirstInitialize()
     {
         try
         {
@@ -32,22 +64,22 @@
                 {
                     try
                     {
-                        RenderFragment customIcon = @<Icon Type="@IconType.Outline.Smile" Style="color:#108ee9;"/>;
                         await ChatActivitySystem.Play(character);
-                        await NotificationService.Open(new NotificationConfig() {
-                            Message = $"{character.Name} 自启成功。",
-                            Icon = customIcon
+                        _ = NotificationService.Success(new NotificationConfig {
+                            Message = $"{character.Name} 自启成功喵！",
+                            Placement = AntDesign.NotificationPlacement.BottomRight
                         });
                     }
                     catch (Exception e)
                     {
-                        await NotificationService.Error(new NotificationConfig() {
+                        await NotificationService.Error(new NotificationConfig {
                             Message = $"{character.Name} 自启失败。",
-                            Description = e.ToString()
+                            Description = e.Message
                         });
                     }
                 }
             }
+            StateHasChanged();
         }
         catch (Exception e)
         {

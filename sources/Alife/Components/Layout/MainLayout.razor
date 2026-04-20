@@ -1,20 +1,20 @@
 @inherits LayoutComponentBase
+@using AntDesign
 
-<Layout Style="height: 100vh;width: 100vw">
-    <Sider>
-        <Header Style="padding: 0px 16px">
-            <Button Type="@(ButtonType.Primary)" Style="pointer-events: none" block ghost>
-                <div style="overflow:hidden; text-overflow: ellipsis">Alife</div>
-            </Button>
-        </Header>
-        <NavMenu/>
-    </Sider>
-    <Layout>
-        <Header Style="background:#e1e1e1">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </Header>
-        <Content Style="padding: 12px;">
-            @Body
-        </Content>
-    </Layout>
-</Layout>
+<div class="app-container">
+    <!-- 第一层 Sider: 全局主导航 -->
+    <div class="global-sidebar" style="width: 80px; flex-shrink: 0;">
+        <div style="margin-bottom: 32px; text-align: center;">
+            <Avatar Size="@AntDesign.AvatarSize.Large" Icon="@IconType.Outline.Rocket" Style="background: rgba(255,255,255,0.2)"/>
+        </div>
+        
+        <NavMenu />
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+        @Body
+    </div>
+</div>
+
+<AntContainer />
