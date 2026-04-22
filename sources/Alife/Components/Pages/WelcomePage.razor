@@ -45,19 +45,14 @@
         hasBootstrapped = true;
 
         _ = Task.Run(async () => {
-            // 给 UI 线程留出渲染第一帧的时间
-            await Task.Delay(100);
-
             var startingCharacters = CharacterSystem.GetAllCharacters()
                 .Where(c => c.AutoActivate && !ChatActivitySystem.IsActivated(c))
                 .ToList();
 
             if (startingCharacters.Any())
             {
-                await InvokeAsync(() => {
-                    isLoading = true;
-                    StateHasChanged();
-                });
+                isLoading = true;
+                await InvokeAsync(StateHasChanged);
 
                 foreach (var character in startingCharacters)
                 {
@@ -72,40 +67,24 @@
                     }
                     catch (Exception ex)
                     {
-                        await InvokeAsync(() => {
-                            startupErrors.Add((character.Name, ex));
-                            StateHasChanged();
-                        });
+                        startupErrors.Add((character.Name, ex));
+                        await InvokeAsync(StateHasChanged);
                     }
                 }
 
-                await InvokeAsync(() => {
-                    isLoading = false;
-                    
-                    // 如果没有错误，且有角色，自动进入系统
-                    if (!startupErrors.Any() && CharacterSystem.GetAllCharacters().Any())
-                    {
-                        Navigation.NavigateTo("/system", replace: true);
-                    }
-                    else
-                    {
-                        StateHasChanged();
-                    }
-                });
+                isLoading = false;
+                if (!startupErrors.Any())
+                {
+                    Navigation.NavigateTo("/system", replace: true);
+                }
+                else
+                {
+                    await InvokeAsync(StateHasChanged);
+                }
             }
-            else
+            else if (CharacterSystem.GetAllCharacters().Any())
             {
-                await InvokeAsync(() => {
-                    // 无自启角色，如果已经有角色了，直接跳到系统页，否则留在欢迎页（展示 WelcomeUI）
-                    if (CharacterSystem.GetAllCharacters().Any())
-                    {
-                        Navigation.NavigateTo("/system", replace: true);
-                    }
-                    else
-                    {
-                        StateHasChanged();
-                    }
-                });
+                Navigation.NavigateTo("/system", replace: true);
             }
         });
     }

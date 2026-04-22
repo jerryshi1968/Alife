@@ -1,4 +1,3 @@
-@using AntDesign
 @using Alife.Implement
 @inject CharacterSystem CharacterSystem
 @inject PluginSystem PluginSystem
@@ -17,9 +16,9 @@
             Alife 是一个致力于让 AI 走入真实桌面的开放框架。在这里，你可以创建性格迥异的数字生命，让它们协助你处理日常事务，甚至只是简单的陪伴。
         </Paragraph>
 
-        <Flex Gap="@AntDesign.FlexGap.Large" Align="@AntDesign.FlexAlign.Center" Justify="@AntDesign.FlexJustify.Center">
-            <Button Type="@AntDesign.ButtonType.Primary" 
-                    Size="@AntDesign.ButtonSize.Large" 
+        <Flex Gap="@FlexGap.Large" Align="@FlexAlign.Center" Justify="@FlexJustify.Center">
+            <Button Type="@ButtonType.Primary" 
+                    Size="@ButtonSize.Large" 
                     Icon="@IconType.Outline.Thunderbolt"
                     OnClick="@(() => isQuickSetupVisible = true)"
                     Style="height: 48px; border-radius: 24px; padding: 0 32px; font-weight: bold; box-shadow: 0 4px 12px rgba(24,144,255,0.3)">
@@ -31,9 +30,9 @@
             <Text Strong style="display: block; margin-bottom: 8px;">全局数据存储目录 (StorageFolderPath)</Text>
             <Flex Gap="@("small")">
                 <Input @bind-Value="storageFolderPath" Placeholder="默认为 我的文档\Alife 目录" Style="flex: 1;" />
-                <Button Type="@AntDesign.ButtonType.Default" OnClick="SaveStoragePath">保存修定</Button>
+                <Button Type="@ButtonType.Default" OnClick="SaveStoragePath">保存修定</Button>
             </Flex>
-            <Text Type="@AntDesign.TextElementType.Secondary" Style="font-size: 12px; margin-top: 8px; display: block;">提示：将其定位到 OneDrive / 坚果云等跨设备目录，即可实现多端无缝同步喵！(重启生效)</Text>
+            <Text Type="@TextElementType.Secondary" Style="font-size: 12px; margin-top: 8px; display: block;">提示：将其定位到 OneDrive / 坚果云等跨设备目录，即可实现多端无缝同步喵！(重启生效)</Text>
         </div>
 
         <div style="margin-top: 40px; color: rgba(0,0,0,0.25); font-size: 12px;">
@@ -65,13 +64,13 @@
 @code {
     bool isQuickSetupVisible;
     OpenAIChatServiceConfig quickConfig = new() { endpoint = "https://api.deepseek.com/v1", modelId = "deepseek-chat", apiKey = "" };
-    string storageFolderPath = Alife.Basic.AlifePath.StorageFolderPath;
+    string storageFolderPath = Basic.AlifePath.StorageFolderPath;
 
     void SaveStoragePath()
     {
         if (!string.IsNullOrWhiteSpace(storageFolderPath))
         {
-            Alife.Basic.AlifePath.SetStorageFolderPath(storageFolderPath);
+            Basic.AlifePath.SetStorageFolderPath(storageFolderPath);
             _ = NotificationService.Success(new NotificationConfig() { Message = "存储路径已保存！重启将启用新路径的数据喵~" });
         }
     }
@@ -81,7 +80,7 @@
         if (string.IsNullOrWhiteSpace(quickConfig.apiKey) || string.IsNullOrWhiteSpace(quickConfig.endpoint)) return;
         
         if (!string.IsNullOrWhiteSpace(storageFolderPath))
-            Alife.Basic.AlifePath.SetStorageFolderPath(storageFolderPath);
+            Basic.AlifePath.SetStorageFolderPath(storageFolderPath);
 
         // 覆盖保存全局组态
         ConfigurationSystem.SetConfiguration(typeof(OpenAIChatService), quickConfig);

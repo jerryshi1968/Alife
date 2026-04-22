@@ -1,0 +1,86 @@
+@namespace Alife.Implement
+@inherits Alife.Framework.PluginUIBase
+@using Alife.Framework
+@using AntDesign
+
+<div style="background: #fafafa; padding: 20px; border-radius: 12px; border: 1px solid #f0f0f0;">
+    <Flex Direction="FlexDirection.Vertical" Gap="@("20")">
+        <Title Level="4" Style="margin: 0;">时钟与定时任务监控</Title>
+        
+        @if (ChatActivity != null)
+        {
+            var service = ChatActivity.Plugins.OfType<EventService>().FirstOrDefault();
+            if (service != null)
+            {
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                    @foreach (var task in service.ActiveTasks)
+                    {
+                        var remaining = task.Time - DateTime.Now;
+                        var isFinished = remaining.TotalSeconds <= 0;
+                        var isPermanent = task.Time == DateTime.MaxValue;
+
+                        <Card Size="CardSize.Small" Style="border-radius: 8px; border: 1px solid #e8e8e8; background: #fff;">
+                            <Flex Justify="FlexJustify.SpaceBetween" Align="FlexAlign.Center">
+                                <div>
+                                    <Text Strong>@task.Name</Text>
+                                    <div style="margin-top: 4px;">
+                                        @if (isPermanent)
+                                        {
+                                            <Tag>待机中</Tag>
+                                        }
+                                        else if (isFinished)
+                                        {
+                                            <Tag Color="@("green")">即将触发...</Tag>
+                                        }
+                                        else
+                                        {
+                                            <Tag Color="@("blue")">@FormatRemaining(remaining)</Tag>
+                                        }
+                                    </div>
+                                </div>
+                                <Icon Type="@IconType.Outline.ClockCircle" Style="font-size: 20px; color: #bfbfbf;" />
+                            </Flex>
+                            <div style="margin-top: 12px; font-size: 12px; color: #8c8c8c;">
+                                设定时间: @(isPermanent ? "无" : task.Time.ToString("HH:mm:ss"))
+                            </div>
+                        </Card>
+                    }
+                </div>
+            }
+            else
+            {
+                <Alert Type="AlertType.Warning" Message="无法连接到运行中的事件服务喵！" ShowIcon="true" />
+            }
+        }
+        else
+        {
+            <div style="padding: 40px; text-align: center; background: #fff; border-radius: 8px;">
+                <Empty Description="@("启动后即可监控实时定时任务喵！")" />
+            </div>
+        }
+    </Flex>
+</div>
+
+@code {
+    private System.Timers.Timer? _refreshTimer;
+
+    protected override void OnInitialized()
+    {
+        _refreshTimer = new System.Timers.Timer(1000);
+        _refreshTimer.Elapsed += (s, e) => InvokeAsync(StateHasChanged);
+        _refreshTimer.Start();
+    }
+
+    private string FormatRemaining(TimeSpan ts)
+    {
+        if (ts.TotalHours >= 1) return $"{(int)ts.TotalHours}h {ts.Minutes}m";
+        if (ts.TotalMinutes >= 1) return $"{(int)ts.TotalMinutes}m {ts.Seconds}s";
+        return $"{(int)ts.TotalSeconds}s";
+    }
+
+    public void Dispose()
+    {
+        _refreshTimer?.Stop();
+        _refreshTimer?.Dispose();
+    }
+}

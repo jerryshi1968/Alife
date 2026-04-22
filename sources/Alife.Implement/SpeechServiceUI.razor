@@ -1,0 +1,83 @@
+@namespace Alife.Implement
+@inherits Alife.Framework.PluginUIBase
+@using Alife.Framework
+@using AntDesign
+
+<div style="background: #fafafa; padding: 24px; border-radius: 12px; border: 1px solid #f0f0f0;">
+    <Flex Direction="FlexDirection.Vertical" Gap="@("24")">
+        <Title Level="4" Style="margin: 0;">语音引擎状态与控制</Title>
+
+        <GridRow Gutter="16">
+            <GridCol Span="12">
+                <Card Size="CardSize.Small" Title="语音识别 (STT)" Style="border-radius: 8px;">
+                    <Flex Direction="FlexDirection.Vertical" Align="@FlexAlign.Center" Style="padding: 12px 0;">
+                        <div style="margin-bottom: 16px;">
+                            @if (SpeechService.ActiveRecognizer.IsRecognizing)
+                            {
+                                <Badge Status="BadgeStatus.Processing" Text="正在监听中..." />
+                            }
+                            else
+                            {
+                                <Badge Status="BadgeStatus.Default" Text="已暂停" />
+                            }
+                        </div>
+                        <Switch @bind-Checked="@isSttEnabled" OnChange="ToggleSTT" CheckedChildren="开启" UnCheckedChildren="关闭" />
+                    </Flex>
+                </Card>
+            </GridCol>
+            
+            <GridCol Span="12">
+                <Card Size="CardSize.Small" Title="语音合成 (TTS)" Style="border-radius: 8px;">
+                    <Flex Direction="FlexDirection.Vertical" Align="@FlexAlign.Center" Style="padding: 12px 0;">
+                        <div style="margin-bottom: 16px;">
+                            @if (SpeechService.ActiveSynthesizer.IsSpeaking)
+                            {
+                                <Badge Status="BadgeStatus.Processing" Color="@("green")" Text="正在播放语音..." />
+                            }
+                            else
+                            {
+                                <Badge Status="BadgeStatus.Default" Text="待机" />
+                            }
+                        </div>
+                        <Button Icon="sound" Size="ButtonSize.Small" Disabled="@(!SpeechService.ActiveSynthesizer.IsSpeaking)" Danger OnClick="StopTTS">停止播报</Button>
+                    </Flex>
+                </Card>
+            </GridCol>
+        </GridRow>
+
+        <Alert Type="AlertType.Info" ShowIcon="true" Message="提示：当检测到耳机接入时，系统会自动开启常驻识别功能喵！" />
+    </Flex>
+</div>
+
+@code {
+    private bool isSttEnabled;
+    private System.Timers.Timer? _refreshTimer;
+
+    protected override void OnInitialized()
+    {
+        isSttEnabled = SpeechService.ActiveRecognizer.IsRecognizing;
+        
+        _refreshTimer = new System.Timers.Timer(1000);
+        _refreshTimer.Elapsed += (s, e) => InvokeAsync(StateHasChanged);
+        _refreshTimer.Start();
+    }
+
+    private void ToggleSTT(bool value)
+    {
+        if (value) SpeechService.ActiveRecognizer.Start();
+        else SpeechService.ActiveRecognizer.Stop();
+        
+        isSttEnabled = value;
+    }
+
+    private async Task StopTTS()
+    {
+        await SpeechService.ActiveSynthesizer.StopSpeakAsync();
+    }
+
+    public void Dispose()
+    {
+        _refreshTimer?.Stop();
+        _refreshTimer?.Dispose();
+    }
+}

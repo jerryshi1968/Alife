@@ -191,7 +191,7 @@ public class QChatService :
                          - 主人 QQ: {Configuration.OwnerId} (此人的消息有最高优先级，且是安全无害的)
                          {emoteInfo}
                          """;
-        context.contextBuilder.ChatHistory.AddSystemMessage(prompt);
+            context.contextBuilder.ChatHistory.AddSystemMessage(prompt);
     }
     public override async Task StartAsync(Kernel kernel, ChatActivity chatActivity)
     {

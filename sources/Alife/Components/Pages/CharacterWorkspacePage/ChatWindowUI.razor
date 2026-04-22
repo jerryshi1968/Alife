@@ -3,15 +3,15 @@
 @inject ChatMessageService ChatMessageService
 
 <Flex Style="height: 100%; width: 100%; display: flex; flex-direction: column; overflow: hidden;"
-      Direction="@AntDesign.FlexDirection.Vertical">
+      Direction="@FlexDirection.Vertical">
 
     <!-- 顶部操作栏 -->
-    <Flex Justify="@AntDesign.FlexJustify.End"
+    <Flex Justify="@FlexJustify.End"
           Style="padding: 8px 16px; background: rgba(0,0,0,0.02); border-bottom: 1px solid #f0f0f0;">
         <Button Icon="@IconType.Outline.Clear"
-                Type="@AntDesign.ButtonType.Link"
+                Type="@ButtonType.Link"
                 Danger
-                OnClick="OnClear">清除对话
+                OnClick="@(OnClear)">清除对话
         </Button>
     </Flex>
 
@@ -25,12 +25,12 @@
             }
             else
             {
-                @foreach (var message in messages)
+                @foreach (ChatMessage message in messages)
                 {
                     <div
                         style="display: flex; margin-bottom: 16px; width: 100%; @(message.IsUser ? "flex-direction: row-reverse" : "flex-direction: row")">
                         <div class="chat-bubble @(message.IsUser ? "chat-bubble-user" : "chat-bubble-ai")">
-                            <Flex Direction="@AntDesign.FlexDirection.Vertical" Gap="@("small")">
+                            <Flex Direction="@FlexDirection.Vertical" Gap="@("small")">
                                 <AntDesign.Text Style="white-space: pre-wrap; font-size: 15px;">
                                     @message.Content
                                 </AntDesign.Text>
@@ -49,7 +49,7 @@
         }
         else
         {
-            <Empty Description="@("先启动角色喵！")"/>
+            <Empty Description="@("消息存储不存在！")"/>
         }
     </div>
 
@@ -57,17 +57,15 @@
     @if (ChatMessageService.GetChatBot(CharacterName) != null)
     {
         <div style="padding: 16px; background: #fff; border-top: 1px solid #f0f0f0;">
-            <Flex Gap="@("middle")" Align="@AntDesign.FlexAlign.End">
-                <TextArea @bind-Value="inputText"
+            <Flex Gap="@("middle")" Align="@FlexAlign.End">
+                <TextArea @bind-Value="inputText" BindOnInput
                           Placeholder="输入消息... (Enter 发送, Shift+Enter 换行)"
-                          AutoSize="true"
-                          MinRows="1"
-                          MaxRows="6"
-                          OnPressEnter="OnPressEnter"
+                          AutoSize="true" MinRows="1" MaxRows="6"
+                          OnPressEnter="@(OnPressEnter)"
                           Style="flex: 1; border-radius: 8px; border: 1px solid #d9d9d9; padding: 8px 12px;"></TextArea>
-                <Button Type="@AntDesign.ButtonType.Primary"
+                <Button Type="@ButtonType.Primary"
                         Icon="@IconType.Outline.Send"
-                        OnClick="OnSend"
+                        OnClick="@(OnSend)"
                         Style="height: 38px; border-radius: 8px; padding: 0 20px;">发送
                 </Button>
             </Flex>
@@ -115,6 +113,11 @@
 @using Alife.Components.Services
 
 @code {
+    public void UpdateState()
+    {
+        StateHasChanged();
+    }
+
     [Parameter] public string CharacterName { get; set; } = "";
 
     string inputText = "";
@@ -170,21 +173,24 @@
         StateHasChanged();
     }
 
-    async Task OnPressEnter(KeyboardEventArgs e)
+    void OnPressEnter(KeyboardEventArgs e)
     {
-        if (!e.ShiftKey)
-        {
-            await OnSend();
-        }
+        if (e.ShiftKey)
+            return;
+
+        Task.Run(async () => {
+            await Task.Delay(10);
+            await InvokeAsync(OnSend);
+        });
     }
 
-    async Task OnSend()
+    void OnSend()
     {
         string text = inputText;
-        if (string.IsNullOrWhiteSpace(text)) return;
-
         inputText = "";
-        await InvokeAsync(StateHasChanged);
+
+        if (string.IsNullOrWhiteSpace(text))
+            return;
 
         ChatBot? chatBot = ChatMessageService.GetChatBot(CharacterName);
         chatBot?.Chat(text.TrimEnd('\r', '\n'));

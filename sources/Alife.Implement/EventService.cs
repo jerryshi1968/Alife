@@ -13,7 +13,7 @@ public class EventServiceData
     public int UpdateInterval { get; set; } = 90;
     public int UpdateRandomOffset { get; set; } = 30;
 }
-[Plugin("系统事件", "让AI可以获取到各种系统事件的提醒。", LaunchOrder = 100)]
+[Plugin("系统事件", "让AI可以获取到各种系统事件的提醒。", LaunchOrder = 100, ConfigurationUIType = typeof(EventServiceUI))]
 [Description("你能够接收到系统事件（如开始、结束、周期报点），并可选的控制这些信息的收发。")]
 public class EventService : InteractivePlugin<EventService>, IConfigurable<EventServiceData>, ITimeIterative
 {
@@ -36,9 +36,11 @@ public class EventService : InteractivePlugin<EventService>, IConfigurable<Event
         if (context.CallMode != CallMode.OneShot)
             return;
 
+        reminderName = remark;
         timeTask[1] = (time, () => {
             ChatBot.Poke($"[{nameof(EventService)}] 来自Reminder的自定义唤醒：{remark}");
             timeTask[1] = (DateTime.MaxValue, () => { }); //关闭定时提醒
+            reminderName = "定时提醒";
         });
 
         continuousTimerCount = 0;
@@ -48,7 +50,13 @@ public class EventService : InteractivePlugin<EventService>, IConfigurable<Event
     }
 
     public EventServiceData? Configuration { get; set; }
+    public (DateTime Time, string Name)[] ActiveTasks => [
+        (timeTask[0].Item1, "自动唤醒"),
+        (timeTask[1].Item1, reminderName)
+    ];
+
     readonly (DateTime, Action)[] timeTask; //1为自动定时器，2为定时提醒
+    string reminderName = "定时提醒";
     int continuousTimerCount;
 
     public EventService(InterpreterService interpreterService)

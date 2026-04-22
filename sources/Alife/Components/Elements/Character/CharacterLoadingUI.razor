@@ -1,4 +1,3 @@
-@using Alife.Framework
 @implements IDisposable
 
 <Modal Visible="@Visible"
@@ -12,7 +11,8 @@
         <div class="loading-animation-container">
             @if (Progress > 0)
             {
-                <Progress Type="ProgressType.Circle" Percent="@((int)(Progress * 100))" Status="@ProgressStatus.Active"/>
+                <Progress Type="ProgressType.Circle" Percent="@((int)(Progress * 100))"
+                          Status="@ProgressStatus.Active"></Progress>
             }
             else
             {
@@ -20,14 +20,15 @@
             }
             <div class="heartbeat-dot"></div>
         </div>
-        
+
         <div style="text-align: center;">
             <Text Strong Style="font-size: 16px; display: block; margin-bottom: 8px;">@TaskDescription</Text>
             <div class="dynamic-tip-area">
-                <Icon Type="loading" /> <Text Type="@TextElementType.Secondary">@currentTip</Text>
+                <Icon Type="loading"/>
+                <Text Type="@TextElementType.Secondary">@currentTip</Text>
             </div>
         </div>
-        
+
         <Text Type="@TextElementType.Secondary" Style="font-size: 12px; margin-top: 12px;">
             涉及模型加载与记忆恢复，请勿关闭应用喵
         </Text>
@@ -36,15 +37,15 @@
 
 @code {
     [Parameter] public bool Visible { get; set; }
+    [Parameter] public float Progress { get; set; }
     [Parameter] public string Title { get; set; } = "正在唤醒角色...";
     [Parameter] public string TaskDescription { get; set; } = "正在初始化环境喵...";
-    [Parameter] public float Progress { get; set; }
 
     private string currentTip = "正在感知数字生命脉动...";
     private System.Timers.Timer? tipTimer;
     private int tipIndex = 0;
-    
-    private readonly string[] tips = new[] {
+
+    private readonly string[] tips = [
         "正在同步量子记忆纠缠...",
         "正在构建情感共鸣矩阵...",
         "正在从云端打捞昨天的梦...",
@@ -53,12 +54,12 @@
         "正在优化突触连接速度喵...",
         "正在深渊中搜寻语言碎片...",
         "正在校准性格色彩偏差..."
-    };
+    ];
 
     protected override void OnInitialized()
     {
         tipTimer = new System.Timers.Timer(3000);
-        tipTimer.Elapsed += (s, e) => {
+        tipTimer.Elapsed += (_, _) => {
             tipIndex = (tipIndex + 1) % tips.Length;
             currentTip = tips[tipIndex];
             InvokeAsync(StateHasChanged);
@@ -98,13 +99,28 @@
     }
 
     @@keyframes pulse {
-        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.7); }
-        70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(82, 196, 26, 0); }
-        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(82, 196, 26, 0); }
+        0% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.7);
+        }
+        70% {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 10px rgba(82, 196, 26, 0);
+        }
+        100% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(82, 196, 26, 0);
+        }
     }
 
     @@keyframes slideIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 </style>

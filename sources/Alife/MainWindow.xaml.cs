@@ -2,19 +2,19 @@ using System.Windows;
 
 namespace Alife;
 
-public partial class MainWindow : Window
+public partial class MainWindow
 {
     public MainWindow()
     {
         InitializeComponent();
     }
 
-    private void MinimizeClick(object sender, RoutedEventArgs e)
+    void MinimizeClick(object sender, RoutedEventArgs e)
     {
         WindowState = WindowState.Minimized;
     }
 
-    private void MaximizeClick(object sender, RoutedEventArgs e)
+    void MaximizeClick(object sender, RoutedEventArgs e)
     {
         if (WindowState == WindowState.Maximized)
         {
@@ -28,7 +28,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void CloseClick(object sender, RoutedEventArgs e)
+    void CloseClick(object sender, RoutedEventArgs e)
     {
         System.Windows.Application.Current.Shutdown();
     }

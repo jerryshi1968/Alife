@@ -9,10 +9,12 @@ using NAudio.CoreAudioApi;
 
 namespace Alife.Implement;
 
-[Plugin("语音对话", "为AI增加语音识别和语音转文字输出的能力。")]
+[Plugin("语音对话", "为AI增加语音识别和语音转文字输出的能力。", ConfigurationUIType = typeof(SpeechServiceUI))]
 [Description("此服务让你获得能将文字以语音形式输出的能力。")]
 public class SpeechService : InteractivePlugin<SpeechService>, IAsyncDisposable, ITimeIterative
 {
+    public static SpeechRecognizer ActiveRecognizer => Recognizer;
+    public static SpeechSynthesizer ActiveSynthesizer => Synthesizer;
     [XmlFunction("say", -10)]
     [Description("使用语音的方式向用户发送消息。")]
     public async Task Say(XmlExecutorContext context, [XmlContent] string content)

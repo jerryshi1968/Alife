@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Newtonsoft.Json.Linq;
+using System.Text;
 
 namespace Alife.Framework;
 
@@ -14,7 +17,6 @@ public class ChatActivity : IAsyncDisposable
         IProgress<(string, float)>? progress = null,
         object[]? appendServices = null)
     {
-        await Task.Yield(); // 强制让步，确保不阻塞调用线程（尤其是 UI 线程）
 
         //创建服务容器
         ServiceCollection extensionServiceBuilder = new();
@@ -127,6 +129,19 @@ public class ChatActivity : IAsyncDisposable
 
             await pluginInstance.StartAsync(kernelService, this);
         }
+    }
+    
+    public IEnumerable<string> GetImplicitContext()
+    {
+        return kernelService.Plugins.GetFunctionsMetadata()
+            .Select(metadata => metadata.ToOpenAIFunction().ToFunctionDefinition(true))
+            .Select(chatTool => new JObject() {
+                ["kind"] = chatTool.Kind.GetHashCode(),
+                ["FunctionName"] = chatTool.FunctionName,
+                ["FunctionDescription"] = chatTool.FunctionDescription,
+                ["FunctionParameters"] = JToken.Parse(Encoding.UTF8.GetString(chatTool.FunctionParameters)),
+                ["FunctionSchemaIsStrict"] = chatTool.FunctionSchemaIsStrict
+            }).Select(jObject => jObject.ToString());
     }
 
     readonly Character character;

@@ -1,7 +1,6 @@
-<Tree TItem="object" Checkable="@(!IsReadOnly)" OnCheck="OnCheck" DefaultExpandedKeys="@([Context.Name])"
-      DefaultCheckedKeys="@(IsChecking.ToArray())"
-      Draggable="@(!IsReadOnly)" OnDrop="OnDrop"
-      BlockNode>
+<Tree TItem="object" DefaultExpandedKeys="@([Context.Name])" BlockNode
+      Checkable="true" OnCheck="OnCheck" DefaultCheckedKeys="@(IsChecking.ToArray())"
+      Draggable="true" OnDrop="@(OnDrop)">
     <TitleTemplate>
         <Text>@(context.DataItem is StringFolder ? context.Title : ItemTitleFilter(context.Title))</Text>
     </TitleTemplate>
@@ -25,7 +24,7 @@
         base.OnInitialized();
 
         folderFragmentUI = context => {
-            return @<TreeNode Title="@(context.Name)" Key="@(context.Name)" DataItem="@((object)context)">
+            return @<TreeNode Title="@(context.Name)" Key="@(context.Name)" DataItem="@((object)context)" Disabled="IsReadOnly">
                 @foreach (StringFolder folder in context.Folders)
                 {
                     @(folderFragmentUI(folder))

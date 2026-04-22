@@ -34,8 +34,8 @@
     </Window.Resources>
 
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="40" 
-                      GlassFrameThickness="0" 
+        <WindowChrome CaptionHeight="40"
+                      GlassFrameThickness="0"
                       CornerRadius="12"
                       ResizeBorderThickness="8" />
     </WindowChrome.WindowChrome>
@@ -56,14 +56,17 @@
 
                 <!-- 标题与拖拽区 -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
-                    <TextBlock Text="Alife" IsHitTestVisible="False" FontWeight="Bold" Foreground="#1890ff" FontSize="14"/>
-                    <TextBlock Text=" - Desktop Native" IsHitTestVisible="False" Foreground="#666" FontSize="12" Margin="4,0,0,0" VerticalAlignment="Bottom"/>
+                    <TextBlock Text="Alife" IsHitTestVisible="False" FontWeight="Bold" Foreground="#1890ff"
+                               FontSize="14" />
+                    <TextBlock Text=" - 创造赛博生命" IsHitTestVisible="False" Foreground="#666" FontSize="12"
+                               Margin="4,0,0,0" VerticalAlignment="Bottom" />
                 </StackPanel>
 
                 <!-- 窗口控制按钮 -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" WindowChrome.IsHitTestVisibleInChrome="True">
                     <Button Style="{StaticResource WindowControlButtonStyle}" Content="─" Click="MinimizeClick" />
-                    <Button Style="{StaticResource WindowControlButtonStyle}" Content="▢" Click="MaximizeClick" Name="MaxBtn"/>
+                    <Button Style="{StaticResource WindowControlButtonStyle}" Content="▢" Click="MaximizeClick"
+                            Name="MaxBtn" />
                     <Button Style="{StaticResource WindowControlButtonStyle}" Content="✕" Click="CloseClick" />
                 </StackPanel>
             </Grid>

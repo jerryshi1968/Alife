@@ -15,15 +15,18 @@ public class ChatActivitySystem
         return activities.ContainsKey(character.Name);
     }
 
-    public async Task Play(Character character, IProgress<(string, float)>? progress = null)
+    public async Task<ChatActivity> Play(Character character, IProgress<(string, float)>? progress = null)
     {
         ChatActivity chatActivity = await ChatActivity.Create(character, configuration, progress, [
             configuration,
             storageSystem,
         ]);
+        
         activities.Add(character.Name, chatActivity);
         Created?.Invoke(chatActivity);
         await chatActivity.Start();
+
+        return chatActivity;
     }
 
     public async Task Stop(Character character)

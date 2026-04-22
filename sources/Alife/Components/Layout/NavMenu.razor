@@ -5,36 +5,36 @@
 @implements IDisposable
 
 <Flex Direction="FlexDirection.Vertical" Gap="@("12")" Style="width: 100%; align-items: center;">
-    
+
     <!-- 系统入口组 -->
     <Tooltip Title="@("欢迎")" Placement="Placement.Right">
         <NavLink href="/welcome" Class="nav-item-icon" Match="NavLinkMatch.All" ActiveClass="active">
-            <Icon Type="@IconType.Outline.Rocket" Style="font-size: 24px" />
+            <Icon Type="@IconType.Outline.Rocket" Style="font-size: 24px"/>
         </NavLink>
     </Tooltip>
 
     <Tooltip Title="@("系统管理")" Placement="Placement.Right">
         <NavLink id="nav-system" href="/system" Class="nav-item-icon" Match="NavLinkMatch.All" ActiveClass="active">
-            <Icon Type="@IconType.Outline.Setting" Style="font-size: 24px" />
+            <Icon Type="@IconType.Outline.Setting" Style="font-size: 24px"/>
         </NavLink>
     </Tooltip>
 
-    <Divider Style="margin: 4px 0; background: rgba(255,255,255,0.1)" />
+    <Divider Style="margin: 4px 0; background: rgba(255,255,255,0.1)"/>
 
     <!-- 角色列表 -->
-    @foreach (var character in CharacterSystem.GetAllCharacters())
+    @foreach (Character character in CharacterSystem.GetAllCharacters())
     {
         bool isActive = ChatActivitySystem.IsActivated(character);
-        <Tooltip Title="@(character.Name)" Placement="@AntDesign.Placement.Right">
+        <Tooltip Title="@(character.Name)" Placement="@Placement.Right">
             <NavLink href="@($"agent/{character.Name}")" Class="nav-item-icon character-item" ActiveClass="active">
                 <div style="position: relative; display: flex; align-items: center; justify-content: center;">
-                    <Avatar Size="@AntDesign.AvatarSize.Large" Style="background: #1890ff; color: #fff; font-weight: bold;">
+                    <Avatar Size="@AvatarSize.Large" Style="background: #1890ff; color: #fff; font-weight: bold;">
                         @(character.Name.FirstOrDefault())
                     </Avatar>
-                    
+
                     @if (isActive)
                     {
-                        <span class="status-dot status-online" 
+                        <span class="status-dot status-online"
                               style="position: absolute; bottom: 0; right: 0;"></span>
                     }
                 </div>
@@ -52,32 +52,17 @@
         justify-content: center;
         border-radius: 12px;
         transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        color: rgba(255,255,255,0.6);
+        color: rgba(255, 255, 255, 0.6);
         cursor: pointer;
         position: relative;
     }
 
     .nav-item-icon:hover {
-        background: rgba(255,255,255,0.1);
+        background: rgba(255, 255, 255, 0.1);
         color: #fff;
         transform: scale(1.1);
     }
 
-    .nav-item-icon.active {
-        background: rgba(255,255,255,0.2) !important;
-        color: #fff !important;
-        border-radius: 12px;
-    }
-
-    .nav-item-icon.active::before {
-        content: "";
-        position: absolute;
-        left: -12px;
-        width: 4px;
-        height: 24px;
-        background: #fff;
-        border-radius: 0 4px 4px 0;
-    }
 </style>
 
 @code {

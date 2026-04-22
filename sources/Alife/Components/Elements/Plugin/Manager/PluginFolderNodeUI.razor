@@ -1,5 +1,4 @@
 @using System.Reflection
-@using Alife.Components.Elements.Plugin
 @inject PluginSystem PluginSystem
 
 <TreeNode @ref="node"
@@ -15,11 +14,11 @@
             {
                 <Space>
                     <SpaceItem>
-                        <Button Icon="@(IconType.Outline.Plus)" Size="@AntDesign.ButtonSize.Small" OnClick="OnCreate" Type="@AntDesign.ButtonType.Text"></Button>
+                        <Button Icon="@(IconType.Outline.Plus)" Size="@ButtonSize.Small" OnClick="OnCreate" Type="@ButtonType.Text"></Button>
                         @if (node.GetParentNode() != null)
                         {
-                            <Button Icon="@(IconType.Outline.Minus)" Size="@AntDesign.ButtonSize.Small" OnClick="OnDelete" Type="@AntDesign.ButtonType.Text"></Button>
-                            <Button Icon="@(IconType.Outline.Edit)" Size="@AntDesign.ButtonSize.Small" OnClick="OnRename" Type="@AntDesign.ButtonType.Text"></Button>
+                            <Button Icon="@(IconType.Outline.Minus)" Size="@ButtonSize.Small" OnClick="OnDelete" Type="@ButtonType.Text"></Button>
+                            <Button Icon="@(IconType.Outline.Edit)" Size="@ButtonSize.Small" OnClick="OnRename" Type="@ButtonType.Text"></Button>
                             <Modal Title="重命名"
                                    @bind-Visible="renameWindow"
                                    OnOk="OnConfirmRename"

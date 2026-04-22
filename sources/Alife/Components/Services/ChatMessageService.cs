@@ -1,5 +1,4 @@
 using Alife.Framework;
-using System.Collections.Concurrent;
 
 namespace Alife.Components.Services;
 
@@ -22,9 +21,11 @@ public class ChatMessageService
     {
         return chatbots.GetValueOrDefault(name);
     }
-    public List<ChatMessage>? GetMessages(string name)
+    public List<ChatMessage> GetMessages(string name)
     {
-        return messages.GetValueOrDefault(name);
+        if (messages.ContainsKey(name) == false)
+            messages.Add(name, new List<ChatMessage>());
+        return messages[name];
     }
 
     public void ClearMessages(string name)
@@ -57,22 +58,16 @@ public class ChatMessageService
     void OnActivityCreated(ChatActivity activity)
     {
         string name = activity.Character.Name;
-
-        if (messages.TryGetValue(name, out List<ChatMessage>? list) == false)
-        {
-            list = new List<ChatMessage>();
-            messages.Add(name, list);
-        }
+        List<ChatMessage> messages = GetMessages(name);
         chatbots.Add(name, activity.ChatBot);
-
         activity.ChatBot.ChatSent += (obj) => {
-            list.Add(new ChatMessage { Content = obj, IsUser = true });
-            list.Add(new ChatMessage { IsUser = false, IsInputting = true });
+            messages.Add(new ChatMessage { Content = obj, IsUser = true });
+            messages.Add(new ChatMessage { IsUser = false, IsInputting = true });
             OnUIMessageSent?.Invoke(name);
             OnUIMessageChanged?.Invoke(name);
         };
         activity.ChatBot.ChatReceived += (obj) => {
-            ChatMessage? aiMessage = list.LastOrDefault(m => m is { IsUser: false, IsInputting: true });
+            ChatMessage? aiMessage = messages.LastOrDefault(m => m is { IsUser: false, IsInputting: true });
             if (aiMessage != null)
             {
                 aiMessage.Content += obj;
@@ -80,7 +75,7 @@ public class ChatMessageService
             }
         };
         activity.ChatBot.ChatOver += () => {
-            ChatMessage? aiMessage = list.LastOrDefault(m => m is { IsUser: false, IsInputting: true });
+            ChatMessage? aiMessage = messages.LastOrDefault(m => m is { IsUser: false, IsInputting: true });
             if (aiMessage != null)
             {
                 aiMessage.IsInputting = false;
