@@ -14,15 +14,15 @@
             {
                 <Space>
                     <SpaceItem>
-                        <Button Icon="@(IconType.Outline.Plus)" Size="@ButtonSize.Small" OnClick="OnCreate" Type="@ButtonType.Text"></Button>
+                        <Button Icon="@(IconType.Outline.Plus)" Size="@ButtonSize.Small" OnClick="@(OnCreate)" Type="@ButtonType.Text"></Button>
                         @if (node.GetParentNode() != null)
                         {
-                            <Button Icon="@(IconType.Outline.Minus)" Size="@ButtonSize.Small" OnClick="OnDelete" Type="@ButtonType.Text"></Button>
-                            <Button Icon="@(IconType.Outline.Edit)" Size="@ButtonSize.Small" OnClick="OnRename" Type="@ButtonType.Text"></Button>
+                            <Button Icon="@(IconType.Outline.Minus)" Size="@ButtonSize.Small" OnClick="@(OnDelete)" Type="@ButtonType.Text"></Button>
+                            <Button Icon="@(IconType.Outline.Edit)" Size="@ButtonSize.Small" OnClick="@(OnRename)" Type="@ButtonType.Text"></Button>
                             <Modal Title="重命名"
                                    @bind-Visible="renameWindow"
                                    OnOk="OnConfirmRename"
-                                   OnCancel="OnCancelRename">
+                                   OnCancel="@(OnCancelRename)">
                                 <Input @bind-Value="folderName"></Input>
                             </Modal>
                         }
