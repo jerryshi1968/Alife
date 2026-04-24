@@ -146,8 +146,8 @@ public partial class MemoryService : InteractivePlugin<MemoryService>, IConfigur
                  ```
 
                  压缩要点：
-                 1. 不要混淆其他记录，不要记录存档信息，仅直接描述上述内容中的事件即可。
-                 2. 注意学会反复记忆关键性的内容，以形成核心记忆。
+                 1. 无需记录存档信息，不要混淆其他聊天，仅直接描述上述内容中的事件即可。
+                 2. 注意学会反复回忆重要经历，以及反复记忆关键性的内容，以形成核心记忆。
                  现在请直接开始概述上述内容描述的事情。
                  """);
             ChatMessageContent content = await chatCompletionService.GetChatMessageContentAsync(history);

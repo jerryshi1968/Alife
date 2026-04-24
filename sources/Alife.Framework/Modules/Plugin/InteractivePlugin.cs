@@ -59,22 +59,22 @@ public class InteractivePlugin<T> : InteractivePlugin
 {
     protected void Prompt(string prompt)
     {
-        ChatHistory.AddSystemMessage($"[{nameof(T)}] {prompt}");
+        ChatHistory.AddSystemMessage($"[{typeof(T).Name}] {prompt}");
     }
     protected void Throw(string error)
     {
-        throw new Exception($"[{nameof(T)}] 发生错误\n{error}");
+        throw new Exception($"[{typeof(T).Name}] 发生错误\n{error}");
     }
     protected void Poke(string message)
     {
-        ChatBot.Poke($"[{nameof(T)}] {message}");
+        ChatBot.Poke($"[{typeof(T).Name}] {message}");
     }
     protected void Chat(string message)
     {
-        ChatBot.Chat($"[{nameof(T)}] {message}");
+        ChatBot.Chat($"[{typeof(T).Name}] {message}");
     }
     protected Task ChatAsync(string message)
     {
-        return ChatBot.ChatAsync($"[{nameof(T)}] {message}");
+        return ChatBot.ChatAsync($"[{typeof(T).Name}] {message}");
     }
 }

@@ -1,6 +1,5 @@
 @using Alife.Implement
 @inject CharacterSystem CharacterSystem
-@inject PluginSystem PluginSystem
 @inject ConfigurationSystem ConfigurationSystem
 @inject NavigationManager Navigation
 @inject INotificationService NotificationService
@@ -8,35 +7,38 @@
 <div class="welcome-container">
     <div class="welcome-card">
         <div class="welcome-icon">
-            <Icon Type="@IconType.Outline.Rocket" Style="font-size: 64px; color: #1890ff;" />
+            <Icon Type="@IconType.Outline.Rocket" Style="font-size: 64px; color: #1890ff;"/>
         </div>
-        
-        <Title Level="1" Style="margin-top: 24px; color: #1a1a1a;">欢迎开启 AI 进化之旅</Title>
+
+        <Title Level="1" Style="margin-top: 24px; color: #1a1a1a;">欢迎来到 Alife，创建你的第一个桌宠吧！</Title>
         <Paragraph Style="font-size: 16px; color: rgba(0,0,0,0.45); max-width: 480px; margin: 0 auto 40px auto;">
-            Alife 是一个致力于让 AI 走入真实桌面的开放框架。在这里，你可以创建性格迥异的数字生命，让它们协助你处理日常事务，甚至只是简单的陪伴。
+            Alife 是一款因个人兴趣而诞生的开源桌宠框架，力求打造一款小白化无感部署且实用长久高互动感的桌宠陪伴，项目代码追求极简易读高扩展。没有历史包袱没有偶像负担，因为一切都是个人的奇思妙想。
         </Paragraph>
 
         <Flex Gap="@FlexGap.Large" Align="@FlexAlign.Center" Justify="@FlexJustify.Center">
-            <Button Type="@ButtonType.Primary" 
-                    Size="@ButtonSize.Large" 
+            <Button Type="@ButtonType.Primary"
+                    Size="@ButtonSize.Large"
                     Icon="@IconType.Outline.Thunderbolt"
                     OnClick="@(() => isQuickSetupVisible = true)"
                     Style="height: 48px; border-radius: 24px; padding: 0 32px; font-weight: bold; box-shadow: 0 4px 12px rgba(24,144,255,0.3)">
-                极速配置助手 (一键首飞)
+                立即创建默认桌宠
             </Button>
         </Flex>
 
-        <div style="margin-top: 40px; text-align: left; background: rgba(0,0,0,0.02); border-radius: 12px; padding: 16px; border: 1px solid rgba(0,0,0,0.05);">
+        <div
+            style="margin-top: 40px; text-align: left; background: rgba(0,0,0,0.02); border-radius: 12px; padding: 16px; border: 1px solid rgba(0,0,0,0.05);">
             <Text Strong style="display: block; margin-bottom: 8px;">全局数据存储目录 (StorageFolderPath)</Text>
             <Flex Gap="@("small")">
-                <Input @bind-Value="storageFolderPath" Placeholder="默认为 我的文档\Alife 目录" Style="flex: 1;" />
-                <Button Type="@ButtonType.Default" OnClick="SaveStoragePath">保存修定</Button>
+                <Input @bind-Value="storageFolderPath" Placeholder="默认为 我的文档\Alife 目录" Style="flex: 1;"/>
+                <Button Type="@ButtonType.Default" OnClick="@(SaveStoragePath)">保存修定</Button>
             </Flex>
-            <Text Type="@TextElementType.Secondary" Style="font-size: 12px; margin-top: 8px; display: block;">提示：将其定位到 OneDrive / 坚果云等跨设备目录，即可实现多端无缝同步喵！(重启生效)</Text>
+            <Text Type="@TextElementType.Secondary" Style="font-size: 12px; margin-top: 8px; display: block;">提示：将其定位到
+                OneDrive / 坚果云等跨设备目录，即可实现多端无缝同步喵！(重启生效)
+            </Text>
         </div>
 
         <div style="margin-top: 40px; color: rgba(0,0,0,0.25); font-size: 12px;">
-            <p>Alife Project - Advanced Agentic Coding Framework</p>
+            <p>Alife Project - Lightweight Desktop Pet Framework</p>
         </div>
     </div>
 </div>
@@ -50,20 +52,20 @@
     </div>
     <Form TModel="OpenAIChatServiceConfig" Model="quickConfig" Layout="@FormLayout.Vertical">
         <FormItem Label="API Base URL (端点)">
-            <Input @bind-Value="quickConfig.endpoint" Placeholder="例如: https://api.deepseek.com/v1" />
+            <Input @bind-Value="quickConfig.endpoint" Placeholder="例如: https://api.deepseek.com/v1"/>
         </FormItem>
         <FormItem Label="Model ID (模型名称)">
-            <Input @bind-Value="quickConfig.modelId" Placeholder="例如: deepseek-chat" />
+            <Input @bind-Value="quickConfig.modelId" Placeholder="例如: deepseek-chat"/>
         </FormItem>
         <FormItem Label="API Key (密钥)">
-            <InputPassword @bind-Value="quickConfig.apiKey" Placeholder="填入你的 API Key 🔑" />
+            <InputPassword @bind-Value="quickConfig.apiKey" Placeholder="填入你的 API Key 🔑"/>
         </FormItem>
     </Form>
 </Modal>
 
 @code {
     bool isQuickSetupVisible;
-    OpenAIChatServiceConfig quickConfig = new() { endpoint = "https://api.deepseek.com/v1", modelId = "deepseek-chat", apiKey = "" };
+    readonly OpenAIChatServiceConfig quickConfig = new() { endpoint = "https://api.deepseek.com/v1", modelId = "deepseek-chat", apiKey = "" };
     string storageFolderPath = Basic.AlifePath.StorageFolderPath;
 
     void SaveStoragePath()
@@ -78,35 +80,29 @@
     void OnQuickSetupConfirm()
     {
         if (string.IsNullOrWhiteSpace(quickConfig.apiKey) || string.IsNullOrWhiteSpace(quickConfig.endpoint)) return;
-        
+
         if (!string.IsNullOrWhiteSpace(storageFolderPath))
             Basic.AlifePath.SetStorageFolderPath(storageFolderPath);
 
         // 覆盖保存全局组态
         ConfigurationSystem.SetConfiguration(typeof(OpenAIChatService), quickConfig);
-        
-        // 使用默认“真央”角色（如果没有就建一个）
-        var character = CharacterSystem.GetAllCharacters().FirstOrDefault(c => c.Name == "真央");
-        if (character == null)
-        {
-            CharacterSystem.CreateCharacter("真央");
-            character = CharacterSystem.GetAllCharacters().Last();
-        }
-        
-        // 核心插件全勾上
-        var coreFolder = PluginSystem.GetPluginFolder().Folders.FirstOrDefault(f => f.Name == "核心") 
-            ?? PluginSystem.GetPluginFolder(); // 找不到核心文件夹就勾全部根目录
 
-        foreach (var id in coreFolder.Strings)
-        {
-            var p = PluginSystem.GetPlugin(id);
-            if (p != null) character.Plugins.Add(p);
-        }
-        
+        // 使用默认“真央”角色（如果没有就建一个）
+        Character character = CharacterSystem.GetAllCharacters().FirstOrDefault(c => c.Name == "真央") ??
+                              CharacterSystem.CreateCharacter("真央");
+        character.Plugins.Add(typeof(OpenAIChatService));
+        character.Plugins.Add(typeof(InterpreterService));
+        character.Plugins.Add(typeof(EventService));
+        character.Plugins.Add(typeof(MemoryService));
+        character.Plugins.Add(typeof(McpService));
+        character.Plugins.Add(typeof(SkillService));
+        character.Plugins.Add(typeof(SpeechService));
+        character.Plugins.Add(typeof(DeskPetService));
+        character.Plugins.Add(typeof(PythonService));
         CharacterSystem.SaveCharacter(character);
 
         isQuickSetupVisible = false;
-        
+
         // 通知跃迁
         Navigation.NavigateTo($"/agent/{character.Name}");
     }
@@ -118,8 +114,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: radial-gradient(circle at top right, rgba(24,144,255,0.05) 0%, transparent 40%),
-                    radial-gradient(circle at bottom left, rgba(24,144,255,0.05) 0%, transparent 40%);
+        background: radial-gradient(circle at top right, rgba(24, 144, 255, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at bottom left, rgba(24, 144, 255, 0.05) 0%, transparent 40%);
         animation: fadeIn 0.8s ease-out;
     }
 
@@ -129,8 +125,8 @@
         backdrop-filter: blur(20px);
         padding: 60px 40px;
         border-radius: 32px;
-        border: 1px solid rgba(255,255,255,0.8);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
     }
 
     .welcome-icon {
@@ -138,12 +134,22 @@
     }
 
     @@keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     @@keyframes float {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-15px); }
+        0%, 100% {
+            transform: translateY(0px);
+        }
+        50% {
+            transform: translateY(-15px);
+        }
     }
 </style>

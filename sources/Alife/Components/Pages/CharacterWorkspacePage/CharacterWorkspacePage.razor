@@ -1,5 +1,6 @@
 @page "/agent/{name}"
-@using Alife.Components.Elements.Plugin.Manager
+@using Alife.Components.Elements.Character
+@using Alife.Components.Elements.Plugin
 @inject CharacterSystem CharacterSystem
 @inject INotificationService NotificationService
 
@@ -85,7 +86,7 @@ else
         </div>
 
         <!-- 角色工作区内容 -->
-        <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff">
+        <div @key="@Name" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff">
             @if (character != null)
             {
                 <CharacterHomeUI @ref="characterHomeUI" Character="character" Visibility="@(activeTab == "info")"
@@ -106,7 +107,7 @@ else
                         <PluginManagementView
                             Character="@character"
                             ChatActivity="@characterHomeUI?.Activity"
-                            IsReadOnly="@(characterHomeUI?.Activity != null)"
+                            IsReadOnly="true"
                             PluginFilter="@(id => characterHomeUI != null && characterHomeUI.PluginIDs.Contains(id))"/>
                     </div>
                 </div>
@@ -124,7 +125,7 @@ else
 
     string activeTab = "info";
 
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
         character = CharacterSystem.GetAllCharacters().FirstOrDefault(c => c.Name == Name);
     }

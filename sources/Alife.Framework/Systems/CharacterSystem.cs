@@ -6,12 +6,12 @@ public class CharacterSystem : IDisposable
 {
     public event Action? OnChanged;
 
-    public IEnumerable<Character> GetAllCharacters()
+    public List<Character> GetAllCharacters()
     {
         return characters;
     }
 
-    public void CreateCharacter(string name)
+    public Character CreateCharacter(string name)
     {
         name = SanitizeName(name);
 
@@ -21,8 +21,10 @@ public class CharacterSystem : IDisposable
         while (characters.Any(c => c.Name == uniqueName))
             uniqueName = $"{name}_{index++}";
 
-        characters.Add(new Character { Name = uniqueName });
+        Character character = new Character { Name = uniqueName };
+        characters.Add(character);
         OnChanged?.Invoke();
+        return character;
 
         static string SanitizeName(string name)
         {
@@ -34,7 +36,7 @@ public class CharacterSystem : IDisposable
     }
     public void DeleteCharacter(Character character)
     {
-        storageSystem.DeleteKey(character.StorageKey);
+        storageSystem.DeleteKey($"{character.StorageKey}/index.json");
         characters.Remove(character);
         OnChanged?.Invoke();
     }

@@ -30,7 +30,7 @@ public class ChatBot : IAsyncDisposable
         await chatSemaphore.WaitAsync();
         try
         {
-            message = $"[当前时间：{DateTime.Now}]{message}";
+            message = $"[当前时间：{DateTime.Now}]{message}\n（请简短回复，一个say解决）";
             llmAgentThread.ChatHistory.AddMessage(role ?? AuthorRole.User, message);
             cancelChatSource = new CancellationTokenSource();
 

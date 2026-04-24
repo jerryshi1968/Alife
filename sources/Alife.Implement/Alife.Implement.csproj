@@ -28,4 +28,13 @@
     <ProjectReference Include="..\Alife.Function\Alife.Function.DeskPet\Alife.Function.DeskPet.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <UpToDateCheckInput Remove="ChatService\OpenAIChatServiceUI.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="Core\ChatService\OpenAIChatServiceUI.razor" />
+    <AdditionalFiles Include="Standard\McpServices\McpServiceUI.razor" />
+  </ItemGroup>
+
 </Project>

@@ -10,7 +10,7 @@
         <div style="flex: 1; overflow-y: auto; padding: 12px 8px; background: #fff; min-height: 0;">
             <PluginFolderUI 
                 Context="@PluginSystem.GetPluginFolder()" 
-                IsReadOnly="false" 
+                IsReadOnly="@IsReadOnly" 
                 PluginFilter="@PluginFilter"
                 OnPluginSelected="HandleSelection" />
         </div>

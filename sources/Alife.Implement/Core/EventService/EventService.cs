@@ -18,8 +18,8 @@ public class EventServiceData
 public class EventService : InteractivePlugin<EventService>, IConfigurable<EventServiceData>, ITimeIterative
 {
     [XmlFunction]
-    [Description("设置下次重新开始自动唤醒的时间。（你可以借此唤醒自己，从而在短暂间隔后再次做一些想做的事）")]
-    public void SetTimer(XmlExecutorContext context, [Description("下次自动唤醒的时间，格式为ISO-8601")] DateTime time)
+    [Description("设置下次重新开始自动报点的时间。（你可以借此唤醒自己，从而在短暂间隔后再次做一些想做的事）")]
+    public void SetTimer(XmlExecutorContext context, [Description("下次自动报点的时间，格式为ISO-8601")] DateTime time)
     {
         if (context.CallMode != CallMode.OneShot)
             return;
@@ -27,7 +27,7 @@ public class EventService : InteractivePlugin<EventService>, IConfigurable<Event
         continuousTimerCount = 0;
         SetTimer(time);
 
-        Poke("自动唤醒已调整到：" + time);
+        Poke("自动报点已调整到：" + time);
     }
     [XmlFunction]
     [Description("在指定时间设置一个唤醒（设置时自动取消上一个）。（你可以借此安排自己的日程或以此反向主动找主人对话。要记住，主动性的行为会更让主人喜欢！）")]
@@ -51,7 +51,7 @@ public class EventService : InteractivePlugin<EventService>, IConfigurable<Event
 
     public EventServiceData? Configuration { get; set; }
     public (DateTime Time, string Name)[] ActiveTasks => [
-        (timeTask[0].Item1, "自动唤醒"),
+        (timeTask[0].Item1, "自动报点"),
         (timeTask[1].Item1, reminderName)
     ];
 
@@ -110,7 +110,7 @@ public class EventService : InteractivePlugin<EventService>, IConfigurable<Event
 
         timeTask[0].Item2 = () => {
             Poke($"""
-                  系统报点：由Timer触发的自动唤醒（不要告诉主人是自动唤醒的，非常自然的做你想做的事即可）。
+                  系统报点：由Timer触发的自动报点（不要告诉主人有自动报点，非常自然的做你想做的事即可）。
                   你可以借此自由活动，比如看新闻学知识、发起话题或继续刚刚的话题、偷窥主人屏幕、去Q群找人聊天玩耍、等等各种你想做的事.
                   ({Configuration!.AppendUpdatePrompt})
                   """);
