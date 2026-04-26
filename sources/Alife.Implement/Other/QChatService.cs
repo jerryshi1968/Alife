@@ -156,7 +156,6 @@ public class QChatService :
 
 
     public QChatConfig? Configuration { get; set; }
-
     public bool IsConnected => oneBotClient is { IsConnected: true };
     public IReadOnlyDictionary<long, GroupInfo> GroupStates => groupInfos;
     public int TotalBufferedMessageCount => groupInfos.Values.Sum(i => i.MessageBuffer.Count);
@@ -241,8 +240,8 @@ public class QChatService :
     {
         await base.StartAsync(kernel, chatActivity);
 
-        oneBotClient.OnEventReceived += e => _ = HandleEvent(e);
-        oneBotClient.OnConnectionStatusChanged += connected => Console.WriteLine($"[QChatService] OneBot 连接: {(connected ? "在线" : "离线")}");
+        oneBotClient.EventReceived += e => _ = OnEventReceived(e);
+        oneBotClient.ConnectionStatusChanged += connected => Console.WriteLine($"[QChatService] OneBot 连接: {(connected ? "在线" : "离线")}");
     }
 
     public async ValueTask DisposeAsync()
@@ -273,86 +272,55 @@ public class QChatService :
             }
         }
     }
-
-    async Task HandleEvent(OneBotBaseEvent e)
+    async Task OnEventReceived(OneBotBaseEvent e)
     {
         if (e is not OneBotMessageEvent messageEvent)
             return;
 
-        string formatted;
-        if (messageEvent.HasFile())
-            formatted = await ParseFileMessage(messageEvent);
-        else
-            formatted = await ParseNormalMessage(messageEvent);
-
-        await HandleFormattedMessage(messageEvent, formatted);
-    }
-    async Task<string> ParseFileMessage(OneBotMessageEvent messageEvent)
-    {
-        string formatted = await ParseNormalMessage(messageEvent);
-
-        string? fileId = messageEvent.GetFileId();
-        if (fileId == null) return formatted;
-        string? fileName = messageEvent.GetFileName();
-        if (fileName == null) return formatted;
-        long? fileSize = messageEvent.GetFileSize();
-        if (fileSize == null) return formatted;
-
-        long groupId = messageEvent.GroupId;
-        OneBotFile? fileInfo = groupId != 0
-            ? await oneBotClient.GetGroupFileUrl(groupId, fileId)
-            : await oneBotClient.GetPrivateFile(fileId);
-        if (fileInfo == null)
-            return formatted;
-
-        string downloadUrl = fileInfo.Url;
-        return $"{formatted} 附带文件：{fileName} (大小：{fileSize} 字节；地址：{downloadUrl})";
-    }
-    async Task<string> ParseNormalMessage(OneBotMessageEvent messageEvent)
-    {
         string source = messageEvent.GetSourceTag();
-        string message = await messageEvent.GetReadableMessage(oneBotClient);
-        string formatted = $"{source} {message}";
-        return formatted;
-    }
-    async Task HandleFormattedMessage(OneBotMessageEvent messageEvent, string formatted)
-    {
-        if (messageEvent.MessageType == OneBotMessageType.Private) //私聊消息
-        {
-            if (messageEvent.UserId == Configuration!.OwnerId)
-                await ChatAsync(formatted);
-            else
-                Poke(formatted);
-        }
-        else //群聊消息
-        {
-            GroupInfo info = GetGroupInfo(messageEvent.GroupId);
+        string content = await messageEvent.GetReadableMessage(oneBotClient);
+        string formatted = $"{source} {content}";
+        await HandleFormattedMessage(messageEvent, formatted);
 
-            // 检查是否被 @ 或匹配唤醒词
-            bool isAwakening = messageEvent.GetAtID() == oneBotClient.BotId ||
-                               groupAwakingWords.Any(word => messageEvent.RawMessage.Contains(word, StringComparison.OrdinalIgnoreCase));
-            if (isAwakening && info.IsEnabled == false)
+        async Task HandleFormattedMessage(OneBotMessageEvent messageEvent, string formatted)
+        {
+            if (messageEvent.MessageType == OneBotMessageType.Private) //私聊消息
             {
-                info.IsEnabled = true;
-                info.LastActivityTime = DateTime.Now;
-                Poke($"由 @ 引发的群 {messageEvent.GroupId} 消息已开启");
+                if (messageEvent.UserId == Configuration!.OwnerId)
+                    await ChatAsync(formatted);
+                else
+                    Poke(formatted);
             }
+            else //群聊消息
+            {
+                GroupInfo info = GetGroupInfo(messageEvent.GroupId);
 
-            if (info.IsEnabled) //群聊已激活时
-            {
-                BufferMessage(info, formatted);
-            }
-            else //群聊未激活时
-            {
-                if (Random.Shared.NextSingle() < Configuration!.ProactiveChatProbability)
+                // 检查是否被 @ 或匹配唤醒词
+                bool isAwakening = messageEvent.GetAtID() == oneBotClient.BotId ||
+                                   groupAwakingWords.Any(word => messageEvent.RawMessage.Contains(word, StringComparison.OrdinalIgnoreCase));
+                if (isAwakening && info.IsEnabled == false)
+                {
+                    info.IsEnabled = true;
+                    info.LastActivityTime = DateTime.Now;
+                    Poke($"由 @ 引发的群 {messageEvent.GroupId} 消息已开启");
+                }
+
+                if (info.IsEnabled) //群聊已激活时
                 {
                     BufferMessage(info, formatted);
-                    FlushGroupBuffer(info);
+                }
+                else //群聊未激活时
+                {
+                    if (Random.Shared.NextSingle() < Configuration!.ProactiveChatProbability)
+                    {
+                        BufferMessage(info, formatted);
+                        FlushGroupBuffer(info);
+                    }
                 }
             }
         }
     }
-
+    
     void BufferMessage(GroupInfo info, string formatted)
     {
         info.MessageBuffer.Add(formatted);

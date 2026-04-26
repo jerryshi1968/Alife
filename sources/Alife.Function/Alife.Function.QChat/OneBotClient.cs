@@ -14,12 +14,12 @@ public class OneBotClient : IAsyncDisposable
     /// <summary>
     /// 事件接收回调。
     /// </summary>
-    public event Action<OneBotBaseEvent>? OnEventReceived;
+    public event Action<OneBotBaseEvent>? EventReceived;
 
     /// <summary>
     /// 连接状态改变回调。
     /// </summary>
-    public event Action<bool>? OnConnectionStatusChanged;
+    public event Action<bool>? ConnectionStatusChanged;
 
     /// <summary>
     /// 当前 Bot 的 QQ 号。
@@ -64,7 +64,7 @@ public class OneBotClient : IAsyncDisposable
         {
             BotId = ev.SelfId;
             ReceiveLoop();
-            OnConnectionStatusChanged?.Invoke(true);
+            ConnectionStatusChanged?.Invoke(true);
         }
         else
         {
@@ -109,7 +109,7 @@ public class OneBotClient : IAsyncDisposable
             while (ws.State == WebSocketState.Open)
             {
                 OneBotBaseEvent? ev = await ReceiveEventAsync();
-                if (ev != null) OnEventReceived?.Invoke(ev);
+                if (ev != null) EventReceived?.Invoke(ev);
             }
         }
         catch (Exception ex)
@@ -118,7 +118,7 @@ public class OneBotClient : IAsyncDisposable
         }
         finally
         {
-            OnConnectionStatusChanged?.Invoke(false);
+            ConnectionStatusChanged?.Invoke(false);
         }
     }
 
