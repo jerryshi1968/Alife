@@ -53,13 +53,25 @@
     RenderFragment DefaultUI => __builder => {
         @if (ConfigurationSystem.CanConfiguration(PluginType))
         {
-            <TextArea AutoSize="true" MinRows="10" Style="font-family: monospace;" @bind-Value="jsonConfig"
-                      Disabled="@(ChatActivity != null)"></TextArea>
-            <Button Type="@ButtonType.Primary" OnClick="@(SaveConfiguration)" Style="margin-top: 16px;" Block
-                    Disabled="@(ChatActivity != null)">保存配置
-            </Button>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <TextArea AutoSize="true" MinRows="10" Style="font-family: monospace;" @bind-Value="jsonConfig"
+                          Disabled="@(ChatActivity != null)"></TextArea>
+                
+                @CreateConfigSaveUI()((GetConfigFromText(), newConfig => {
+                    if (newConfig != null) {
+                        jsonConfig = JsonConvert.SerializeObject(newConfig, Formatting.Indented);
+                        StateHasChanged();
+                    }
+                }))
+            </div>
         }
     };
+
+    RenderFragment<(object Config, Action<object> OnChanged)> CreateConfigSaveUI() => data => 
+        @<ConfigSaveUI PluginType="@PluginType" 
+                      Configuration="@data.Config" 
+                      CharacterName="@Character?.Name" 
+                      OnConfigurationChanged="@(newConfig => data.OnChanged?.Invoke(newConfig))" />;
 
     protected override void OnParametersSet()
     {
@@ -71,31 +83,28 @@
     {
         jsonConfig = ConfigurationSystem.GetConfigurationJson(PluginType)?.ToString(Formatting.Indented) ?? "{}";
     }
-    void SaveConfiguration()
+    object? GetConfigFromText()
     {
         try
         {
             Type type = ConfigurationSystem.GetConfigurationType(PluginType)!;
-            object configuration = JsonConvert.DeserializeObject(jsonConfig, type)!;
-            ConfigurationSystem.SetConfiguration(PluginType, configuration);
-            _ = NotificationService.Success(new NotificationConfig { Message = "配置已保存喵！" });
+            return JsonConvert.DeserializeObject(jsonConfig, type);
         }
-        catch (Exception ex)
+        catch
         {
-            _ = NotificationService.Error(new NotificationConfig { Message = "保存失败：" + ex.Message });
+            return null;
         }
     }
 
     private Dictionary<string, object?> GetParameters()
     {
-        Dictionary<string, object?> parameters = new() {
+        return new Dictionary<string, object?> {
             { "PluginType", PluginType },
             { "Character", Character },
             { "ChatActivity", ChatActivity },
             { "Plugin", Plugin },
             { "DefaultUI", DefaultUI },
+            { "ConfigSaveUI", CreateConfigSaveUI() },
         };
-        return parameters;
     }
-
 }

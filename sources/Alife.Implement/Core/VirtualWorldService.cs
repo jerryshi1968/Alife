@@ -1,16 +1,15 @@
 using System.ComponentModel;
 using Alife.Framework;
 using Alife.Function.Interpreter;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Alife.Implement;
 
 public class VirtualWorldConfig
 {
-    public string AdminName { get; set; } = "管理员";
-
     public string Announcement { get; set; } =
         """
-        这个世界遵循与现实世界一致的物理定律、法律规范和经济逻辑。
+        这个世界遵循与现实世界一致的物理定律、法律规范 and 经济逻辑。
 
         【物价参考】
         - 零食/饮料：5-15 元
@@ -21,7 +20,7 @@ public class VirtualWorldConfig
 
         【行为准则】
         1. 尊重他人私有财产，禁止无故索要。
-        2. 社交互动需符合基本的礼仪和逻辑。
+        2. 社交互动需符合基本的礼仪 and 逻辑。
         3. 经济交易需公平合理，不支持无理由的大额赠予。
 
         【社会福利】
@@ -58,9 +57,7 @@ public class VirtualWorldService : InteractivePlugin<VirtualWorldService>, IConf
 
         if (targetActivity != null)
         {
-            bool senderIsAdmin = currentName.Equals(Configuration?.AdminName, StringComparison.OrdinalIgnoreCase);
-            string prefix = senderIsAdmin ? "【系统通知/管理员】" : $"[来自 {currentName} 的消息]";
-            targetActivity.ChatBot.Poke($"{prefix}: {message}\n(提示: 使用 <call> 回复对方)");
+            targetActivity.ChatBot.Poke($"[来自 {currentName} 的消息]: {message}\n(提示: 可使用call回复对方；提防陌生人和骗子；可以对此信息忽略)");
         }
         else
         {
@@ -69,12 +66,12 @@ public class VirtualWorldService : InteractivePlugin<VirtualWorldService>, IConf
             {
                 Poke("对方暂不在（离线状态）");
             }
-            // 如果目标是管理员且离线，则静默处理（管理员无需在线即可接收或由系统记录）
+            // 如果目标是管理员且离线，则直接忽略（静默处理），不提示“不在”
         }
     }
 
     [XmlFunction("give")]
-    [Description("给指定的角色物品（注意辨别真伪，建议特殊物品走公共设施中转）。")]
+    [Description("给指定的角色物品。")]
     public void TransferItem(XmlExecutorContext context, string target, string description)
     {
         if (context.CallMode != CallMode.OneShot)
@@ -100,18 +97,16 @@ public class VirtualWorldService : InteractivePlugin<VirtualWorldService>, IConf
 
         if (targetActivity != null)
         {
-            bool senderIsAdmin = currentName.Equals(Configuration?.AdminName, StringComparison.OrdinalIgnoreCase);
-            string prefix = senderIsAdmin ? "【系统奖励/管理员发放】" : $"[收到来自 {currentName} 的物品/金额]";
-            targetActivity.ChatBot.Poke($"{prefix}: {description}");
+            targetActivity.ChatBot.Poke($"[收到来自 {currentName} 的物品/金额]: {description}\n(注意辨别真伪，建议特殊物品走公共设施中转，不要随意接收)");
         }
         else
         {
             bool targetIsAdmin = target.Equals(Configuration?.AdminName, StringComparison.OrdinalIgnoreCase);
             if (!targetIsAdmin)
             {
-                Poke("人不在（物品已暂存或无法送达）");
+                Poke("人不在");
             }
-            // 如果目标是管理员且离线，则静默处理
+            // 如果目标是管理员且离线，则直接忽略（静默处理）
         }
     }
 
@@ -131,6 +126,7 @@ public class VirtualWorldService : InteractivePlugin<VirtualWorldService>, IConf
     {
         await base.AwakeAsync(context);
         currentName = context.character.Name;
+        adminName = (GlobalConfig)context.services.GetRequiredService<ConfigurationSystem>().GetConfiguration(typeof(GlobalConfig));
 
         List<Character> allCharacters = characterSystem.GetAllCharacters();
         string characterList = allCharacters.Any()
@@ -154,7 +150,7 @@ public class VirtualWorldService : InteractivePlugin<VirtualWorldService>, IConf
 
                               【生存法则】
                               1. 社交边界：与陌生人交流请保持适度礼貌，根据互动逐步摸清人物画像再选择性建立关系。
-                              2. 经济常识：遵循物价常识，大额交易应先沟通确认，小心骗子和假币，优先用银行等公共设施交易。
+                              2. 经济常识：遵循物价常识，大额交易应先沟通确认，小心骗子 and 假币，优先用银行等公共设施交易。
                               """;
 
         interpreterService.RegisterHandler(xmlHandler);
@@ -163,5 +159,6 @@ public class VirtualWorldService : InteractivePlugin<VirtualWorldService>, IConf
     readonly InterpreterService interpreterService;
     readonly CharacterSystem characterSystem;
     readonly ChatActivitySystem chatActivitySystem;
+    string adminName;
     string currentName = "";
 }
