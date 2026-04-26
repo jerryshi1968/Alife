@@ -20,6 +20,11 @@ public class EventServiceData
 [Plugin("事件注入", "让AI可以获取到各种系统事件的提醒。", LaunchOrder = 1000, EditorUI = typeof(EventServiceUI))]
 public class EventService : InteractivePlugin<EventService>, IConfigurable<EventServiceData>, ITimeIterative
 {
+    public static bool IsPokeMessage(string message)
+    {
+        return message.Contains("[系统缓存消息]");
+    }
+    
     [XmlFunction]
     [Description("设置下次重新开始自动报点的时间。")]
     public void SetTimer(XmlExecutorContext context, [Description("格式为ISO-8601")] DateTime time)

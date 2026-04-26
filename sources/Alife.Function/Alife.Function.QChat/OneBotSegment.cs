@@ -15,6 +15,17 @@ public static class OneBotSegment
             ? $"[群聊 {groupLabel}, 发言人 {sayerLabel}]"
             : $"[私聊 {sayerLabel}]";
     }
+    public static string GetSpeakerTag(this OneBotMessageEvent message)
+    {
+        string sayerLabel = $"{message.UserId}({message.Sender?.Nickname})";
+        return $"[{sayerLabel}]";
+    }
+    public static string GetGroupTag(this OneBotMessageEvent message)
+    {
+        string groupLabel = $"{message.GroupId}({message.GroupName})";
+        return $"[{groupLabel}]";
+    }
+
     /// <summary>
     /// 将消息转换为 AI 友好的可读文本（处理回复、@、图片、表情等）。
     /// </summary>

@@ -68,8 +68,7 @@ public class ChatMessageService
             }
 
             OnMessageChanged?.Invoke(name);
-            if (activity.ChatBot.IsPokeMessage(message) == false)
-                OnUserMessageSent?.Invoke(name);
+            OnUserMessageSent?.Invoke(name);
         };
         activity.ChatBot.ChatReceived += (obj) => {
             ChatMessage? aiMessage = messages.LastOrDefault(m => m is { IsUser: false, IsInputting: true });

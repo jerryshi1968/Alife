@@ -40,9 +40,8 @@
             </FormItem>
         }
 
-        <FormItem>
-            <Button id="btn-save-plugin-config" Type="@ButtonType.Primary" OnClick="@(Save)">保存 OpenAI 配置</Button>
-        </FormItem>
+        <ConfigSaveUI PluginType="@PluginType" Configuration="@config" CharacterName="@Character?.Name"
+                      OnConfigurationChanged="@(newConfig => { config = (ChatServiceConfig)newConfig; StateHasChanged(); })" />
     </Form>
 
     <Modal Title="探测到的模型列表"
@@ -140,12 +139,6 @@
         {
             config.modelId = modelId;
             isModelModalVisible = false;
-        }
-
-        void Save()
-        {
-            ConfigurationSystem.SetConfiguration(PluginType, config);
-            MessageService.Success("配置保存成功喵！");
         }
     }
 </div>

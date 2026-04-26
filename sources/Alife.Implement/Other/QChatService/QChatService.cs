@@ -25,7 +25,7 @@ public record QChatConfig
 }
 public class GroupState
 {
-    public long Id { get; set; }
+    public string? Tag { get; set; }
     public bool IsEnabled { get; set; }
     public DateTime LastActivityTime { get; set; }
     public DateTime LastFlushedTime { get; set; }
@@ -275,9 +275,9 @@ public class QChatService :
         if (e is not OneBotMessageEvent messageEvent)
             return;
 
-        string source = messageEvent.GetSourceTag();
+        string speaker = messageEvent.GetSpeakerTag();
         string content = await messageEvent.GetReadableMessage(oneBotClient);
-        string formatted = $"{source} {content}";
+        string formatted = $"{speaker}：{content}";
         await HandleFormattedMessage(messageEvent, formatted);
 
         async Task HandleFormattedMessage(OneBotMessageEvent messageEvent, string formatted)
@@ -292,6 +292,7 @@ public class QChatService :
             else //群聊消息
             {
                 GroupState state = GetGroupInfo(messageEvent.GroupId);
+                state.Tag = messageEvent.GetGroupTag();
 
                 // 检查是否被 @ 或匹配唤醒词
                 bool isAwakening = messageEvent.GetAtID() == oneBotClient.BotId ||
@@ -326,11 +327,13 @@ public class QChatService :
 
         if (state.MessageBuffer.Count == 0)
             return;
-        string cachedMessage = string.Join("\n", state.MessageBuffer);
-        state.MessageBuffer.Clear();
-        if (string.IsNullOrWhiteSpace(Configuration?.GroupChatPrompt) == false)
-            cachedMessage += $"\n({Configuration.GroupChatPrompt})";
-
+        
+        string cachedMessage =
+            $"""
+             > 来自群 {state.Tag} 的消息
+             {string.Join("\n", state.MessageBuffer)}
+             < ({Configuration!.GroupChatPrompt})
+             """;
         Poke(cachedMessage);
     }
     void OnAIGroupActivity(long groupID)
@@ -360,14 +363,11 @@ public class QChatService :
         if (Configuration!.CloseGroupAfterReply == false) //及时关闭模式不暴露开关信息，因为完全系统控制
             Poke($"系统通知：群 {groupID} 消息已{(enabled ? "开启" : "关闭")}（不要回复此消息）");
     }
-
     GroupState GetGroupInfo(long groupID)
     {
         if (groupStates.TryGetValue(groupID, out GroupState? groupInfo) == false)
         {
-            groupInfo = new GroupState() {
-                Id = groupID,
-            };
+            groupInfo = new GroupState();
             groupStates[groupID] = groupInfo;
         }
         return groupInfo;

@@ -38,9 +38,8 @@
             </GridCol>
         </GridRow>
 
-        <FormItem>
-            <Button Type="@ButtonType.Primary" Block OnClick="@SaveConfig">保存配置</Button>
-        </FormItem>
+        <ConfigSaveUI PluginType="@PluginType" Configuration="@config" CharacterName="@Character?.Name"
+                      OnConfigurationChanged="@(newConfig => { config = (MemoryConfig)newConfig; StateHasChanged(); })" />
     </Form>
 
     @if (service != null)
@@ -105,12 +104,6 @@
     {
         base.OnParametersSet();
         service = Plugin as MemoryService;
-    }
-
-    void SaveConfig()
-    {
-        ConfigurationSystem.SetConfiguration(PluginType, config);
-        MessageService.Success("记忆系统配置已保存喵！");
     }
 
     async Task HandleAddArchive()

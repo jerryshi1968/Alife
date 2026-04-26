@@ -99,9 +99,17 @@
                                                     </Tag>
                                                 </SpaceItem>
                                             </Space>
-                                            <br/>
-                                            <Text Type="TextElementType.Secondary" Style="font-size: 12px;">
-                                                最后活动: @state.LastActivityTime.ToString("HH:mm:ss")</Text>
+                                            @if (!string.IsNullOrEmpty(state.Tag))
+                                            {
+                                                <div style="margin-top: 4px;">
+                                                    <Tag Color="TagColor.Blue">标题: @state.Tag</Tag>
+                                                </div>
+                                            }
+                                            <div style="margin-top: 4px;">
+                                                <Text Type="TextElementType.Secondary" Style="font-size: 12px;">
+                                                    最后活动: @state.LastActivityTime.ToString("HH:mm:ss")
+                                                </Text>
+                                            </div>
                                         </div>
                                         <Space>
                                             <SpaceItem>
@@ -238,12 +246,11 @@
             </GridRow>
         </Card>
 
-        <FormItem>
-            <Button id="btn-save-plugin-config" Type="@ButtonType.Primary" Block Size="@ButtonSize.Large"
-                    OnClick="@Save">
-                保存全部配置
-            </Button>
-        </FormItem>
+        <ConfigSaveUI PluginType="@PluginType" Configuration="@config" CharacterName="@Character?.Name"
+                      OnConfigurationChanged="@(newConfig => {
+                                                  config = (QChatConfig)newConfig;
+                                                  StateHasChanged();
+                                              })"/>
     </Form>
 
     <Divider/>
@@ -320,12 +327,6 @@
                 StateHasChanged();
             }
         }
-    }
-
-    void Save()
-    {
-        ConfigurationSystem.SetConfiguration(PluginType, config);
-        MessageService.Success("QQ 聊天配置保存成功喵！");
     }
 
     public void Dispose()

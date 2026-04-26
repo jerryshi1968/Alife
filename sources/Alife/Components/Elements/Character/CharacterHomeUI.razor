@@ -9,7 +9,7 @@
 <ErrorWindowUI Title="角色激活失败喵！" @bind-Value="@activityException"></ErrorWindowUI>
 
 <CharacterLoadingUI Visible="@isLoading"
-                    Title="正在激活角色中..."
+                    Title=@($"正在激活 {Character?.Name}")
                     TaskDescription="@loadingTask"
                     Progress="@loadingProgress"/>
 

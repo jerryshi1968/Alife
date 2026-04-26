@@ -61,6 +61,10 @@
     }
 </Drawer>
 
+    <ConfigSaveUI PluginType="@PluginType" Configuration="@config" CharacterName="@Character?.Name"
+                  OnConfigurationChanged="@(newConfig => { config = (McpPluginConfig)newConfig; StateHasChanged(); })" />
+</div>
+
 @code {
 
     McpPluginConfig config = new();
@@ -97,13 +101,10 @@
     void RemoveServer(McpServerConfig server)
     {
         config.Servers.Remove(server);
-        OnConfirm(); // 立即保存
     }
 
     void OnConfirm()
     {
-        ConfigurationSystem.SetConfiguration(PluginType, config);
         isEditingServer = false;
     }
 }
-</div>

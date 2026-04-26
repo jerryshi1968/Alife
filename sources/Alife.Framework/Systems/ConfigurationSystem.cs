@@ -47,6 +47,15 @@ public class ConfigurationSystem
 
         storageSystem.SetObject(Path.Combine(root, "Configuration", target.FullName!), configuration);
     }
+    public void DeleteConfiguration(Type target, string root = "")
+    {
+        storageSystem.DeleteKey(Path.Combine(root, "Configuration", target.FullName!));
+    }
+    public bool HasConfiguration(Type target, string root = "")
+    {
+        string path = Path.Combine(root, "Configuration", target.FullName!);
+        return !string.IsNullOrEmpty(storageSystem.GetJson(path));
+    }
 
     readonly StorageSystem storageSystem;
     readonly Dictionary<Type, Type> configurationTypes;

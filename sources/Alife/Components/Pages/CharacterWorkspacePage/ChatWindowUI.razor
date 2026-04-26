@@ -291,10 +291,7 @@
     void OnUserMessageSent(string name)
     {
         if (name == CharacterName)
-            InvokeAsync(() => {
-                StateHasChanged();
-                JsRuntime.InvokeVoidAsync("forceScrollBottom");
-            });
+            InvokeAsync(StateHasChanged);
     }
 
     void OnClear()
@@ -330,7 +327,7 @@
             return;
         }
 
-        var globalConfig = ConfigurationSystem.GetConfiguration(typeof(GlobalConfig)) as GlobalConfig ?? new GlobalConfig();
+        GlobalConfig globalConfig = ConfigurationSystem.GetConfiguration(typeof(GlobalConfig)) as GlobalConfig ?? new GlobalConfig();
         string formattedText = $"[{globalConfig.AdminTag}]: {text.Trim()}";
 
         ChatBot? chatBot = ChatMessageService.GetChatBot(CharacterName);
@@ -338,6 +335,8 @@
         {
             chatBot.Chat(formattedText);
         }
+
+        await JsRuntime.InvokeVoidAsync("forceScrollBottom");
     }
 }
 

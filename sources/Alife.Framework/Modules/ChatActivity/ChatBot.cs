@@ -45,6 +45,7 @@ public class ChatBot : IAsyncDisposable
                 }
             }
 
+            message = message.Trim();
             llmAgentThread.ChatHistory.AddMessage(role ?? AuthorRole.User, message);
             cancelChatSource = new CancellationTokenSource();
 
@@ -166,16 +167,12 @@ public class ChatBot : IAsyncDisposable
     {
         while (messageCache.Count > 11)
             messageCache.TryDequeue(out _);
-        messageCache.Enqueue(message);
+        messageCache.Enqueue($"\n{message}\n");
         lastAutoFlushTime = 0; //重新计时，防止后续还有Poke
     }
     public void UpdateHistoryEndIndex()
     {
         lastContentIndex = ChatHistory.Count;
-    }
-    public bool IsPokeMessage(string message)
-    {
-        return message.Contains("[系统缓存消息]");
     }
 
     readonly ChatCompletionAgent llmAgent;
