@@ -15,7 +15,10 @@
 - **Demos/**: 演示工程。
 - **Launch.cmd**: 引导程序，处理环境初始化。
 
-### 分层架构 (Layered Architecture)
+### 技术栈 (Tech Stack)
+- **Runtime**: .NET 9.0 (Stable) - *注：由于 .NET 10 Preview 存在 Razor SDK 编译 Bug，已执行全局降级。*
+- **UI**: WPF + Blazor Hybrid (Ant Design Blazor).
+- **Architecture**: 插件化分层架构。
 - **Alife.Basic (基础设施层)**:
     - 职责：封装底层 OS 能力。
     - 核心：`AlifePlatform` (调度器)、`WindowsPlatform` (Windows 实现)、`WindowsNative` (所有 Win32 P/Invoke 集中地)。
@@ -54,3 +57,10 @@
 - **[ ] 架构持续解耦**:
     - 逐步用 `ImageSharp` 替换 `System.Drawing.Common` 以消除 GDI+ 依赖。
     - 在 `AlifePlatform.Command` 中增加对 Linux/macOS Shell 的支持。
+
+## 4. 项目里程碑 (Project Milestones)
+
+- **[2026-04-28] 解决 Razor SDK 编译冲突**: 修复了 `Accessibility.dll` 缺少 `FusionName` 导致的编译崩溃。通过降级至 .NET 9 稳定版工具链并在 `Directory.Build.props` 中使用 `ItemDefinitionGroup` 全局补全元数据解决。
+- **[2026-04-28] 存储路径无感迁移**: 实现了 `AlifePath` 在路径变更时自动搬迁数据的功能，增强了用户体验。
+- **[2026-04-27] 平台能力架构重构**: 完成了 `Alife.Basic` 层的解耦，所有 Win32 原生调用已集中管理，实现了业务与平台的初步分离。
+- **[2026-04-27] 环境管理外迁**: 引入 `Launch.cmd` 统一管理 Python 环境初始化。

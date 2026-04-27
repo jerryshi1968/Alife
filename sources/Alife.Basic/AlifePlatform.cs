@@ -53,4 +53,12 @@ public static class AlifePlatform
 
         return "当前平台不支持窗口枚举";
     }
+
+    public static string? PickFolder(string title = "请选择文件夹")
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return WindowsPlatform.PickFolder(title);
+
+        throw new PlatformNotSupportedException("当前平台暂不支持目录选择对话框。");
+    }
 }
