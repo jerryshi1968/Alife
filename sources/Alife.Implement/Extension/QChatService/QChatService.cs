@@ -117,12 +117,11 @@ public class QChatService(FunctionService functionService, ILogger<QChatService>
             // 尝试追加后缀名查找
             string[] extensions = [".png", ".jpg", ".jpeg", ".gif"];
             string? foundFile = extensions.Select(ext => emotePath + ext).FirstOrDefault(File.Exists);
-            if (foundFile != null)
-            {
-                file = foundFile;
-            }
-            // 如果都不匹配，则维持原样（可能是 URL 或绝对路径）
+            if (foundFile != null) file = foundFile;
         }
+
+        if (file.StartsWith("http") == false && File.Exists(file) == false)
+            throw new Exception("图片不存在");
 
         file = file.Replace('\\', '/');
         if (type == OneBotMessageType.Group)
@@ -174,15 +173,22 @@ public class QChatService(FunctionService functionService, ILogger<QChatService>
     }
 
     [XmlFunction]
-    [Description("设置群消息开关。（使用后需等待结果返回）")]
-    public void QGroup(XmlExecutorContext ctx, long groupID, bool enabled)
+    [Description("获取转发消息详情。（使用后需等待结果返回）")]
+    public async Task QForward(XmlExecutorContext ctx, [Description("转发消息 ID")] string id)
     {
         if (ctx.CallMode != CallMode.OneShot)
             throw new Exception("错误的调用方式，应该使用自闭合标签调用。");
 
-        QGroup(groupID, enabled);
-    }
+        List<OneBotForwardMessage>? messages = await oneBotClient!.GetForwardMessage(id);
+        if (messages == null || messages.Count == 0)
+        {
+            Poke($"转发消息 {id} 为空或获取失败。");
+            return;
+        }
 
+        string formatted = OneBotSegment.FormatForwardList(id, messages, oneBotClient!);
+        Poke(formatted);
+    }
 
     public QChatConfig? Configuration { get; set; }
     public bool IsConnected => oneBotClient is { IsConnected: true };

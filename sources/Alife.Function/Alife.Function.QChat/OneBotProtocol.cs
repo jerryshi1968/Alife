@@ -33,6 +33,9 @@ public abstract record OneBotBaseEvent
 
 public record OneBotSender
 {
+    [JsonPropertyName("user_id")]
+    public long UserId { get; init; }
+
     [JsonPropertyName("nickname")]
     public string Nickname { get; init; } = "";
 
@@ -114,6 +117,24 @@ public record OneBotRequestEvent : OneBotBaseEvent
 {
     [JsonPropertyName("request_type")]
     public string? RequestType { get; init; }
+}
+
+public record OneBotForwardMessage
+{
+    [JsonPropertyName("content")]
+    public System.Text.Json.JsonElement Content { get; init; }
+
+    [JsonPropertyName("sender")]
+    public OneBotSender? Sender { get; init; }
+
+    [JsonPropertyName("time")]
+    public long Time { get; init; }
+}
+
+public record OneBotForwardData
+{
+    [JsonPropertyName("messages")]
+    public List<OneBotForwardMessage> Messages { get; init; } = [];
 }
 
 #endregion

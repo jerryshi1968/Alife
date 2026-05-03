@@ -51,6 +51,14 @@ public static class OneBotExtensions
     {
         return await client.CallActionAsync<OneBotMessageEvent>("get_msg", new { message_id = messageId });
     }
+    /// <summary>
+    /// 获取合并转发消息详情。
+    /// </summary>
+    public static async Task<List<OneBotForwardMessage>?> GetForwardMessage(this OneBotClient client, string forwardId)
+    {
+        OneBotForwardData? data = await client.CallActionAsync<OneBotForwardData>("get_forward_msg", new { id = forwardId });
+        return data?.Messages;
+    }
 
     /// <summary>
     /// 简单的文件异步下载辅助，包含基础请求头以绕过部分防盗链。
