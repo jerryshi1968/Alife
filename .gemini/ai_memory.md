@@ -70,4 +70,7 @@
 ## 5. 经验教训与技巧 (Lessons Learned & Tips)
 
 - **XML 标签生成最佳实践**: AI 过去在生成 `<execute_script script="...">` 时常因属性值内转义双引号 `\"` 导致 XML 流解析器卡死崩溃。尽管解析器已修复，但最佳实践仍是**将复杂 JavaScript 代码放在 `<execute_script>` 的内容块中**，而不是作为 `script` 属性。
-- **MIDI 文件获取策略**: 获取真实可用的 `.mid` 文件时，Musescore 和 OnlineSequencer 常被 Cloudflare 的真人验证拦截。优先通过 **MIDIClouds** 寻找页面中的 `.mid` 原始文件链接（或从 GitHub 相关 repo 中的 raw 链接下载），若要使用浏览器下载工具，需要注意验证码墙，或者直接请求用户提供本地文件。
+- **MIDI 获取与 MusicMaster 进阶策略**:
+    - **先验证再搜索**: 对于不确定的曲名，必须先通过 `websearch` 确认标准名、艺术家及别名，避免因译名差异搜不到。
+    - **阶梯搜索**: 优先尝试 GitHub 和 MIDIClouds 的精确定位，若失败应**果断切换到 Google (SurfingService.websearch)** 进行全局搜索，不要死扣在专门的 MIDI 站。
+    - **及时止损**: 如果尝试多种关键词仍无果，主动告知用户尝试过的关键词并请求协助（提供链接或文件），严禁在无效结果中循环搜索。

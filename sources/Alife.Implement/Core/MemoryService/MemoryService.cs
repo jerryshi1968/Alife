@@ -30,11 +30,14 @@ public partial class MemoryService
 }
 
 [Plugin("持久记忆", "自动管理和分层压缩对话记忆，提供长期记忆检索能力。", LaunchOrder = -100, EditorUI = typeof(MemoryServiceUI))]
-public partial class MemoryService(FunctionService functionService) : InteractivePlugin<MemoryService>, IConfigurable<MemoryConfig>
+public partial class MemoryService(FunctionService functionService)
+    : InteractivePlugin<MemoryService>, IConfigurable<MemoryConfig>
 {
     [XmlFunction]
     [Description("查看记忆存档中保存的完整原始内容。（你要积极使用该功能，因为有些记忆的重要内容被记在了完整内容中，而不是概述里）")]
-    public async Task Recall(XmlExecutorContext ctx, [Description("存档索引（如：0-20240101120000-20240101130000）")] string index)
+    public async Task Recall(XmlExecutorContext ctx,
+        [Description("存档索引（如：0-20240101120000-20240101130000）")]
+        string index)
     {
         if (ctx.CallMode != CallMode.OneShot)
             throw new Exception("错误的调用方式，应该使用自闭合标签调用。");
@@ -110,7 +113,8 @@ public partial class MemoryService(FunctionService functionService) : Interactiv
             throw new Exception("错误的调用方式，应该使用自闭合标签调用。");
 
         index = index.Trim();
-        ChatMessageContent? target = ChatHistory.FirstOrDefault(c => c.Content != null && c.Content.Contains($"存档索引：{index}"));
+        ChatMessageContent? target =
+            ChatHistory.FirstOrDefault(c => c.Content != null && c.Content.Contains($"存档索引：{index}"));
         if (target == null)
         {
             Poke($"未能在当前上下文中找到索引为 '{index}' 的记忆记录。");
@@ -166,19 +170,25 @@ public partial class MemoryService(FunctionService functionService) : Interactiv
                上下文压缩说明：
                有时你会收到关于上下文压缩的提示，它会给予你一段过往时间的聊天记录或记忆存档。这些内容是即将移出上下文的内容，所以需要你用第一人称简述一下发生的事情，方便日后回忆。
 
+               ## 记忆优先级
+               不同的事情值得记下的程度是不一样的。因此压缩记忆是，各经历的占比不是均衡的。要注意，不是对话越多、时间越新的经历就值得记住，真正让人难忘的是珍贵的，那些难得的点点滴滴。
+               所以你要分清哪些是无聊琐事，哪些是枯燥的工作；而又有哪些是值得记下的故事，立下的约定，获得的成长......
+               学着像年迈的老者去讲述自己的过去那样，学着像青涩的少年书写珍贵的秘密那样，去对待自己的记忆的存储（又或者叫传记、回忆录）；
+               当遇到不得不遗忘的情境时（记忆压缩时的抉择），学着放下无聊、无意义、短期突发性的事，记住真正重要、长久、希望一直回忆的事。
+
                ## 核心记忆说明
                记忆拥有优先级，优先级最高的叫做核心（关键性）记忆，常见的核心记忆例如：
                1. 用户画像：爱好、工作、地址、起居、家庭、生日等
                2. 关键记录：号码、事件、规则、要求等
-               3. 引起巨大反应经理：惊讶、悲伤、感慨等
+               3. 偶然的小故事，约定，成长经历，让人动容的回忆等（该条其实优先级最高，只是它需要你长线、日积月累的维护它）
                4. 等等类似的有价值有意义的特殊记忆......
-               对于关键性记忆，在压缩时需要优先保留，甚至反复保留回忆，以将其永远留在上下文中。
+               对于关键性记忆，在压缩时需要优先保留，以将其永远留在上下文中。
 
                ## 压缩规则要点说明
                注意！描述事情时，你要遵守如下规则：
                1. 无需记录存档信息，不要混淆其他聊天，仅直接总结压缩时提供的内容中的事件即可。
-               2. 压缩时注意反复回忆保留其中的重要经历、关键性信息等，以形成永久的核心记忆。
-               3. 当要压缩内容过多时，要按重要程度进行取舍，如核心记忆需优先保留，而生活中的琐事、普通对话则可以一笔带过或选择遗忘。
+               2. 压缩时注意保留其中的重要经历、关键性信息等，以形成永久的核心记忆。
+               3. 当要压缩内容过多时，要按重要程度进行取舍，如核心记忆需优先保留，重复突发性琐事可以简略。
                4. 在压缩总结的写法上，对于多事件内容要按时间段区分，对于核心记忆则要单独记录。
                5. 分清事件中的具体人物，不要用‘你’这种代词，要用具体的名称，如‘主人’、‘某某某’等。
                6. 系统会自动生成存档信息，所以不要擅自添加系统信息，直接像讲故事一样描述概述内容中发生的事件即可。
@@ -192,8 +202,10 @@ public partial class MemoryService(FunctionService functionService) : Interactiv
         ChatBot.ChatHistoryAdd += OnChatHistoryAdd; //每次对话后检测压缩
 
         //初始化向量化器和感知人设的压缩器
-        AlifeTextCompressor compressor = new(kernel.GetRequiredService<IChatCompletionService>(), ChatHistory, Configuration!.Probability);
-        memoryManager = new MemoryManager(compressor, textVectorizer!, storagePath!, Configuration!.Threshold, Configuration!.BatchSize,
+        AlifeTextCompressor compressor = new(kernel.GetRequiredService<IChatCompletionService>(), ChatHistory,
+            Configuration!.Probability);
+        memoryManager = new MemoryManager(compressor, textVectorizer!, storagePath!, Configuration!.Threshold,
+            Configuration!.BatchSize,
             Configuration!.MaxCompressionLevel);
 
         //加载历史记忆
@@ -222,7 +234,8 @@ public partial class MemoryService(FunctionService functionService) : Interactiv
     /// <summary>
     /// 感知上下文的人设化压缩器
     /// </summary>
-    class AlifeTextCompressor(IChatCompletionService chatCompletionService, ChatHistory history, float probability) : TextCompressor
+    class AlifeTextCompressor(IChatCompletionService chatCompletionService, ChatHistory history, float probability)
+        : TextCompressor
     {
         public override async Task<string?> Compress(string text)
         {
