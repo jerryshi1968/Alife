@@ -107,29 +107,62 @@ public class BrowserEngine : IDisposable
                                 const tagName = (node.tagName || '').toLowerCase();
                                 if (!tagName || ['script', 'style', 'svg', 'path', 'meta'].includes(tagName)) continue;
 
-                                const isInput = ['input', 'textarea', 'select'].includes(tagName);
+                                const isInput = ['input', 'textarea', 'select'].includes(tagName) || node.contentEditable === 'true' || node.getAttribute('contenteditable') === 'true';
                                 const isLink = tagName === 'a' && node.href;
                                 const isBtn = tagName === 'button' || node.getAttribute('role') === 'button' || node.hasAttribute('onclick');
                                 
                                 let isPointer = false;
+                                let isTextCursor = false;
                                 if (!isInput && !isLink && !isBtn && !['html', 'body'].includes(tagName)) {{
                                     const style = window.getComputedStyle(node);
-                                    isPointer = style && style.cursor === 'pointer';
+                                    if (style) {{
+                                        isPointer = style.cursor === 'pointer';
+                                        isTextCursor = style.cursor === 'text';
+                                    }}
                                 }}
 
-                                if (isInput || isLink || isBtn || isPointer) {{
+                                if (isInput || isTextCursor || isLink || isBtn || isPointer) {{
                                     if (node.offsetWidth === 0 || node.offsetHeight === 0) continue;
 
-                                    const text = (node.innerText || node.value || node.placeholder || node.title || node.alt || node.getAttribute('aria-label') || '').substring(0, 40).replace(/\n/g, ' ').trim();
+                                    // --- Super Enhanced label extraction ---
+                                    let text = (node.innerText || node.value || node.placeholder || node.title || node.alt || node.getAttribute('aria-label') || '').trim();
+                                    
+                                    if (!text) {{
+                                        // 1. Search for associated label
+                                        if (node.id) {{
+                                            const lbl = document.querySelector(`label[for='${{node.id}}']`);
+                                            if (lbl) text = lbl.innerText;
+                                        }}
+                                        // 2. Search for adjacent text nodes
+                                        if (!text && node.previousSibling) text = node.previousSibling.textContent;
+                                        if (!text && node.nextSibling) text = node.nextSibling.textContent;
+
+                                        // 3. Search parent text (covers <div>Search: <input/></div>)
+                                        if (!text && node.parentElement && node.parentElement.innerText.length < 60) {{
+                                            text = node.parentElement.innerText;
+                                        }}
+
+                                        // 4. Fallback to name, ID, or class
+                                        if (!text) {{
+                                            text = node.name || node.id || (typeof node.className === 'string' ? node.className.split(' ')[0] : '');
+                                        }}
+                                        
+                                        // 5. Image filename fallback
+                                        if (!text && node.tagName === 'IMG') {{
+                                            text = node.src.split('/').pop().split('.')[0];
+                                        }}
+                                    }}
+
+                                    text = text.substring(0, 40).replace(/\n/g, ' ').trim();
                                     const href = node.href || '';
 
-                                    if (isInput) {{
+                                    if (isInput || isTextCursor) {{
                                         let id = node.getAttribute('data-alife-id');
                                         if (!id) {{
                                             id = (++maxId).toString();
                                             node.setAttribute('data-alife-id', id);
                                         }}
-                                        allInputs.push({{ text, type: node.type || tagName, id }});
+                                        allInputs.push({{ text, type: 'input', id }});
                                     }} else if (href || isPointer || isBtn) {{
                                         let linkItem = {{ text: text || (href ? '[Link]' : '[Button]'), href: href.substring(0, 150) }};
                                         if (!href || isBtn || isPointer) {{

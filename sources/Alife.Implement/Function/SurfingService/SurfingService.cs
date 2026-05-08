@@ -8,18 +8,18 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Alife.Implement.Function;
 
 [Plugin("网上冲浪", "让 AI 像人一样操控浏览器：打开网页、观察页面、点击、打字、滚动、执行脚本。")]
-[Description(@"你拥有一个属于自己的、真实的、用户可见的浏览器窗口，你可以像真人一样去操作它。
+[Description(@"你拥有一个真实的浏览器窗口。你可以通过 observe 或 navigate 获取由系统动态分配了 [ID] 的组件。
+操作提示：在使用 runjs 时，请务必使用属性选择器 `[data-alife-id='ID']` 来精准定位并操控这些组件。
 注意：
-1. 如果你遇到了需要验证、登录之类的页面，不要直接放弃，可以尝试让主人进行协助。
-2. 执行任务时，优先用搜索引擎调查关键字，明确用户需求无误后，再进行操作。
-3. 使用搜索引擎时优先谷歌、必应、然后百度，或者也可以用一些其他好用的网站搜素。")]
+1. 若遇到验证或登录，可请求主人协助。
+2. 优先使用搜索引擎（谷歌 > 必应 > 百度）明确需求。")]
 public class SurfingService(FunctionService functionService)
     : InteractivePlugin<SurfingService>, IDisposable
 {
     readonly BrowserEngine browser = new();
 
     [XmlFunction("navigate")]
-    [Description("在浏览器中打开指定网址。成功后会自动返回页面观察结果，无需再次调用 observe。")]
+    [Description("打开指定网址。成功后会自动为页面组件分配 [ID] 并返回观察结果。")]
     public async Task Navigate(XmlExecutorContext context,
         [Description("要打开的网址")] string url)
     {
@@ -40,7 +40,7 @@ public class SurfingService(FunctionService functionService)
 
 
     [XmlFunction("observe")]
-    [Description("观察当前页面：返回标题、URL、正文以及带有 ID 的交互元素。提示：若要点击按钮、填入文本或进行复杂操作，请直接使用 runjs 工具对选中的 [data-alife-id='xx'] 节点编写脚本。")]
+    [Description("观察当前页面：系统会自动为交互组件分配 [ID] 并返回其描述。")]
     public async Task Observe(XmlExecutorContext context,
         [Description("观察区域索引（用于翻页），从 1 开始，默认 1")] int scope = 1)
     {
@@ -52,7 +52,7 @@ public class SurfingService(FunctionService functionService)
     }
 
     [XmlFunction("runjs")]
-    [Description("在浏览器中执行 JS。提示：配合 observe 返回的 [data-alife-id='x'] 属性，你可以通过 document.querySelector 精准定位并填值或点击。建议使用自闭合标签调用并把代码写在标签内容里。")]
+    [Description("执行 JavaScript。提示：使用 `document.querySelector(\"[data-alife-id='ID']\")` 定位 observe 返回的组件。建议将代码写在标签内容中。")]
     public async Task ExecuteScript(XmlExecutorContext context, [XmlContent] string script = "")
     {
         if (context.CallMode != CallMode.Closing)
