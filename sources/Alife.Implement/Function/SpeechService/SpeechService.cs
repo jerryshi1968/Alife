@@ -138,7 +138,7 @@ public partial class SpeechService(FunctionService functionService)
             await synthesizer.StopSpeakAsync(); //中断语音
     }
 
-    protected override string ChatPrefixPrompt => "[这是语音识别信息，注意使用Speak回复]";
+    protected override string ChatPrefixPrompt => "[这是语音识别信息，建议使用Speak回复（注意！语音识别很可能误识别，要根据内容洞察真实情况）]";
     Task<string?> audioSynthesizingTask = Task.FromResult<string?>(null);
     CancellationTokenSource? audioFileSynthesizingCancellation;
     bool hasHeadphones;

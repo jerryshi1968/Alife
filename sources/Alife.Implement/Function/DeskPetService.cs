@@ -11,9 +11,9 @@ namespace Alife.Implement;
 [Plugin("桌宠交互", "将Live2D桌宠接入AI系统，实现表现力同步和互动反馈。")]
 public class DeskPetService : InteractivePlugin<DeskPetService>, IAsyncDisposable
 {
-    [XmlFunction("say")]
-    [Description("显示一段文本字幕")]
-    public async Task PetBubble(XmlExecutorContext context, [XmlContent] string content)
+    [XmlFunction]
+    [Description("显示一段气泡文本")]
+    public async Task Speak(XmlExecutorContext context, [XmlContent] string content)
     {
         if (context.CallMode == CallMode.Reset)
         {
@@ -43,9 +43,9 @@ public class DeskPetService : InteractivePlugin<DeskPetService>, IAsyncDisposabl
         }
     }
 
-    [XmlFunction("exp")]
+    [XmlFunction]
     [Description("表演一个表情（具体选项见附加说明）")]
-    public void PetExpression(XmlExecutorContext context, string option)
+    public void Expression(XmlExecutorContext context, string option)
     {
         if (context.CallMode != CallMode.OneShot)
             throw new Exception("错误的调用方式，应该使用自闭合标签调用。");
@@ -58,9 +58,9 @@ public class DeskPetService : InteractivePlugin<DeskPetService>, IAsyncDisposabl
         client!.PlayExpression(option);
     }
 
-    [XmlFunction("mtn")]
+    [XmlFunction]
     [Description("表演一个动作（具体选项见附加说明）")]
-    public void PetMotion(XmlExecutorContext context, string option)
+    public void Motion(XmlExecutorContext context, string option)
     {
         if (context.CallMode != CallMode.OneShot)
             throw new Exception("错误的调用方式，应该使用自闭合标签调用。");
@@ -73,9 +73,9 @@ public class DeskPetService : InteractivePlugin<DeskPetService>, IAsyncDisposabl
         client.PlayMotion(motion.Group, motion.Index);
     }
 
-    [XmlFunction("pos")]
+    [XmlFunction]
     [Description("获取当前屏幕位置（使用后需等待结果返回）")]
-    public async Task PetPos(XmlExecutorContext context)
+    public async Task Position(XmlExecutorContext context)
     {
         if (context.CallMode != CallMode.OneShot)
             throw new Exception("错误的调用方式，应该使用自闭合标签调用。");
@@ -91,16 +91,17 @@ public class DeskPetService : InteractivePlugin<DeskPetService>, IAsyncDisposabl
         }
     }
 
-    [XmlFunction("move")]
+    [XmlFunction]
     [Description("在屏幕上进行相对移动（注意！该移动方式为相对位置移动，使用前最好先确认当前位置）")]
-    public Task PetMove(XmlExecutorContext context, double x = 0, double y = 0, int duration = 1000)
+    public async Task Move(XmlExecutorContext context, double x = 0, double y = 0, int duration = 1000)
     {
         if (context.CallMode != CallMode.OneShot)
             throw new Exception("错误的调用方式，应该使用自闭合标签调用。");
 
-        return client!.MoveAsync(x, y, duration);
+        await client!.MoveAsync(x, y, duration);
+        (x, y) = await client!.GetPositionAsync();
+        Poke($"移动成功，当前位置: x={x}, y={y}");
     }
-
 
     PetServer? client;
     long lastBubbleEndTime;
@@ -119,8 +120,8 @@ public class DeskPetService : InteractivePlugin<DeskPetService>, IAsyncDisposabl
         {
             Description = "此服务让你获得一副可控可交互的Live2D身体。（这是你主要输出表情动作的工具，一定要积极使用）",
             Explain = $"""
-                       - 支持的 exp（表情）：{supportedExpressionsDescription}
-                       - 支持的 mtn（动作）：{supportedMotionsDescription}
+                       - 支持的 {nameof(Expression)}：{supportedExpressionsDescription}
+                       - 支持的 {nameof(Motion)}：{supportedMotionsDescription}
                        - 当前屏幕分辨率：{AlifePlatform.GetResolution()}
                        """
         };
@@ -153,7 +154,11 @@ public class DeskPetService : InteractivePlugin<DeskPetService>, IAsyncDisposabl
                     client?.SendStatus(currentStatus);
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
             await Task.Delay(250);
         }
     }

@@ -6,7 +6,7 @@ namespace Alife.Implement;
 public class MessageFilterData
 {
     public bool EnableTimestamp { get; set; } = true;
-    public string MessageAppend { get; set; } = "（请简洁回复，禁用旁白、emoji，并根据接收的消息属性，正确使用标签。）";
+    public string MessageAppend { get; set; } = "（请简洁回复，禁用旁白、emoji）";
     public string PokeAppend { get; set; } = "";
 }
 

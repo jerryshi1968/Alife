@@ -9,7 +9,7 @@ namespace Alife.Implement;
 
 public partial class PythonService
 {
-    public static async Task<string> Python(string path, int timeout = 30)
+    public static async Task<string> Python(string path, int timeout = 30, CancellationToken cancellationToken = default)
     {
         ProcessStartInfo startInfo = new()
         {
@@ -30,7 +30,8 @@ public partial class PythonService
 
         try
         {
-            CancellationTokenSource cts = new(timeout * 1000);
+            CancellationTokenSource timeCts = new(timeout * 1000);
+            CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeCts.Token);
 
             // 同时开始读取输出和错误流，防止缓冲区满导致进程死锁
             Task<string> outputTask = process.StandardOutput.ReadToEndAsync(cts.Token);
@@ -73,7 +74,7 @@ public partial class PythonService(FunctionService functionService) : Interactiv
 
         await File.WriteAllTextAsync(filePath, context.FullContent.Trim());
 
-        string result = await Python(filePath, timeout);
+        string result = await Python(filePath, timeout, functionService.CancellationToken);
         Poke("脚本执行完成\n" + result);
     }
 
