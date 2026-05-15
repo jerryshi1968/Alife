@@ -23,11 +23,10 @@ public class SpeechSynthesizer
             return;
 
         speakCancellation = new CancellationTokenSource();
-        currentTask = Task.Run(async () =>
-        {
+        currentTask = Task.Run(async () => {
             string? outputFile = await GenerateSpeechFileAsync(text, speakCancellation.Token);
             if (outputFile == null)
-                return; //计算后发现没有可朗读的文本
+                return;//计算后发现没有可朗读的文本
             await PlayAudioAsync(outputFile, speakCancellation.Token);
         });
 
@@ -37,13 +36,14 @@ public class SpeechSynthesizer
     /// <summary>
     /// 不进行语音合成，直接将已存在的音频文件作为说话内容，借助该函数，可以将合成与播放分离，从而实现预加载等功能。
     /// </summary>
-    public async Task SpeakAudioAsync(string file)
+    public async Task SpeakAudioAsync(string file, CancellationToken cancellationToken = default)
     {
         if (IsSpeaking)
             await StopSpeakAsync();
 
         speakCancellation = new CancellationTokenSource();
-        currentTask = PlayAudioAsync(file, speakCancellation.Token);
+        using CancellationTokenSource cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, speakCancellation.Token);
+        currentTask = PlayAudioAsync(file, cancellationTokenSource.Token);
 
         await currentTask;
     }
@@ -69,8 +69,7 @@ public class SpeechSynthesizer
         if (File.Exists(outputPath))
             return outputPath;
 
-        ProcessStartInfo psi = new()
-        {
+        ProcessStartInfo psi = new() {
             FileName = "python",
             Arguments = $"-m edge_tts --text \"{fileSafeText}\" --voice {voiceTone} --write-media \"{outputPath}\"",
             UseShellExecute = false,
@@ -89,13 +88,13 @@ public class SpeechSynthesizer
 
             // 在线语音合成可能因为网络或拒绝服务导致卡死，需要处理超时问题
             await Task.WhenAny(
-                process.WaitForExitAsync(cancellationToken),
-                Task.Delay(5000, cancellationToken));
+            process.WaitForExitAsync(cancellationToken),
+            Task.Delay(5000, cancellationToken));
             if (process.HasExited == false)
                 throw new TimeoutException();
             if (process.ExitCode != 0)
                 throw new Exception(
-                    $"{outputPath}\n{await process.StandardOutput.ReadToEndAsync(cancellationToken)}\n{await process.StandardError.ReadToEndAsync(cancellationToken)}");
+                $"{outputPath}\n{await process.StandardOutput.ReadToEndAsync(cancellationToken)}\n{await process.StandardError.ReadToEndAsync(cancellationToken)}");
             if (File.Exists(outputPath) == false)
                 throw new Exception($"语音文件未生成：{outputPath}");
 

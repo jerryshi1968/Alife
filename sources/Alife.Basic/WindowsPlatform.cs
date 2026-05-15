@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Windows.Graphics.Imaging;
 using Windows.Media.Ocr;
 using Windows.Storage;
@@ -116,7 +117,7 @@ public static class WindowsPlatform
         }
         else
         {
-            bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+        bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Png);
         }
 
         return path;
@@ -166,6 +167,7 @@ public static class WindowsPlatform
         }
 
         return dialog.ShowDialog() == true ? dialog.FolderName : null;
+    }
 
     public static async Task<string> OcrAsync(string path)
     {
@@ -179,7 +181,20 @@ public static class WindowsPlatform
             StorageFile file = await StorageFile.GetFileFromPathAsync(Path.GetFullPath(path));
             using var stream = await file.OpenAsync(FileAccessMode.Read);
             BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
-            using SoftwareBitmap bitmap = await decoder.GetSoftwareBitmapAsync();
+
+            // 优化：进行 2 倍高质量缩放预处理，显著提升细小文字的识别率
+            BitmapTransform transform = new() {
+                ScaledWidth = decoder.PixelWidth * 2,
+                ScaledHeight = decoder.PixelHeight * 2,
+                InterpolationMode = BitmapInterpolationMode.Cubic
+            };
+
+            using SoftwareBitmap bitmap = await decoder.GetSoftwareBitmapAsync(
+                decoder.BitmapPixelFormat,
+                BitmapAlphaMode.Premultiplied,
+                transform,
+                ExifOrientationMode.RespectExifOrientation,
+                ColorManagementMode.ColorManageToSRgb);
 
             OcrEngine engine = OcrEngine.TryCreateFromUserProfileLanguages();
             if (engine is null)
@@ -188,7 +203,9 @@ public static class WindowsPlatform
             }
 
             OcrResult result = await engine.RecognizeAsync(bitmap);
-            return string.Join(" ", result.Lines.Select(line => line.Text));
+            string text = string.Join("\n", result.Lines.Select(line => line.Text));
+            // 优化：去除中文之间的冗余空格
+            return Regex.Replace(text, @"(?<=[\u4e00-\u9fa5])\s+(?=[\u4e00-\u9fa5])", "");
         }
         catch (Exception ex)
         {

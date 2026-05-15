@@ -28,7 +28,7 @@ public class XmlStreamExecutor : IAsyncDisposable
     }
     public async Task CancelAsync()
     {
-        // while (commandChannel.Reader.TryRead(out _)) {}
+        while (commandChannel.Reader.TryRead(out _)) {}
         await handleTokenSource.CancelAsync();
         Flush();
         await WaitToIdle();
@@ -99,11 +99,11 @@ public class XmlStreamExecutor : IAsyncDisposable
                     switch (cmd.Type)
                     {
                         case CommandType.Feed:
-                            Console.Write(cmd.Data);
+                            // Console.Write(cmd.Data);
                             await (lastTask = parser.Feed(cmd.Data));
                             break;
                         case CommandType.Flush:
-                            Console.Write("[Flush]");
+                            // Console.Write("[Flush]");
                             await (lastTask = parser.Flush(true));
                             ClearContentBuffer();
                             handleTokenSource = new CancellationTokenSource();

@@ -10,9 +10,9 @@
     <Flex Justify="@FlexJustify.SpaceBetween" Align="@FlexAlign.Center"
           Style="padding: 8px 16px; background: rgba(0,0,0,0.02); border-bottom: 1px solid #f0f0f0;">
         <div style="display: flex; align-items: center; gap: 8px;">
-            <div class="status-dot @(isWorking ? "status-online" : "")"></div>
             <AntDesign.Text Type="@TextElementType.Secondary" Style="font-size: 12px;">我的称呼:</AntDesign.Text>
-            <Input @bind-Value="@adminTag" Placeholder="管理员" Size="@InputSize.Small" Style="width: 100px; border-radius: 4px;"/>
+            <Input @bind-Value="@adminTag" Placeholder="管理员" Size="@InputSize.Small"
+                   Style="width: 100px; border-radius: 4px;"/>
         </div>
         <Button Icon="@IconType.Outline.Clear"
                 Type="@ButtonType.Link"
@@ -84,26 +84,27 @@
             <Flex Gap="@("12")" Align="@FlexAlign.End" Style="width: 100%;">
                 <div style="flex: 1; position: relative;">
                     <textarea id="chatInput"
-                              class="native-chat-input @(isWorking ? "input-busy" : "")"
-                              placeholder="@(isWorking ? "AI 思考中，可继续输入并排队发送..." : "输入消息... (Enter 发送, Shift+Enter 换行)")"
+                              class="native-chat-input"
+                              placeholder="@("输入消息... (Enter 发送, Shift+Enter 换行)")"
                               @bind="inputText"
                               @bind:event="oninput"
                               @onkeydown="HandleNativeKeyDown"
                               @onkeydown:preventDefault="shouldPreventDefault"></textarea>
-                    
+
                     @if (isWorking)
                     {
                         <div class="input-busy-tag">
                             <Icon Type="@IconType.Outline.Loading" Style="font-size: 14px; color: #1890ff;"/>
-                            <span style="color: #1890ff; font-size: 12px; font-weight: 500;">@(CharacterName) 正在思考/保存...</span>
+                            <span
+                                style="color: #1890ff; font-size: 12px; font-weight: 500;">@(CharacterName) 思考/记忆中...</span>
                         </div>
                     }
                 </div>
                 <Button Type="@ButtonType.Primary"
-                        Icon="@(isWorking ? IconType.Outline.Loading : IconType.Outline.Send)"
+                        Icon="@(IconType.Outline.Send)"
                         OnClick="@(async () => await OnSend())"
                         Style="height: 40px; border-radius: 8px; padding: 0 24px; flex-shrink: 0; box-shadow: 0 2px 4px rgba(24, 144, 255, 0.2);">
-                    @(isWorking ? "排队发送" : "发送")
+                    @("发送")
                 </Button>
             </Flex>
         </div>
@@ -147,12 +148,6 @@
         box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
     }
 
-    .input-busy {
-        background: #fcfcfc !important;
-        border-color: #1890ff !important;
-        box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1) !important;
-    }
-
     .input-busy-tag {
         position: absolute;
         bottom: 8px;
@@ -170,9 +165,15 @@
     }
 
     @@keyframes pulse-tag {
-        0% { opacity: 0.6; }
-        50% { opacity: 1; }
-        100% { opacity: 0.6; }
+        0% {
+            opacity: 0.6;
+        }
+        50% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0.6;
+        }
     }
 
     .chat-bubble {
@@ -193,14 +194,6 @@
         border: 1px solid #f0f0f0;
         color: rgba(0, 0, 0, 0.85);
         border-bottom-left-radius: 2px;
-    }
-
-    .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #d9d9d9;
-        display: inline-block;
     }
 
     .status-online {
@@ -414,7 +407,7 @@
         if (chatBot != null)
         {
             chatBot.Chat(formattedText);
-            ChatMessageService.SetDraft(CharacterName, ""); // 发送成功后清空草稿
+            ChatMessageService.SetDraft(CharacterName, "");// 发送成功后清空草稿
         }
 
         await JsRuntime.InvokeVoidAsync("forceScrollBottom");

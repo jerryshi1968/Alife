@@ -43,10 +43,6 @@
                                     <Badge Status="BadgeStatus.Default" Text="待机"/>
                                 }
                             </div>
-                            <Button Icon="sound" Size="ButtonSize.Small"
-                                    Disabled="@(!Plugin.IsSynthesizing)"
-                                    Danger OnClick="@(Plugin.TryStopSynthesizer)">停止播报
-                            </Button>
                         </Flex>
                     </Card>
                 </GridCol>

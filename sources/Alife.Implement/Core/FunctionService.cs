@@ -92,7 +92,7 @@ public class FunctionService : InteractivePlugin<FunctionService>
     {
         try
         {
-            await ChatBot.RequestChatAsync();
+            await ChatBot.RequestChatAsync(ChatBot.ChatBreakToken);
             try
             {
                 executor.Flush();
@@ -107,6 +107,7 @@ public class FunctionService : InteractivePlugin<FunctionService>
                 ChatBot.ReleaseChat();
             }
         }
+        catch (OperationCanceledException) {}
         catch (Exception e)
         {
             Console.WriteLine(e);
