@@ -1,4 +1,3 @@
-@using Alife.Implement
 @inject CharacterSystem CharacterSystem
 @inject PluginSystem PluginSystem
 @inject ConfigurationSystem ConfigurationSystem
@@ -103,13 +102,13 @@
                               CharacterSystem.CreateCharacter("真央");
         character.Plugins.Add(PluginSystem.GetPluginID(typeof(ChatService)));
         character.Plugins.Add(PluginSystem.GetPluginID(typeof(FunctionService)));
-        character.Plugins.Add(PluginSystem.GetPluginID(typeof(EventService)));
-        character.Plugins.Add(PluginSystem.GetPluginID(typeof(MemoryService)));
-        character.Plugins.Add(PluginSystem.GetPluginID(typeof(McpService)));
-        character.Plugins.Add(PluginSystem.GetPluginID(typeof(SkillService)));
-        character.Plugins.Add(PluginSystem.GetPluginID(typeof(SpeechService)));
-        character.Plugins.Add(PluginSystem.GetPluginID(typeof(DeskPetService)));
-        character.Plugins.Add(PluginSystem.GetPluginID(typeof(PythonService)));
+        character.Plugins.Add("Alife.Implement.EventService");
+        character.Plugins.Add("Alife.Implement.MemoryService");
+        character.Plugins.Add("Alife.Implement.McpService");
+        character.Plugins.Add("Alife.Implement.SkillService");
+        character.Plugins.Add("Alife.Implement.SpeechService");
+        character.Plugins.Add("Alife.Implement.DeskPetService");
+        character.Plugins.Add("Alife.Implement.PythonService");
         CharacterSystem.SaveCharacter(character);
 
         isQuickSetupVisible = false;

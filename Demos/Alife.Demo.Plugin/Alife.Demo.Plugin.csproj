@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Sources\Alife.Implement\Alife.Implement.csproj" />
+    <ProjectReference Include="..\..\Sources\Alife.Framework\Alife.Framework.csproj" />
   </ItemGroup>
 
   <ItemGroup>

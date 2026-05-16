@@ -2,7 +2,6 @@
 using Alife.Demo.Plugin;
 using Alife.Framework;
 using Alife.Function.Interpreter;
-using Alife.Implement;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;

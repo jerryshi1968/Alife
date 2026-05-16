@@ -1,8 +1,7 @@
-using Alife.Framework;
 using Alife.Function.Interpreter;
 using Microsoft.SemanticKernel;
 
-namespace Alife.Implement;
+namespace Alife.Framework;
 
 [Plugin("函数调用", "为AI增加一种基于Xml的流式函数执行功能，实现快速实时的交互能力。", launchOrder: -1000)]
 public class FunctionService : InteractivePlugin<FunctionService>

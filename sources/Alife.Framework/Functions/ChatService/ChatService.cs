@@ -1,10 +1,8 @@
-using Alife.Framework;
 using Microsoft.SemanticKernel;
 using System.Net;
-using Alife.Implement.Core.ChatService;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
-namespace Alife.Implement;
+namespace Alife.Framework;
 
 public class ChatServiceConfig : ICloneable
 {

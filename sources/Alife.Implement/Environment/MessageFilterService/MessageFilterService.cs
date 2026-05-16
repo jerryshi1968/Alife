@@ -10,9 +10,9 @@ public class MessageFilterData
     public string PokeAppend { get; set; } = "";
 }
 
-[Plugin("消息加工", "统一管理消息的提示词注入和格式化。负责添加时间戳、通用提示词以及系统消息头。", LaunchOrder = -100,
-    EditorUI = typeof(MessageProcessServiceUI))]
-public class MessageProcessService : InteractivePlugin<MessageProcessService>, IConfigurable<MessageFilterData>
+[Plugin("消息过滤", "统一管理消息的提示词注入和格式化。负责添加时间戳、通用提示词以及系统消息头。", LaunchOrder = -100,
+    EditorUI = typeof(MessageFilterServiceUI))]
+public class MessageFilterService : InteractivePlugin<MessageFilterService>, IConfigurable<MessageFilterData>
 {
     public MessageFilterData? Configuration { get; set; }
 

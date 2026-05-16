@@ -8,35 +8,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Onnx" Version="1.74.0-alpha" />
     <PackageReference Include="AntDesign" Version="1.6.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.0" />
-
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Alife.Basic\Alife.Basic.csproj" />
     <ProjectReference Include="..\Alife.Framework\Alife.Framework.csproj" />
-    <ProjectReference Include="..\Alife.Function\Alife.Function.Interpreter\Alife.Function.Interpreter.csproj" />
     <ProjectReference Include="..\Alife.Function\Alife.Function.Speech\Alife.Function.Speech.csproj" />
     <ProjectReference Include="..\Alife.Function\Alife.Function.QChat\Alife.Function.QChat.csproj" />
     <ProjectReference Include="..\Alife.Function\Alife.Function.Vision\Alife.Function.Vision.csproj" />
     <ProjectReference Include="..\Alife.Function\Alife.Function.Memory\Alife.Function.Memory.csproj" />
     <ProjectReference Include="..\Alife.Function\Alife.Function.DeskPet\Alife.Function.DeskPet.csproj" />
     <ProjectReference Include="..\Alife.Function\Alife.Function.Browser\Alife.Function.Browser.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <UpToDateCheckInput Remove="ChatService\OpenAIChatServiceUI.razor" />
-    <UpToDateCheckInput Remove="Function\McpServices\McpServiceUI.razor" />
-    <UpToDateCheckInput Remove="Core\EventService\EventServiceUI.razor" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <AdditionalFiles Include="Extension\McpServices\McpServiceUI.razor" />
-    <AdditionalFiles Include="Extension\QChatService\QChatServiceUI.razor" />
-    <AdditionalFiles Include="Function\EventService\EventServiceUI.razor" />
-    <AdditionalFiles Include="Function\SpeechService\SpeechServiceUI.razor" />
   </ItemGroup>
 
 </Project>

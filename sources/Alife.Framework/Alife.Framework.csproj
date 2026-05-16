@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AntDesign" Version="1.6.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.7" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.73.0" />
@@ -19,5 +20,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Alife.Basic\Alife.Basic.csproj" />
+    <ProjectReference Include="..\Alife.Function\Alife.Function.Interpreter\Alife.Function.Interpreter.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="Functions\ChatService\ChatServiceUI.razor" />
   </ItemGroup>
 </Project>

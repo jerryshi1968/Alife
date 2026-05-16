@@ -5,7 +5,6 @@ using Alife.Basic;
 using Alife.Framework;
 using Alife.Function.Interpreter;
 using Alife.Function.Memory;
-using Alife.Implement.Core.MemoryService;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 

@@ -22,7 +22,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Alife.Framework\Alife.Framework.csproj" />
-    <ProjectReference Include="..\Alife.Implement\Alife.Implement.csproj" />
   </ItemGroup>
 
 </Project>
