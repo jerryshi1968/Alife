@@ -17,6 +17,9 @@ public class ChatActivitySystem
 
     public async Task<ChatActivity> Play(Character character, IProgress<(string, float)>? progress = null)
     {
+        if (activities.Count == 0)
+            pluginSystem.ReloadPlugins();
+
         ChatActivity chatActivity = await ChatActivity.Create(character, configuration, pluginSystem, progress, [
             configuration,
             storageSystem,
@@ -38,9 +41,6 @@ public class ChatActivitySystem
         await chatActivity.DisposeAsync();
         activities.Remove(character.Name);
         Destroyed?.Invoke(chatActivity);
-
-        if (activities.Count == 0)
-            pluginSystem.ReloadPlugins();
     }
 
     public ChatActivitySystem(ConfigurationSystem configuration, StorageSystem storageSystem, PluginSystem pluginSystem,

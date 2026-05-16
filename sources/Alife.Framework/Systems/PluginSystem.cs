@@ -54,7 +54,11 @@ public class PluginSystem : IDisposable
                 if (currentAssemblies.Contains(assemblyName))
                     continue;
 
-                pluginContext.LoadFromAssemblyPath(pluginPath);
+                using var assemblyStream = new MemoryStream(File.ReadAllBytes(pluginPath));
+                string pdbPath = Path.ChangeExtension(pluginPath, ".pdb");
+                MemoryStream? pdbStream = File.Exists(pdbPath) ? new MemoryStream(File.ReadAllBytes(pdbPath)) : null;
+                pluginContext.LoadFromStream(assemblyStream, pdbStream);
+                pdbStream?.Dispose();
             }
             catch (Exception)
             {
@@ -65,7 +69,7 @@ public class PluginSystem : IDisposable
 
         // 重新扫描所有已加载程序集中的 IPlugin
         pluginTypes.Clear();
-        IEnumerable<Assembly> allAssemblies = System.Runtime.Loader.AssemblyLoadContext.Default.Assemblies.Concat(pluginContext.Assemblies);
+        IEnumerable<Assembly> allAssemblies = AssemblyLoadContext.Default.Assemblies.Concat(pluginContext.Assemblies);
         foreach (Assembly assembly in allAssemblies)
         {
             foreach (Type type in assembly.GetTypes())
