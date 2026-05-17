@@ -10,12 +10,12 @@ public static class AlifeModel
 {
     public static string EnsureModelExisting(string modelId, string? targetFile = null)
     {
-        string localPath = Path.Combine(ModelScopeCachePath, modelId.Replace(".", "___"));
+        string localPath = Path.Combine(ModelScopeModelPath, modelId.Replace(".", "___"));
         string checkFile = Path.Combine(localPath, targetFile ?? "README.md");
 
         if (!File.Exists(checkFile))
             AlifePlatform.Command("python",
-                $"-c \"from modelscope import snapshot_download; snapshot_download('{modelId}')\"");
+            $"-c \"from modelscope import snapshot_download; snapshot_download('{modelId}')\"");
         if (!File.Exists(checkFile))
             throw new DirectoryNotFoundException($"模型下载失败，目录不存在：{localPath}");
 
@@ -25,16 +25,17 @@ public static class AlifeModel
     public static void ConvertSafetensorsToOnnx(string modelDir, string taskType = "feature-extraction")
     {
         AlifePlatform.Command("python",
-            $"-c \"from optimum.exporters.onnx import main_export; main_export(model_name_or_path=r'{modelDir}', output=r'{modelDir}', task='{taskType}')\"");
+        $"-c \"from optimum.exporters.onnx import main_export; main_export(model_name_or_path=r'{modelDir}', output=r'{modelDir}', task='{taskType}')\"");
     }
 
-    static string ModelScopeCachePath { get; }
+    static string ModelScopeModelPath { get; }
 
     static AlifeModel()
     {
         AlifePlatform.Command("python", "-m pip install modelscope optimum[onnxruntime] -i https://mirrors.aliyun.com/pypi/simple/");
-        ModelScopeCachePath =
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache", "modelscope",
-                "hub", "models").Replace(Path.DirectorySeparatorChar, '/');
+
+        string modelScopeCachePath = Environment.GetEnvironmentVariable("MODELSCOPE_CACHE") ??
+                                     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache", "modelscope", "hub");
+        ModelScopeModelPath = Path.Combine(modelScopeCachePath, "models").Replace(Path.DirectorySeparatorChar, '/');
     }
 }

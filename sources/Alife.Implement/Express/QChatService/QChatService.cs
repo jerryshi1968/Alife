@@ -75,64 +75,6 @@ public class QChatService(FunctionService functionService, ILogger<QChatService>
     }
 
     [XmlFunction(FunctionMode.OneShot)]
-    [Description($"发送图片到QQ（仅支持图片，不支持文件。发送文件请用 {nameof(QFile)}）")]
-    public async Task QImage(OneBotMessageType type, long targetId,
-        [Description("支持网址url、表情库名称，或者本地绝对路径")] string file)
-    {
-        file = file.Trim();
-        if (string.IsNullOrEmpty(file))
-            throw new ArgumentNullException(nameof(file));
-        if (targetId == 0)
-            throw new ArgumentNullException(nameof(targetId));
-        if (targetId == Configuration!.BotId)
-            throw new Exception("不允许将消息发生给自己");
-
-        // 尝试从表情库匹配 (优先)
-        string emoteBase = Path.Combine(AlifePath.StorageFolderPath, "Emotes");
-        string emotePath = Path.Combine(emoteBase, file).Replace('\\', '/');
-
-        if (Directory.Exists(emotePath))
-        {
-            // 文件夹：随机选一张
-            string[] files = Directory.GetFiles(emotePath, "*.*", SearchOption.TopDirectoryOnly)
-                .Where(s => s.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
-                            s.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
-                            s.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
-                            s.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
-                .ToArray();
-
-            if (files.Length > 0)
-            {
-                file = files[Random.Shared.Next(files.Length)];
-            }
-        }
-        else if (File.Exists(emotePath))
-        {
-            // 单个文件：直接使用
-            file = emotePath;
-        }
-        else
-        {
-            // 尝试追加后缀名查找
-            string[] extensions = [".png", ".jpg", ".jpeg", ".gif"];
-            string? foundFile = extensions.Select(ext => emotePath + ext).FirstOrDefault(File.Exists);
-            if (foundFile != null) file = foundFile;
-        }
-
-        if (file.StartsWith("http") == false && File.Exists(file) == false)
-            throw new Exception("图片不存在");
-
-        file = file.Replace('\\', '/');
-        if (type == OneBotMessageType.Group)
-        {
-            OnAIGroupActivity(targetId);
-            await oneBotClient!.SendGroupImage(targetId, file);
-        }
-        else
-            await oneBotClient!.SendPrivateImage(targetId, file);
-    }
-
-    [XmlFunction(FunctionMode.OneShot)]
     [Description("发送文件到QQ")]
     public async Task QFile(OneBotMessageType type, long targetId,
         [Description("本地绝对路径")] string file)
@@ -156,6 +98,64 @@ public class QChatService(FunctionService functionService, ILogger<QChatService>
             await oneBotClient!.UploadPrivateFile(targetId, file, fileName);
     }
 
+    [XmlFunction(FunctionMode.OneShot)]
+    [Description($"发送图片到QQ（仅支持图片，不支持文件。发送文件请用 {nameof(QFile)}）")]
+    public async Task QImage(OneBotMessageType type, long targetId,
+        [Description("支持网址url、表情库名称，或者本地绝对路径")] string image)
+    {
+        image = image.Trim();
+        if (string.IsNullOrEmpty(image))
+            throw new ArgumentNullException(nameof(image));
+        if (targetId == 0)
+            throw new ArgumentNullException(nameof(targetId));
+        if (targetId == Configuration!.BotId)
+            throw new Exception("不允许将消息发生给自己");
+
+        // 尝试从表情库匹配 (优先)
+        string emoteBase = Path.Combine(AlifePath.StorageFolderPath, "Emotes");
+        string emotePath = Path.Combine(emoteBase, image).Replace('\\', '/');
+
+        if (Directory.Exists(emotePath))
+        {
+            // 文件夹：随机选一张
+            string[] files = Directory.GetFiles(emotePath, "*.*", SearchOption.TopDirectoryOnly)
+                .Where(s => s.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                            s.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                            s.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+                            s.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
+            if (files.Length > 0)
+            {
+                image = files[Random.Shared.Next(files.Length)];
+            }
+        }
+        else if (File.Exists(emotePath))
+        {
+            // 单个文件：直接使用
+            image = emotePath;
+        }
+        else
+        {
+            // 尝试追加后缀名查找
+            string[] extensions = [".png", ".jpg", ".jpeg", ".gif"];
+            string? foundFile = extensions.Select(ext => emotePath + ext).FirstOrDefault(File.Exists);
+            if (foundFile != null) image = foundFile;
+        }
+
+        if (image.StartsWith("http") == false && File.Exists(image) == false)
+            throw new Exception("图片不存在");
+
+        image = image.Replace('\\', '/');
+        if (type == OneBotMessageType.Group)
+        {
+            OnAIGroupActivity(targetId);
+            await oneBotClient!.SendGroupImage(targetId, image);
+        }
+        else
+            await oneBotClient!.SendPrivateImage(targetId, image);
+    }
+    
     [XmlFunction(FunctionMode.OneShot)]
     [Description("获取转发消息详情。（使用后需等待结果返回）")]
     public async Task QForward([Description("转发消息 ID")] string id)
