@@ -155,7 +155,7 @@ public class QChatService(FunctionService functionService, ILogger<QChatService>
         else
             await oneBotClient!.SendPrivateImage(targetId, image);
     }
-    
+
     [XmlFunction(FunctionMode.OneShot)]
     [Description("获取转发消息详情。（使用后需等待结果返回）")]
     public async Task QForward([Description("转发消息 ID")] string id)
@@ -316,7 +316,7 @@ public class QChatService(FunctionService functionService, ILogger<QChatService>
                 string speaker = pokeEvent.GetSpeakerTag();
                 string content = $"戳了戳 {pokeEvent.TargetId}";
                 string formatted = $"{speaker} {content}";
-                await HandleFormattedMessage(basicMessageEvent, formatted, true);
+                await HandleFormattedMessage(basicMessageEvent, formatted, pokeEvent.TargetId == configuration!.BotId);
             }
 
             if (basicMessageEvent is OneBotMessageEvent messageEvent)

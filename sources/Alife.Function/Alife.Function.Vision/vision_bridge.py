@@ -5,6 +5,7 @@ sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8', errors='replace
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
+from PIL import Image
 from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor, BitsAndBytesConfig
 from qwen_vl_utils import process_vision_info
 
@@ -17,7 +18,7 @@ else:
     print("WARNING: CUDA NOT FOUND. Vision Large Model is disabled.", file=sys.stderr)
 
 """
-Vision Bridge - Qwen2.5-VL-3B-Instruct 稳定版 (4-bit 量化)
+Vision Bridge - Qwen2.5-VL-3B-Instruct 稳定版 (4-bit 量化, 兼容 4GB 显存)
 """
 
 def load_model(path):
@@ -27,20 +28,24 @@ def load_model(path):
     try:
         quantization_config = BitsAndBytesConfig(
             load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_compute_dtype=torch.bfloat16,
             bnb_4bit_use_double_quant=True,
             bnb_4bit_quant_type="nf4"
         )
         
-        # 加载量化模型 (注意：必须使用 Qwen2_5_VLForConditionalGeneration 而不是 Qwen2VL)
         model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             path, 
-            dtype=torch.float16, 
+            torch_dtype="auto",
             quantization_config=quantization_config,
             device_map="auto"
         )
         
-        processor = AutoProcessor.from_pretrained(path)
+        # 限制图片分辨率，控制显存占用
+        processor = AutoProcessor.from_pretrained(
+            path,
+            min_pixels=256 * 28 * 28,
+            max_pixels=512 * 28 * 28
+        )
         
         return model, processor
     except Exception as e:
@@ -57,13 +62,16 @@ def query(model, processor, req):
     question = req.get("question", "请详细描述这张图片。")
     max_tokens = req.get("max_new_tokens", 512)
     
+    # 用 PIL 显式加载图片，避免 Windows 路径问题
+    image = Image.open(path).convert("RGB")
+    
     messages = [
         {
             "role": "user",
             "content": [
                 {
                     "type": "image",
-                    "image": path,
+                    "image": image,
                 },
                 {"type": "text", "text": question},
             ],
@@ -83,7 +91,7 @@ def query(model, processor, req):
         padding=True,
         return_tensors="pt",
     )
-    inputs = inputs.to("cuda")
+    inputs = inputs.to(device)
     
     with torch.no_grad():
         generated_ids = model.generate(**inputs, max_new_tokens=max_tokens)
@@ -93,6 +101,10 @@ def query(model, processor, req):
         res = processor.batch_decode(
             generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
         )
+    
+    # 推理完成后释放缓存
+    del inputs, generated_ids
+    torch.cuda.empty_cache()
         
     return {"status": "ok", "result": res[0].strip() if res else ""}
 

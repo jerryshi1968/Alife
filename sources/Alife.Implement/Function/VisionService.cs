@@ -37,25 +37,24 @@ public partial class VisionService(FunctionService functionService)
     /// </summary>
     [XmlFunction(FunctionMode.OneShot)]
     [Description("查看当前屏幕内容。（使用后需等待结果返回）")]
-    public async Task LookScreen(string prompt)
+    public async Task LookScreen([Description("请尽可能提供完整的上下文背景以辅助视觉分析")] string prompt)
     {
+        prompt += Prompt + $"（另外这是一张屏幕截图，当前焦点窗口为{WindowsPlatform.GetActiveWindowTitle()}）";
+
         string screenshotPath = AlifePlatform.Screenshot();
 
         string deepVisionResult = "未开启";
         if (Configuration?.EnableDeepVision == true)
         {
             CancellationTokenSource cancellationTokenSource = new(30000);
-            deepVisionResult = $"{await analyzer!.QueryAsync(
-            screenshotPath,
-            $"{prompt}(提示：这是一张屏幕截图，当前焦点窗口为{WindowsPlatform.GetActiveWindowTitle()})",
-            cancellationToken: cancellationTokenSource.Token)}";
+            deepVisionResult = $"{await analyzer!.QueryAsync(screenshotPath, prompt, cancellationToken: cancellationTokenSource.Token)}";
         }
 
         Poke($"""
               【屏幕分析结果】（注意！本结果不能完全作为判断用户行为的依据，因为电脑可能处于挂机状态）
               - 窗口列表：{AlifePlatform.GetRunningWindowTitles()}
               - 焦点窗口：{WindowsPlatform.GetActiveWindowTitle()}
-              - 深度视觉：{deepVisionResult}
+              - 深度视觉：{deepVisionResult}（内容不一定准确仅供参考）
               """);
     }
 
@@ -64,8 +63,10 @@ public partial class VisionService(FunctionService functionService)
     /// </summary>
     [XmlFunction(FunctionMode.OneShot)]
     [Description("对指定的图片进行视觉分析。（使用后需等待结果返回）")]
-    public async Task LookImage([Description("图片地址或网址")] string path, string prompt)
+    public async Task LookImage([Description("图片地址或网址")] string path, [Description("请尽可能提供完整的上下文背景以辅助视觉分析")] string prompt)
     {
+        prompt += Prompt;
+
         try
         {
             // 处理网络图片
@@ -88,7 +89,7 @@ public partial class VisionService(FunctionService functionService)
             Poke($"""
                   【图片分析结果】
                   - 文字识别：{await AlifePlatform.OcrAsync(path)}
-                  - 深度视觉：{result}
+                  - 深度视觉：{result}（内容不一定准确仅供参考）
                   """);
         }
         catch (Exception ex)
@@ -111,6 +112,7 @@ public partial class VisionService(FunctionService functionService)
     }
 
     VisionConfig? configuration;
+    const string Prompt = "（提示：你收到的图片通常来自于混迹ACG圈子的年轻人，他们喜欢向你展示梗图表情包或带分享炫耀性质的图片。小心他们的反差和搞怪，努力理解他们图片中的梗元素或他们那些具有年轻人特性的小心思。注意！他们可能比你想象的更加狂野自由有表达欲甚至低俗，因此基本不会发送仅提供观赏价值的普通图片，每一张其实都代表了强烈的个人情绪，你得能够解读出来）";
 
     public override async Task AwakeAsync(AwakeContext context)
     {

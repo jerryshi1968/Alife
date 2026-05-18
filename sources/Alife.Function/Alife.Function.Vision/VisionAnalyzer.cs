@@ -15,7 +15,7 @@ public class VisionAnalyzer : IDisposable
     /// <summary>
     /// 模型生成的最大字长限制（Token 数量）。
     /// </summary>
-    public int MaxResponseTokens { get; set; } = 100;
+    public int MaxResponseTokens { get; set; } = 256;
 
     public VisionAnalyzer()
     {
