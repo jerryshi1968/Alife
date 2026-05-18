@@ -26,7 +26,8 @@ public partial class VisionService
 }
 
 [Plugin("视觉感知", "让 AI 能够看到屏幕内容，理解图片，观察世界。")]
-[Description("此服务让你拥有视觉感知能力：你可以截取屏幕画面并理解其内容，或者分析用户提供的图片。")]
+[Description("此服务让你拥有视觉感知能力：你可以截取屏幕画面并理解其内容，或者分析用户提供的图片。" +
+             "在分析图片时，你需要提供prompt参数。在该参数中，你要清晰描述你的问题，并尽可能提供背景信息，以帮助视觉模型分析，但也注意不要随意揣测其中内容，防止影响识别结果！")]
 public partial class VisionService(FunctionService functionService)
     : InteractivePlugin<VisionService>, IConfigurable<VisionConfig>
 {
@@ -36,17 +37,17 @@ public partial class VisionService(FunctionService functionService)
     /// </summary>
     [XmlFunction(FunctionMode.OneShot)]
     [Description("查看当前屏幕内容。（使用后需等待结果返回）")]
-    public async Task LookScreen([Description("用自然语言提问，如：这张图里的内容和含义是什么？")] string query)
+    public async Task LookScreen(string prompt)
     {
         string screenshotPath = AlifePlatform.Screenshot();
 
         string deepVisionResult = "未开启";
         if (Configuration?.EnableDeepVision == true)
         {
-            CancellationTokenSource cancellationTokenSource = new(20000);
+            CancellationTokenSource cancellationTokenSource = new(30000);
             deepVisionResult = $"{await analyzer!.QueryAsync(
             screenshotPath,
-            $"{query}(提示：这是一张屏幕截图，当前焦点窗口为{WindowsPlatform.GetActiveWindowTitle()})",
+            $"{prompt}(提示：这是一张屏幕截图，当前焦点窗口为{WindowsPlatform.GetActiveWindowTitle()})",
             cancellationToken: cancellationTokenSource.Token)}";
         }
 
@@ -63,7 +64,7 @@ public partial class VisionService(FunctionService functionService)
     /// </summary>
     [XmlFunction(FunctionMode.OneShot)]
     [Description("对指定的图片进行视觉分析。（使用后需等待结果返回）")]
-    public async Task LookImage([Description("图片地址或网址")] string path, [Description("用自然语言提问，如：这张图里的内容和含义是什么？")] string query)
+    public async Task LookImage([Description("图片地址或网址")] string path, string prompt)
     {
         try
         {
@@ -80,8 +81,8 @@ public partial class VisionService(FunctionService functionService)
             string result = "未开启";
             if (Configuration?.EnableDeepVision == true)
             {
-                CancellationTokenSource cancellationTokenSource = new(20000);
-                result = $"{await analyzer!.QueryAsync(path, query, cancellationToken: cancellationTokenSource.Token)}";
+                CancellationTokenSource cancellationTokenSource = new(30000);
+                result = $"{await analyzer!.QueryAsync(path, prompt, cancellationToken: cancellationTokenSource.Token)}";
             }
 
             Poke($"""
