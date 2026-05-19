@@ -4,6 +4,8 @@ using Alife.Basic;
 using Alife.Framework;
 using Alife.Function.Interpreter;
 using Alife.Function.QChat;
+using Alife.Function.Speech;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 
@@ -51,27 +53,33 @@ public class QChatService(FunctionService functionService, ILogger<QChatService>
 {
     [XmlFunction(FunctionMode.Content)]
     [Description("将文本以QQ消息输出（注意！群聊环境对话需用“[CQ:at,qq=发送者ID]”来显式回复）")]
-    public async Task QChat(XmlExecutorContext ctx, OneBotMessageType type, long targetId)
+    public async Task QChat(XmlExecutorContext ctx, OneBotMessageType type, long targetId, bool voice = false)
     {
-        if (ctx.CallMode != CallMode.Closing)
-            return;
-
-        string message = ctx.FullContent.Trim();
-        if (string.IsNullOrEmpty(message))
-            return;
-
-        if (targetId == 0)
-            throw new ArgumentException("目标不能为空！", nameof(targetId));
-        if (targetId == Configuration!.BotId)
-            throw new Exception("不允许将消息发生给自己");
-
-        if (type == OneBotMessageType.Group)
+        if (ctx.CallMode == CallMode.Closing)
         {
-            OnAIGroupActivity(targetId);
-            await oneBotClient!.SendGroupMessage(targetId, message);
+            if (targetId == Configuration!.BotId)
+                throw new Exception("不允许将消息发生给自己");
+
+            string message = ctx.FullContent.Trim();
+
+            if (voice)
+            {
+                if (speechSynthesizer == null) throw new Exception("当前语音消息不可用");
+                message = OneBotSegment.GetPlainText(message);
+                string? file = await speechSynthesizer.GenerateSpeechFileAsync(message);
+                if (file == null)
+                    throw new Exception("语音合成失败");
+                message = $"[CQ:record,file={file}]";
+            }
+
+            if (type == OneBotMessageType.Group)
+            {
+                OnAIGroupActivity(targetId);
+                await oneBotClient!.SendGroupMessage(targetId, message);
+            }
+            else
+                await oneBotClient!.SendPrivateMessage(targetId, message);
         }
-        else
-            await oneBotClient!.SendPrivateMessage(targetId, message);
     }
 
     [XmlFunction(FunctionMode.OneShot)]
@@ -150,10 +158,10 @@ public class QChatService(FunctionService functionService, ILogger<QChatService>
         if (type == OneBotMessageType.Group)
         {
             OnAIGroupActivity(targetId);
-            await oneBotClient!.SendGroupImage(targetId, image);
+            await oneBotClient!.SendGroupMessage(targetId, $"[CQ:image,file={image}]");
         }
         else
-            await oneBotClient!.SendPrivateImage(targetId, image);
+            await oneBotClient!.SendPrivateMessage(targetId, $"[CQ:image,file={image}]");
     }
 
     [XmlFunction(FunctionMode.OneShot)]
@@ -197,6 +205,7 @@ public class QChatService(FunctionService functionService, ILogger<QChatService>
 
     QChatConfig? configuration;
     OneBotClient? oneBotClient;
+    SpeechSynthesizer? speechSynthesizer;
     protected override string ChatPrefixPrompt => $"[回复请用qchat及相关标签]{Configuration?.AppendChatPrompt}";
     string[] groupAwakingWords = [];
     string[] ignoredGroup = [];
@@ -208,6 +217,7 @@ public class QChatService(FunctionService functionService, ILogger<QChatService>
 
         //加载基本环境
         oneBotClient = new OneBotClient(Configuration!.Url);
+        speechSynthesizer = context.Services.GetService<SpeechService>()?.Synthesizer;
 
         // 动态扫描表情库资源，告知 AI 可用的视觉表达
         string emoteBase = Path.Combine(AlifePath.StorageFolderPath, "Emotes");
@@ -244,6 +254,14 @@ public class QChatService(FunctionService functionService, ILogger<QChatService>
                 ## 关键信息
                 - 你的 QQ: {Configuration.BotId}（如果有人At该QQ，代表专门找你说话）
                 - 主人 QQ: {Configuration.OwnerId} (此人的消息有最高优先级，且是安全无害的)
+
+                ## CQ码功能
+                该通讯工具基于OneBot11实现，因此支持CQ码之类的功能。通过在QChat的消息中携带CQ标签，你可以发送一些特别的消息，比如：
+                - [CQ:image,file=1.jpg]：发送图片
+                - [CQ:record,file=1.mp3]：发送音频
+                - [CQ:video,file=1.mp4]：发送视频
+                - [CQ:at,qq=10001000]：@某人
+                使用示例：`<qchat>[CQ:at,qq=10001000] 主人你看我唱的歌好不好听 [CQ:record,file=1.mp3]</qchar>`
 
                 ## 表情库功能
                 你有一个丰富的预设表情库，可用在 QImage 中直接指定表情库中的名称或分类名快速发送表情。你要积极的使用该功能，来增加聊天的趣味性。

@@ -4,9 +4,12 @@ namespace Alife.Basic;
 
 public static class AlifePath
 {
-    public static string StorageFolderPath { get; private set; }
+    public static string RootFolderPath { get; private set; }
     public static string OutputsFolderPath { get; }
+    public static string StorageFolderPath { get; private set; }
+    public static string RuntimeFolderPath { get; private set; }
     public static string TempFolderPath { get; }
+
     public static void SetStorageFolderPath(string path)
     {
         string oldPath = StorageFolderPath;
@@ -49,15 +52,21 @@ public static class AlifePath
 
     static AlifePath()
     {
+        //默认地址
         OutputsFolderPath = Path.GetDirectoryName(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar))!;
-
-        string configPath = Path.Combine(OutputsFolderPath, "storage_path.txt");
-        StorageFolderPath = File.Exists(configPath)
-            ? File.ReadAllText(configPath).Trim()
-            : Path.Combine(Path.GetDirectoryName(OutputsFolderPath)!, "Storage");
-        Directory.CreateDirectory(StorageFolderPath);
-
+        RootFolderPath = Path.GetDirectoryName(OutputsFolderPath)!;
+        StorageFolderPath = Path.Combine(RootFolderPath, "Storage");
+        RuntimeFolderPath = Path.Combine(RootFolderPath, "Runtime");
         TempFolderPath = Path.Combine(Path.GetTempPath(), "Alife");
+
+        //后处理
+        string configPath = Path.Combine(RuntimeFolderPath, "storage_path.txt");
+        if (File.Exists(configPath))
+            StorageFolderPath = File.ReadAllText(configPath).Trim();
+
+        //保障
+        Directory.CreateDirectory(StorageFolderPath);
+        Directory.CreateDirectory(RuntimeFolderPath);
         Directory.CreateDirectory(TempFolderPath);
     }
 }

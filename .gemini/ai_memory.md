@@ -47,11 +47,20 @@
     - 彻底干掉了 DuckDB FTS 全文检索，解决了原作者为使新记忆可搜而盲目在每次检索前执行 `PRAGMA drop_fts_index` 的极重磁盘 I/O 开销。
     - 将检索 SQL 改造为极其高效的 `ILIKE` 判断（精准命中加 1 分），结合大模型余弦相似度做同梯队内细粒度排序，中文匹配度达 100%。
     - 实现 C# 与 DuckDB 端到端的 `float` 类型对齐，改用 `reader.GetFloat(6)` 零冗余原生存取，大幅简化了代码并降低了系统耦合。
-- **TTS 语音合成双引擎支持 (Edge-TTS + 本地离线 VITS)**:
+- **TTS 语音合成三引擎支持 (Edge-TTS + 本地离线 VITS + Genie-TTS)**:
   - 实现了 `VitsSpeechSynthesizer`，通过底层 `sherpa-onnx` 的 `OfflineTts` 加载本地 `G_953000.onnx` 模型进行纯离线语音合成推理。
   - 重构了 `SpeechSynthesizerBase` 抽象基类，将 NAudio 音频播放、`SilenceTrimmer` 静音裁剪、异步任务排队、打断与临时文件生命周期管理完全收拢在基类，实现最大化复用。
-  - 改造了 `SpeechService`，引入了双引擎配置，采用“Awake 时单次创建，配置更改时仅修改属性”的设计，避免在运行时反复重建引擎（从而节约了加载 ONNX 模型的开销）。
+  - 改造了 `SpeechService`，引入了双引擎及 Genie-TTS 支持，采用“Awake 时单次创建，配置更改时仅修改属性”的设计，避免在运行时反复重建引擎（从而节约了加载 ONNX 模型的开销）。
   - 成功使用 Python 向导出的 `G_953000.onnx` 模型注入了 `sample_rate="22050"`、`model_type="vits"`、`n_speakers="804"` 等核心元数据，消除了 `sherpa-onnx` 初始化时的元数据缺失报错。
+  - **Genie-TTS (GPT-SoVITS) 引擎集成**：
+    - 引入了基于 `genie_tts` 的 `GenieSpeechSynthesizer` 克隆引擎，通过后台 Python 桥接子进程 `genie_bridge.py` 协同运行。
+    - 设计了极具鲁棒性的加载器，可自动读取 `Runtime/Genie-TTS` 文件夹内的模型元数据（支持 `prompt_wav.json`、`refer.wav`/`refer.txt` 或自动提取 `.wav` + `.txt`）。若文件夹为空，自动 fallback 为官方 `feibi` 模型并静默下载，实现真正的零摩擦体验。
+    - 解决了便携式 Python 运行环境中因缺少 C 编译器导致 native `jieba_fast` 无法编译安装的痛点，通过引入 pure-python `jieba` + `g2pM` 并为库文件注入 try-except fallback 导入，确保了中文字音转换（G2P）100% 离线自治运行。
+  - **TTS 语音质量提升与控制台日志净化**：
+    - 解决了中日双语模型在 C# 下由于 `zh_ja` 标签导致分词器识别错误（将 `都`/`了`/`要`等汉字映射到日语音读 `to`/`ryō`/`yō`，听着像东北话/外语）的问题，通过修改 ONNX 元数据为 `language = Chinese` 和 `add_blank = 1` 彻底恢复了完美中文读音。
+    - 通过 Python 脚本对包含 1300+ 重复项的双语 `lexicon.txt` 进行主动去重，去除了 C++ `InitLexicon` 加载时的 `Duplicated word` 警告刷屏。
+    - 在 `VitsSpeechSynthesizer` 和 `GenieSpeechSynthesizer` 内部加入了文本清洗器 `SanitizeText`，将波浪号、省略号等语气标点转换为逗号以带来自然停顿，并滤除所有单/双引号及无关字符防范 `OOV Ignore it!` 报错。
+    - **TTS UI 优化**：将“VITS 语速 (Length Scale)”重命名为“VITS 声音长度 (Length Scale)”，并添加了支持实时模糊过滤的“说话人角色 ID 映射表”Modal 弹窗，用户点击后可以直接一键选择 804 位角色。另外，针对 Genie-TTS 提供了一键直观说明的 UI，自动说明自定义加载模式。
 
 ## 3. 未来计划 (Future Plans)
 
@@ -85,6 +94,8 @@
   - 成功将本地 VITS (.pth) 导出并转换为带 `sherpa-onnx` 元数据的 `.onnx` 模型。
   - 重构 `SpeechSynthesizerBase` 基类，收拢音频队列控制与播放逻辑。
   - 完成 `SpeechService` 配置化改造，采用“Awake 时决定合成引擎类型，属性更改仅同步更新参数”的设计，避免热切换时频繁重载大型模型。
+  - **TTS 语音质量与日志优化**：修复了双语分词映射错误（音译像东北话）问题，主动对双语 `lexicon.txt` 进行了去重（消除 1300+ 行加载警告），并在 C# 端设计了 `SanitizeText` 过滤器防范 OOV 报错。完成前端 TTS UI 优化，重命名 VITS 长度参数，引入了模糊搜索的角色 ID 映射选择 Modal。
+- [2026-05-19] Genie-TTS (GPT-SoVITS) 三引擎融合: 引入了基于 python 桥接的 Genie-TTS 高拟真克隆合成引擎，设计了模型自动提取和 predefined feibi 自动 fallback 功能，并在 portable 环境中以 pure-python jieba 替代编译依赖的 jieba_fast，彻底解决了离线中文字音字形转换（G2P）运行环境瓶颈。
 
 ## 5. 经验教训与技巧 (Lessons Learned & Tips)
 

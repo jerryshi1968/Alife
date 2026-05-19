@@ -10,17 +10,18 @@ namespace Alife.Implement;
 public enum SpeechSynthesizerType
 {
     Edge,
-    Vits
+    Vits,
+    Genie
 }
 
 public class SpeechConfig
 {
-    public SpeechSynthesizerType SynthesizerType { get; set; } = SpeechSynthesizerType.Vits;
+    public SpeechSynthesizerType SynthesizerType { get; set; } = SpeechSynthesizerType.Edge;
     public string EdgeVoiceTone { get; set; } = "zh-CN-XiaoyiNeural";
     public int VitsSpeakerId { get; set; } = 192;
     public float VitsNoiseScale { get; set; } = 0.45f;
     public float VitsNoiseScaleW { get; set; } = 0.5f;
-    public float VitsLengthScale { get; set; } = 1.3f;
+    public float VitsLengthScale { get; set; } = 1.4f;
 }
 
 public partial class SpeechService
@@ -39,6 +40,8 @@ public partial class SpeechService
 public partial class SpeechService(FunctionService functionService)
     : InteractivePlugin<SpeechService>, IAsyncDisposable, IConfigurable<SpeechConfig>
 {
+    public SpeechSynthesizer? Synthesizer => synthesizer;
+
     [XmlFunction(FunctionMode.Content, order: -10)]
     [Description("将文本以语音方式输出。")]
     public async Task Speak(XmlExecutorContext context, [XmlContent] string content, CancellationToken cancellationToken)
@@ -126,6 +129,10 @@ public partial class SpeechService(FunctionService functionService)
                     lengthScale: configuration.VitsLengthScale,
                     speakerId: configuration.VitsSpeakerId
                     );
+                }
+                else if (configuration.SynthesizerType == SpeechSynthesizerType.Genie)
+                {
+                    synthesizer = new GenieSpeechSynthesizer();
                 }
                 else
                 {

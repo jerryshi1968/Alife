@@ -237,7 +237,7 @@ public static class OneBotSegment
     /// <summary>
     /// 移除所有 CQ 码，保留纯文本。
     /// </summary>
-    public static string GetPlainText(this string text)
+    public static string GetPlainText(string text)
     {
         if (string.IsNullOrEmpty(text)) return string.Empty;
         return Regex.Replace(text, @"\[CQ:.*?\]", "").Trim();

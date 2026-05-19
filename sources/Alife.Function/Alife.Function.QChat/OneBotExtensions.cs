@@ -13,14 +13,6 @@ public static class OneBotExtensions
     {
         await client.SendActionAsync("send_group_msg", new { group_id = groupId, message });
     }
-    public static async Task SendPrivateImage(this OneBotClient client, long userId, string file)
-    {
-        await client.SendActionAsync("send_private_msg", new { user_id = userId, message = $"[CQ:image,file={file}]" });
-    }
-    public static async Task SendGroupImage(this OneBotClient client, long groupId, string file)
-    {
-        await client.SendActionAsync("send_group_msg", new { group_id = groupId, message = $"[CQ:image,file={file}]" });
-    }
     public static async Task UploadPrivateFile(this OneBotClient client, long userId, string filePath, string name)
     {
         await client.SendActionAsync("upload_private_file", new UploadFileParams { UserId = userId, File = filePath, Name = name });
