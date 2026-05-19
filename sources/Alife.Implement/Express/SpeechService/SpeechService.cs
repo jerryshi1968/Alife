@@ -1,4 +1,3 @@
-using Alife.Basic;
 using System.ComponentModel;
 using Alife.Framework;
 using Alife.Function.Interpreter;
@@ -72,48 +71,7 @@ public partial class SpeechService(FunctionService functionService)
                     if (cancellationToken.IsCancellationRequested)
                         break;
 
-                    //收到新的语音播报任务，先进行语音合成
-                    audioSynthesizingTask = synthesizer!.GenerateSpeechFileAsync(content, cancellationToken);
-                    //如果当前有音频在播放，则等待占用结束
-                    if (synthesizer.IsSpeaking)
-                    {
-                        try
-                        {
-                            await synthesizer.LastSpeaking;
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            return;//语音被打断，那么后续语音显然也不用播放了
-                        }
-                    }
-
-                    //可以播放音频
-                    string? audioFile = null;
-                    try
-                    {
-                        audioFile = await audioSynthesizingTask;//等待合成任务完成
-                    }
-                    catch (Exception e)
-                    {
-                        //因为输入文本和网络原因，合成并不一定成功，但基本稳定，大部分错误都是难以处理的，所以直接忽略即可
-                        AlifeTerminal.LogWarning(e.ToString());
-                    }
-
-                    if (audioFile == null)
-                        return;//计算后发现没有可朗读的文本
-
-                    //不等待播放任务，继续接收下一次函数调用，从而实现预加载
-                    _ = synthesizer.SpeakAudioAsync(audioFile, cancellationToken).ContinueWith(_ => {
-                        try
-                        {
-                            //播放完成后，尝试删除语音
-                            File.Delete(audioFile);
-                        }
-                        catch (Exception e)
-                        {
-                            AlifeTerminal.LogWarning(e.ToString());
-                        }
-                    }, cancellationToken);
+                    await synthesizer!.SpeakAsync(content, cancellationToken);
                     break;
                 }
             }
@@ -136,8 +94,7 @@ public partial class SpeechService(FunctionService functionService)
     public bool IsReceiving { get; set; } = true;
 
     protected override string ChatPrefixPrompt => "[语音识别的信息，请用Speak回复]";
-    Task<string?> audioSynthesizingTask = Task.FromResult<string?>(null);
-    SpeechSynthesizer? synthesizer;
+    SpeechSynthesizerBase? synthesizer;
     SpeechConfig? configuration;
 
     public override async Task AwakeAsync(AwakeContext context)
@@ -162,8 +119,6 @@ public partial class SpeechService(FunctionService functionService)
 
     public async ValueTask DisposeAsync()
     {
-        if (audioSynthesizingTask.IsCompleted == false)
-            await audioSynthesizingTask;
         if (synthesizer != null)
             await synthesizer.LastSpeaking;
     }
