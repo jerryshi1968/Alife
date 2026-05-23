@@ -33,9 +33,9 @@ public class SpeechRecognizer : IDisposable
         string vadModelPath = AlifeModel.EnsureModelExisting(VadId, "silero_vad.onnx");
         VadModelConfig vadConfig = new();
         vadConfig.SileroVad.Model = vadModelPath;
-        vadConfig.SileroVad.Threshold = 0.3f;
-        vadConfig.SileroVad.MinSilenceDuration = 0.25f;
-        vadConfig.SileroVad.MinSpeechDuration = 0.2f;
+        vadConfig.SileroVad.Threshold = 0.4f;
+        vadConfig.SileroVad.MinSilenceDuration = 0.3f;
+        vadConfig.SileroVad.MinSpeechDuration = 0.25f;
         vadConfig.SampleRate = 16000;
         vad = new VoiceActivityDetector(vadConfig, bufferSizeInSeconds: 30);
     }
