@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 :: Target directory set to ../Outputs (on your Desktop) to keep it separate from project folder
-set "DIST_DIR=..\共享文件\Alife-桌宠框架\Outputs"
+set "DIST_DIR=..\共享文件\Alife\Outputs"
 echo [System] Starting Unified Publish Workflow...
 
 :: 1. Cleanup target directory (removes old pollution)
