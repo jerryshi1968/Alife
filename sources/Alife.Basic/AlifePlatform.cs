@@ -1,6 +1,7 @@
 using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace Alife.Basic;
 
@@ -41,6 +42,13 @@ public static class AlifePlatform
 
     public static void Command(string fileName, string arguments)
     {
+        if (CommandIgnore.Length != 0)
+        {
+            string fullCommand = $"{fileName} {arguments}";
+            if (CommandIgnore.Any(ignore => Regex.IsMatch(fullCommand, ignore)))
+                return;
+        }
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             WindowsPlatform.Command(fileName, arguments);
@@ -107,4 +115,13 @@ public static class AlifePlatform
     }
 
     static readonly HttpClient SharedHttpClient = new();
+    static readonly string[] CommandIgnore;
+
+    static AlifePlatform()
+    {
+        string commandIgnoreFile = Path.Combine(AlifePath.RuntimeFolderPath, "CommandIgnore.txt");
+        if (File.Exists(commandIgnoreFile) == false)
+            File.Create(commandIgnoreFile).Close();
+        CommandIgnore = File.ReadAllLines(commandIgnoreFile).Where(s => string.IsNullOrEmpty(s.Trim()) == false).ToArray();
+    }
 }
