@@ -72,13 +72,18 @@ public class MemoryManager
             {
                 //确认压缩事件段和内容
                 DateTime startTime = GetMemoryMetaData(chatHistory[areaStart]).StartTime;
-                DateTime endTime = currentMemoryMeta.EndTime;
+                DateTime endTime = GetMemoryMetaData(chatHistory[areaStart + areaCompressionCount - 1]).EndTime;
                 string fullContent = PickContent(chatHistory, areaStart, areaStart + areaCompressionCount);
 
                 //清理为适合ai阅读的内容然后让ai压缩
-                string plainContent = Regex.Replace(fullContent, "^\\[记忆存档.*$", "", RegexOptions.Multiline);
-                plainContent = Regex.Replace(plainContent, "^存档索引.*$", "", RegexOptions.Multiline);
-                string? summary = await compressor.Compress(plainContent);
+                // string plainContent = Regex.Replace(fullContent, "^\\[记忆存档.*$", "", RegexOptions.Multiline);
+                // plainContent = Regex.Replace(plainContent, "^存档索引.*$", "", RegexOptions.Multiline);
+
+                string beCompressedContent = $"""
+                                              在目前你所能记得的事情中，其中 {(areaLevel == 0 ? "非记忆存档" : $"{areaLevel}级记忆存档")}，
+                                              从 {startTime} 到 {endTime} 期间的内容。
+                                              """;
+                string? summary = await compressor.Compress(beCompressedContent);
                 if (summary == null)
                     return false;
 

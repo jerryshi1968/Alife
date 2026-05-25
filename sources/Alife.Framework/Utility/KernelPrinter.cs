@@ -1,9 +1,24 @@
 using Microsoft.SemanticKernel;
+using OpenAI.Chat;
+using ChatMessageContent=Microsoft.SemanticKernel.ChatMessageContent;
 
 namespace Alife.Framework;
 
 public static class KernelPrinter
 {
+    public static string ToTokenLog(IReadOnlyDictionary<string, object?> metadata)
+    {
+        if (metadata.TryGetValue("Usage", out object? usage))
+        {
+            if (usage is ChatTokenUsage chatTokenUsage)
+            {
+                return $"[Token消耗] total:{chatTokenUsage.TotalTokenCount} input:{chatTokenUsage.InputTokenCount}({chatTokenUsage.InputTokenDetails?.CachedTokenCount}) output:{chatTokenUsage.OutputTokenCount} ";
+            }
+        }
+
+        return "";
+    }
+
     public static object ToLogObject(this KernelContent kernelContent)
     {
         switch (kernelContent)

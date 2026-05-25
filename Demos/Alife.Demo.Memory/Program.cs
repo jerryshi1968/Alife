@@ -17,7 +17,7 @@ public class Program
 
         // 1. 配置角色 (记忆助手)
         Character character = new Character {
-            Name = "记忆助手",
+            Name = "MemoryDemo",
             Prompt = "你是一个拥有长期记忆能力的助手。请尽量简洁地回答用户。",
             Plugins = new HashSet<string> {
                 typeof(ChatService).FullName!,

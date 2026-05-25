@@ -142,7 +142,7 @@ public static class WindowsPlatform
         using System.Drawing.Graphics graphics = System.Drawing.Graphics.FromImage(bitmap);
         graphics.CopyFromScreen(left, top, 0, 0, new System.Drawing.Size(width, height), System.Drawing.CopyPixelOperation.SourceCopy);
 
-        const int MaxSide = 1024;
+        const int MaxSide = 800;
         string path = $"{AlifePath.TempFolderPath}/vision_screen.png";
 
         if (width > MaxSide || height > MaxSide)

@@ -9,7 +9,7 @@ namespace Alife.Function.QChat;
 /// <summary>
 /// 基础的 OneBot v11 客户端，提供多态事件分发。
 /// </summary>
-public class OneBotClient(string url) : IAsyncDisposable
+public class OneBotClient(string url, string token = "") : IAsyncDisposable
 {
     /// <summary>
     /// 事件接收回调。
@@ -29,7 +29,7 @@ public class OneBotClient(string url) : IAsyncDisposable
     /// <summary>
     /// 是否已连接。
     /// </summary>
-    public bool IsConnected => ws.State == WebSocketState.Open;
+    public bool IsConnected => BotId != 0;
 
     /// <summary>
     /// WebSocket 地址。
@@ -40,28 +40,33 @@ public class OneBotClient(string url) : IAsyncDisposable
         set => url = value;
     }
 
+    /// <summary>
+    /// 认证 Token。
+    /// </summary>
+    public string Token
+    {
+        get => token;
+        set => token = value;
+    }
+
 
     public async Task ConnectAsync()
     {
-        try
-        {
-            if (ws.State == WebSocketState.Open)
-                await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Reconnecting", CancellationToken.None);
-        }
-        catch (Exception)
-        {
-            // ignored
-        }
-
-        if (loopCancellation != null)
+        BotId = 0;//清除ID信息
+        if (loopCancellation != null)//关闭接收
             await loopCancellation.CancelAsync();
+        if (ws.State == WebSocketState.Open)//关闭连接
+            await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Reconnecting", CancellationToken.None);
         ws.Dispose();
 
+        //重新连接
         ws = new ClientWebSocket();
+        if (!string.IsNullOrEmpty(token))
+            ws.Options.SetRequestHeader("Authorization", $"Bearer {token}");
         await ws.ConnectAsync(new Uri(url), CancellationToken.None);
 
         // 同步握手：预期第一个报文是 connect 事件
-        using CancellationTokenSource cts = new(5000);
+        using CancellationTokenSource cts = new(3000);
         OneBotBaseEvent? ev = await ReceiveEventAsync(cts.Token);
 
         if (ev is OneBotMetaEvent { MetaEventType: OneBotMetaType.Lifecycle, SubType: "connect" })
@@ -110,6 +115,7 @@ public class OneBotClient(string url) : IAsyncDisposable
 
 
     string url = url;
+    string token = token;
     readonly byte[] buffer = new byte[1024 * 64];
     readonly ConcurrentDictionary<string, TaskCompletionSource<JsonElement>> pendingActions = new();
     ClientWebSocket ws = new();

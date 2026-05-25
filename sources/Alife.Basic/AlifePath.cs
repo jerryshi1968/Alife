@@ -63,6 +63,8 @@ public static class AlifePath
         string configPath = Path.Combine(RuntimeFolderPath, "storage_path.txt");
         if (File.Exists(configPath))
             StorageFolderPath = File.ReadAllText(configPath).Trim();
+        if (Directory.Exists(TempFolderPath))
+            Directory.Delete(TempFolderPath, recursive: true);
 
         //保障
         Directory.CreateDirectory(StorageFolderPath);

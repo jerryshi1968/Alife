@@ -10,7 +10,8 @@ public record VisionConfig
 {
     [Description("是否启用深度视觉（开启后将加载深度模型并进行复杂场景分析）")]
     public bool EnableDeepVision { get; set; } = true;
-    public string AppendPrompt { get; set; } = "（提示：你收到的图片通常来自于年轻人，他们喜欢搞怪和反差，因此基本不会发送仅提供观赏价值的普通图片，每一张其实都代表了强烈的个人情绪或者某种搞笑炫耀性的场景。你要努力理解他们图片中的梗、搞笑、情感、意图等。注意！他们可能比你想象的更加狂野自由有表达欲甚至低俗）";
+    // public string AppendPrompt { get; set; } = "（提示：你收到的图片通常来自于年轻人，他们喜欢搞怪和反差，因此基本不会发送仅提供观赏价值的普通图片，每一张其实都代表了强烈的个人情绪或者某种搞笑炫耀性的场景。你要努力理解他们图片中的梗、搞笑、情感、意图等。注意！他们可能比你想象的更加狂野自由有表达欲甚至低俗）";
+    public string AppendPrompt { get; set; } = "（请精简的描述一下图片大体内容，避免输出过多的文本，提高分析速度）";
 }
 
 public partial class VisionService

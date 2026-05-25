@@ -106,7 +106,7 @@ public class VisionAnalyzer : IDisposable
     /// <summary>
     /// 视觉问答：用中文提问，获得中文回答。
     /// </summary>
-    public async Task<string> QueryAsync(string imagePath, string question, int? maxResponseTokens = null,
+    public async Task<string> QueryAsync(string imagePath, string question, int? maxResponseTokens = 64,
         CancellationToken cancellationToken = default)
     {
         // 2. AI 深度视觉分析 (CUDA 增强)

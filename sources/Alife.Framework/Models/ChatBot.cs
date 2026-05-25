@@ -126,8 +126,7 @@ public class ChatBot : IAsyncDisposable
                     {
                         if (usage is ChatTokenUsage chatTokenUsage)
                         {
-                            Console.WriteLine(
-                            $"[Token消耗] total:{chatTokenUsage.TotalTokenCount} input:{chatTokenUsage.InputTokenCount}({chatTokenUsage.InputTokenDetails?.CachedTokenCount}) output:{chatTokenUsage.OutputTokenCount} ");
+                            Console.WriteLine("[ChatBot]" + KernelPrinter.ToTokenLog(metaData));
                             TokenUsed?.Invoke(chatTokenUsage);
                         }
                     }

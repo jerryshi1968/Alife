@@ -35,6 +35,7 @@ public class Program
         DemoSuite suite = await DemoSuite.InitializeAsync(character, system => {
             system.SetConfiguration(typeof(QChatService), new QChatConfig {
                 Url = "ws://127.0.0.1:3001",
+                Token = "", // 如果OneBot服务端配置了access_token，在此填入
                 OwnerId = 1330958515L,
             });
         });

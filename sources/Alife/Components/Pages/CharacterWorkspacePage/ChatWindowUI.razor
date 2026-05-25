@@ -89,7 +89,9 @@
                               @bind="inputText"
                               @bind:event="oninput"
                               @onkeydown="HandleNativeKeyDown"
-                              @onkeydown:preventDefault="shouldPreventDefault"></textarea>
+                              @onkeydown:preventDefault="shouldPreventDefault"
+                              @onpaste="HandlePaste"
+                              @onpaste:preventDefault="true"></textarea>
 
                     @if (isWorking)
                     {
@@ -273,6 +275,18 @@
             }, 10);
         }
     }
+
+    window.insertTextAtCursor = (elementId, text) => {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const val = el.value;
+        el.value = val.substring(0, start) + text + val.substring(end);
+        el.selectionStart = el.selectionEnd = start + text.length;
+        el.focus();
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+    };
 </script>
 @using Alife.Components.Services
 
@@ -376,6 +390,15 @@
     }
 
     bool shouldPreventDefault = false;
+
+    async Task HandlePaste()
+    {
+        string? content = NativeClipboard.GetPastedContent();
+        if (content != null)
+        {
+            await JsRuntime.InvokeVoidAsync("insertTextAtCursor", "chatInput", content);
+        }
+    }
 
     void HandleNativeKeyDown(KeyboardEventArgs e)
     {

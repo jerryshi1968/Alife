@@ -154,6 +154,10 @@
         <FormItem Label="WebSocket URL">
             <Input @bind-Value="@Configuration.Url" placeholder="例如: ws://127.0.0.1:3004"/>
         </FormItem>
+        <FormItem Label="Access Token">
+            <InputPassword @bind-Value="@Configuration.Token" placeholder="如果服务端配置了access_token，在此填入"/>
+            <Text Type="TextElementType.Secondary" Style="font-size: 11px;">留空表示无需认证。</Text>
+        </FormItem>
         <FormItem Label="机器人 ID">
             <Input @bind-Value="@Configuration.BotId" Style="width: 100%;"/>
         </FormItem>

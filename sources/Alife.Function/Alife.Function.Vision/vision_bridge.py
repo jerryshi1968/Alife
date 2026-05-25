@@ -32,12 +32,13 @@ def load_model(path):
             bnb_4bit_use_double_quant=True,
             bnb_4bit_quant_type="nf4"
         )
-        
+
         model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-            path, 
-            torch_dtype="auto",
+            path,
+            dtype="auto",
             quantization_config=quantization_config,
-            device_map="auto"
+            device_map="auto",
+            attn_implementation="sdpa"  # 新增
         )
         
         # 限制图片分辨率，控制显存占用

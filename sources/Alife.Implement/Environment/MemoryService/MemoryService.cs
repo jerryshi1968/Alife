@@ -164,6 +164,8 @@ public partial class MemoryService(FunctionService functionService)
             history.RemoveAt(history.Count - 1);
             if (content.Content == null)
                 throw new Exception("记忆压缩失败！");
+            if (content.Metadata != null)
+                Console.WriteLine("[记忆压缩]" + KernelPrinter.ToTokenLog(content.Metadata));
 
             string result = Regex.Replace(content.Content, "<think>.*?</think>", "", RegexOptions.Singleline).Trim();
             return result;
