@@ -67,12 +67,26 @@ window.chrome.webview.addEventListener("message", (e) => {
             ctrl.deceleration = 0.08;
         }
 
-        // 设置符合窗口的大小
-        const scale = (window.innerHeight * 0.9) / model.height;
-        model.scale.set(scale);
+        // 保存原始无缩放的高度，避免因为循环自乘导致闪烁变大
+        const baseHeight = model.internalModel.originalHeight || (model.height / model.scale.y);
+
+        const updateLayout = () => {
+            const uiScale = window.innerHeight / 540;
+            document.documentElement.style.setProperty('--ui-scale', uiScale);
+            const scale = (window.innerHeight * 0.9) / baseHeight;
+            model.scale.set(scale);
+            model.position.set(window.innerWidth / 2, window.innerHeight / 2);
+        };
+
         model.anchor.set(0.5, 0.5);
-        model.position.set(window.innerWidth / 2, window.innerHeight / 2);
+        updateLayout();
         model.interactive = true;
+
+        window.addEventListener("resize", () => {
+            if (model) {
+                updateLayout();
+            }
+        });
 
         postMessage({type: "loaded"});
     }
@@ -84,6 +98,30 @@ window.chrome.webview.addEventListener("message", (e) => {
     function postMessage(data) {
         window.chrome.webview.postMessage(data);
     }
+
+    // 缩放按钮拖动逻辑
+    const resizeBtn = document.getElementById("resize-btn");
+    let startX, startY;
+    resizeBtn.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
+        resizeBtn.setPointerCapture(e.pointerId);
+        startX = e.screenX;
+        startY = e.screenY;
+    });
+    resizeBtn.addEventListener("pointermove", (e) => {
+        if (resizeBtn.hasPointerCapture(e.pointerId)) {
+            const dx = e.screenX - startX;
+            const dy = e.screenY - startY;
+            if (dx !== 0 || dy !== 0) {
+                postMessage({type: "resize_delta", dx: dx, dy: dy});
+                startX = e.screenX;
+                startY = e.screenY;
+            }
+        }
+    });
+    resizeBtn.addEventListener("pointerup", (e) => {
+        resizeBtn.releasePointerCapture(e.pointerId);
+    });
 
     //双击触摸反馈
     window.addEventListener("dblclick", async (e) => {

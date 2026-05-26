@@ -43,8 +43,8 @@ public class GroupState
 [Plugin("QQ聊天", """
                 连接 OneBot v11 WebSocket 服务器，实现 QQ 消息收发及文件传输。
                 可用于搭建服务器QQ机器人平台应用：
-                - https://napneko.github.io/
-                - https://luckylillia.com/
+                - https://luckylillia.com（推荐）
+                - https://napneko.github.io
                 """, editorUI: typeof(QChatServiceUI), LaunchOrder = 10)]
 public class QChatService(FunctionService functionService, ILogger<QChatService> logger) :
     InteractivePlugin<QChatService>,

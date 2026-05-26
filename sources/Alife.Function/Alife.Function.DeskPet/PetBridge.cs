@@ -16,6 +16,7 @@ public class PetBridge : IDisposable
     public event Action<string>? OnInput;
     public event Action? OnDragStart;
     public event Action? OnDragEnd;
+    public event Action<double, double>? OnResizeDelta;
 
     public PetBridge(WebView2 webView, PetModelMetadata metadata)
     {
@@ -131,6 +132,9 @@ public class PetBridge : IDisposable
                     break;
                 case "input":
                     OnInput?.Invoke(root.GetProperty("text").GetString() ?? "");
+                    break;
+                case "resize_delta":
+                    OnResizeDelta?.Invoke(root.GetProperty("dx").GetDouble(), root.GetProperty("dy").GetDouble());
                     break;
             }
         }

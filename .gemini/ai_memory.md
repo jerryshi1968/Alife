@@ -101,6 +101,9 @@
 - [2026-05-20] VITS 与 Genie-TTS 的 Python 原生化及 GPU 优先加速:
   - 将 VITS 的音频合成完全重构为 Python 进程桥接方式（`vits_bridge.py`），利用 `numpy` 与内置 `wave` 执行句级/句内自适应切分（40字以内）、静音裁剪与 150ms 间隔拼接。
   - 在 `vits_bridge.py` 与 `genie_bridge.py` 中增加了首选 GPU 执行的逻辑，通过动态检测 `onnxruntime.get_available_providers()` 绑定 `CUDAExecutionProvider` 或 `DmlExecutionProvider`，有 GPU 时自动使用 GPU 加速，彻底消除了由于单次直接调用 C# Wrapper 传超长文本导致的异常，也排除了 C# dll 潜在的底层限制。
+- [2026-05-26] DeskPet 桌宠窗口支持自由拖拽缩放:
+  - 引入了 WPF 原生的 `WindowChrome` 来为 `AllowsTransparency="True"` 的桌宠窗口增加 8 像素的无形 resize 边框。
+  - 在 WebView2 侧的 `pet.js` 中新增了 `window.onresize` 监听器，确保拉伸窗口时，内部的 Live2D 模型能动态居中并按照窗口高度重新应用合适的 `scale` 缩放，实现了窗口缩放与拉拽互不冲突的完美体验。
 
 ## 5. 经验教训与技巧 (Lessons Learned & Tips)
 

@@ -59,6 +59,11 @@ public class PetActivity : IDisposable
             bridge.OnInput += text => process.SendOutput(new InputEvent(text));
             bridge.OnDragStart += () => isDragging = true;
             bridge.OnDragEnd += () => isDragging = false;
+            bridge.OnResizeDelta += (dx, dy) => {
+                (double ScaleX, double ScaleY) dpi = window.GetDpi();
+                window.Width = Math.Max(150, window.Width + dx / dpi.ScaleX);
+                window.Height = Math.Max(150, window.Height + dy / dpi.ScaleY);
+            };
 
             //监听鼠标移动
             tracker.MouseMoved += OnMouseMove;
