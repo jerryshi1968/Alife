@@ -7,4 +7,13 @@
     <AssemblyName>Alife.Function.Interpreter</AssemblyName>
     <RootNamespace>Alife.Function.Interpreter</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="obj\Debug\Alife.Function.Interpreter.csproj.CoreCompileInputs.cache" />
+    <Content Include="obj\Debug\Alife.Function.Interpreter.csproj.FileListAbsolute.txt" />
+    <Content Include="obj\Debug\Alife.Function.Interpreter.dll" />
+    <Content Include="obj\Debug\Alife.Function.Interpreter.pdb" />
+    <Content Include="obj\Debug\Alife.Function.Interpreter.sourcelink.json" />
+    <Content Include="obj\rider.project.model.nuget.info" />
+  </ItemGroup>
 </Project>

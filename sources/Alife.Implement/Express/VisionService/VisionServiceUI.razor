@@ -1,0 +1,50 @@
+@namespace Alife.Implement
+@inherits Alife.Framework.PluginUIBase<VisionService, VisionConfig>
+
+<div style="background: #fafafa; padding: 24px; border-radius: 12px; border: 1px solid #f0f0f0;">
+    <Flex Direction="FlexDirection.Vertical" Gap="@("24")">
+        <Form TModel="VisionConfig" Model="@Configuration" Layout="@FormLayout.Vertical">
+            <FormItem Label="视觉引擎选择">
+                <RadioGroup @bind-Value="@Configuration.AnalyzerType" TValue="VisionAnalyzerType">
+                    <Radio Value="@VisionAnalyzerType.None">未启用</Radio>
+                    <Radio Value="@VisionAnalyzerType.Qwen">本地 (Qwen-VL)</Radio>
+                    <Radio Value="@VisionAnalyzerType.OpenAI">在线 (OpenAI API)</Radio>
+                </RadioGroup>
+                <div style="margin-top: 8px;">
+                    <Alert Type="AlertType.Warning" ShowIcon="true"
+                           Message="修改图像分析模式后需要重启角色；所有角色都会共享同类分析器。"/>
+                </div>
+            </FormItem>
+
+            @if (Configuration.AnalyzerType == VisionAnalyzerType.OpenAI)
+            {
+                <FormItem Label="在线 API Base URL">
+                    <Input @bind-Value="@Configuration.OnlineBaseUrl"/>
+                    <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+                        例如：https://api.openai.com/v1/chat/completions 或
+                        https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
+                    </Text>
+                </FormItem>
+                <FormItem Label="API Key">
+                    <InputPassword @bind-Value="@Configuration.OnlineApiKey"/>
+                    <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+                        用于认证的 API 密钥。
+                    </Text>
+                </FormItem>
+                <FormItem Label="模型名称 (Model)">
+                    <Input @bind-Value="@Configuration.OnlineModel"/>
+                    <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+                        例如：gpt-4o, qwen-vl-max 等。
+                    </Text>
+                </FormItem>
+            }
+
+            <FormItem Label="图片附加提示词">
+                <TextArea @bind-Value="@Configuration.AppendPrompt" Rows="3"/>
+                <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+                    这段话会自动拼接在模型分析图片时的 prompt 后面，以规范模型的输出格式和倾向。
+                </Text>
+            </FormItem>
+        </Form>
+    </Flex>
+</div>

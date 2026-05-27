@@ -13,7 +13,7 @@ from qwen_vl_utils import process_vision_info
 device = None
 if torch.cuda.is_available():
     device = torch.device("cuda")
-    print(f"USING DEVICE: CUDA ({torch.cuda.get_device_name(0)})", file=sys.stderr)
+    print(f"USING DEVICE: CUDA ({torch.cuda.get_device_name(0)})")
 else:
     print("WARNING: CUDA NOT FOUND. Vision Large Model is disabled.", file=sys.stderr)
 

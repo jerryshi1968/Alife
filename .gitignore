@@ -1,10 +1,10 @@
 /*/*
 /*.*
 
-!/.gemini
-!/Demos
-!/Tests
-!/Sources
+!/.gemini/*
+!/Demos/*
+!/Tests/*
+!/Sources/*
 
 !/.gitignore
 !/Alife.slnx
