@@ -24,7 +24,8 @@
                           Style="font-size: 12px; display: block; margin-bottom: 8px;">
                         将附加在每条发给 AI 的消息开头，用于约束回复风格。
                     </Text>
-                    <TextArea @bind-Value="@Configuration.MessageAppend" Rows="3" Style="border-radius: 8px;"></TextArea>
+                    <TextArea @bind-Value="@Configuration.MessageAppend" Rows="3"
+                              Style="border-radius: 8px;"></TextArea>
                 </div>
             </GridCol>
 
@@ -37,6 +38,18 @@
                     </Text>
                     <TextArea @bind-Value="@Configuration.PokeAppend" Rows="2" Style="border-radius: 8px;"></TextArea>
                 </div>
+            </GridCol>
+
+            <GridCol Span="24">
+                <Flex Direction="FlexDirection.Vertical" Style="margin-bottom: 16px;">
+                    <Text Strong Style="margin-bottom: 8px;">最大消息长度 (MaxMessageLength)</Text>
+                    <Text Type="TextElementType.Secondary"
+                          Style="font-size: 12px; display: block; margin-bottom: 8px;">
+                        AI 一次性接收的最大消息长度，超出部分将被截断，防止意外操作淹没上下文。
+                    </Text>
+                    <InputNumber @bind-Value="@Configuration.MaxMessageLength" Min="100" Max="100000"
+                                 Style="width: 200px;" />
+                </Flex>
             </GridCol>
         </GridRow>
     </Flex>

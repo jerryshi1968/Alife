@@ -23,6 +23,8 @@ public class AuditoryService(IAuditoryModel auditoryModel) :
 {
     public AuditoryServiceConfig? Configuration { get; set; }
     public bool IsRunning { get; private set; }
+    public bool IsListening { get; private set; } = true;
+    public event Action<bool>? IsListeningChanged;
 
     public async Task StartRecordingAsync()
     {
@@ -74,6 +76,9 @@ public class AuditoryService(IAuditoryModel auditoryModel) :
         IsRunning = false;
     }
 
+    [DllImport("user32.dll")]
+    static extern short GetAsyncKeyState(int vKey);
+
     AudioGraph? graph;
     AudioDeviceInputNode? inputNode;
     AudioFrameOutputNode? outputNode;
@@ -94,9 +99,10 @@ public class AuditoryService(IAuditoryModel auditoryModel) :
         StopRecording();
     }
 
-
     unsafe void OnQuantumStarted(AudioGraph sender, object args)
     {
+        UpdateListeningState();
+
         if (outputNode == null)
         {
             Console.WriteLine("初始化异常，outputNode为空！");
@@ -130,11 +136,14 @@ public class AuditoryService(IAuditoryModel auditoryModel) :
             int sampleCount = (int)(capacityInBytes / sizeof(float));
             if (sampleCount > 0)
             {
-                //保存音频切片到缓冲区
                 float[] samples = new float[sampleCount];
-                fixed (float* dest = samples)
-                    Buffer.MemoryCopy(dataInBytes, dest, capacityInBytes, capacityInBytes);
-                //由于是在后台线程，通过线程池投递处理，避免阻塞 AudioGraph
+
+                if (IsListening)// 按住时发送真实音频
+                {
+                    fixed (float* dest = samples)
+                        Buffer.MemoryCopy(dataInBytes, dest, capacityInBytes, capacityInBytes);
+                }
+
                 ThreadPool.QueueUserWorkItem(_ => {
                     auditoryModel.AcceptWaveform(samples);
                 });
@@ -143,6 +152,30 @@ public class AuditoryService(IAuditoryModel auditoryModel) :
         finally
         {
             Marshal.Release(ptr);
+        }
+    }
+
+    void UpdateListeningState()
+    {
+        string? keyName = Configuration?.PushToTalkKey;
+        bool newState;
+        if (string.IsNullOrEmpty(keyName))
+        {
+            newState = true;
+        }
+        else if (Enum.TryParse(keyName, true, out ConsoleKey key))
+        {
+            newState = (GetAsyncKeyState((int)key) & 0x8000) != 0;
+        }
+        else
+        {
+            newState = true;
+        }
+
+        if (newState != IsListening)
+        {
+            IsListening = newState;
+            IsListeningChanged?.Invoke(IsListening);
         }
     }
     void OnRecognized(string text)

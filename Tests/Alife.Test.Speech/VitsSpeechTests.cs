@@ -1,5 +1,6 @@
 using Alife.Platform;
 using Alife.Function.Speech;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Alife.Test.Speech;
 
@@ -17,11 +18,15 @@ public class VitsSpeechTests
         Console.WriteLine($"[Test] VITS model dir     = {Path.Combine(AlifePath.RuntimeFolderPath, "VITS", "model")}");
         Console.WriteLine($"[Test] VITS src   dir     = {Path.Combine(AlifePath.RuntimeFolderPath, "VITS", "src")}");
 
-        _synth = new VitsSpeechModel();
+        _synth = new VitsSpeechModel(new NullLogger<VitsSpeechModel>());
     }
 
     [OneTimeTearDown]
-    public void Cleanup() => _synth?.Dispose();
+    public async Task Cleanup()
+    {
+        if (_synth != null)
+            await _synth.DisposeAsync();
+    }
 
     // ------------------------------------------------------------------ //
     // Test 1 – 基本合成：中文句子 → 生成 wav 文件

@@ -3,6 +3,8 @@ using System.IO;
 using System.Threading.Tasks;
 using Alife.Function.PythonPipe;
 using Alife.Function.Vision;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 
 class Program
 {
@@ -70,8 +72,14 @@ def div(a, b):
         Console.WriteLine($"  图片: {imagePath}");
         Console.WriteLine("  正在初始化 QwenVisionModel (首次加载模型可能需要几分钟)...");
 
-        var model = new QwenVisionModel();
-        model.OnStderr += line => Console.Error.WriteLine($"  [py] {line}");
+        using var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.AddConsole();
+            builder.SetMinimumLevel(LogLevel.Warning);
+        });
+        var logger = loggerFactory.CreateLogger<QwenVisionModel>();
+        var model = new QwenVisionModel(logger);
+        await model.AwakeAsync(new Alife.Framework.AwakeContext());
         try
         {
             string question = "请用中文详细描述这张图片的内容";

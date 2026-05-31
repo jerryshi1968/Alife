@@ -6,30 +6,23 @@ using System.Threading.Tasks;
 using Alife.Framework;
 using Alife.Function.PythonPipe;
 using Alife.Platform;
+using Microsoft.Extensions.Logging;
 
 namespace Alife.Function.Speech;
 
 [Plugin("VITS语音合成", "基于VITS的本地离线语音合成引擎",
 defaultCategory: "Alife 官方/模型接入/语音模型",
 EditorUI = typeof(VitsSpeechModelUI))]
-public class VitsSpeechModel :
+public class VitsSpeechModel(
+    ILogger<VitsSpeechModel> logger
+) :
     ISpeechModel,
     IAsyncDisposable,
-    IDisposable,
+    ISystemEvent,
     IConfigurable<VitsSpeechModelConfig>
 {
     public static string RuntimeFolder => Path.Combine(AlifePath.RuntimeFolderPath, "VITS");
-
     public VitsSpeechModelConfig? Configuration { get; set; }
-
-    public event Action<string>? OnStderr;
-
-    readonly Lazy<Task<PythonPipeProcess>> pipeLazy;
-
-    public VitsSpeechModel()
-    {
-        pipeLazy = new Lazy<Task<PythonPipeProcess>>(CreatePipeAsync);
-    }
 
     public async Task<string?> GenerateSpeechFileAsync(string text, CancellationToken cancellationToken = default)
     {
@@ -51,10 +44,9 @@ public class VitsSpeechModel :
 
         try
         {
-            PythonPipeProcess pipe = await pipeLazy.Value;
-            return await pipe.InvokeAsync<string>("synthesize", text, outputPath,
-                Configuration.SpeakerId, Configuration.NoiseScale,
-                Configuration.NoiseScaleW, Configuration.LengthScale);
+            return await pythonPipe!.InvokeAsync<string>("synthesize", text, outputPath,
+            Configuration.SpeakerId, Configuration.NoiseScale,
+            Configuration.NoiseScaleW, Configuration.LengthScale);
         }
         catch (Exception ex)
         {
@@ -62,34 +54,7 @@ public class VitsSpeechModel :
         }
     }
 
-    async Task<PythonPipeProcess> CreatePipeAsync()
-    {
-        string vitsDir = RuntimeFolder;
-        AlifePlatform.Command("python", $"-m pip install -r {Path.Combine(vitsDir, "requirements.txt").Replace(Path.DirectorySeparatorChar, '/')}");
-
-        PythonPipeProcess pipe = new("vits_speech", pythonCode, pythonExe: null);
-        pipe.OnStderr += line => OnStderr?.Invoke(line);
-        await pipe.StartAsync();
-
-        await pipe.InvokeAsync<string>("init", vitsDir);
-        return pipe;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (pipeLazy.IsValueCreated)
-        {
-            PythonPipeProcess pipe = await pipeLazy.Value;
-            await pipe.DisposeAsync();
-        }
-    }
-
-    public void Dispose()
-    {
-        DisposeAsync().AsTask().GetAwaiter().GetResult();
-        GC.SuppressFinalize(this);
-    }
-
+    PythonPipeProcess? pythonPipe;
     readonly string pythonCode =
         """
         # coding=utf-8
@@ -162,4 +127,21 @@ public class VitsSpeechModel :
                 wf.writeframes(audio_int16.tobytes())
             return output_path
         """;
+
+    public async Task AwakeAsync(AwakeContext context)
+    {
+        AlifePlatform.Command("python", $"-m pip install -r {Path.Combine(RuntimeFolder, "requirements.txt").Replace(Path.DirectorySeparatorChar, '/')}");
+
+        pythonPipe = new("vits_speech", pythonCode);
+        pythonPipe.OnStderr += line => logger.LogWarning(line);
+        await pythonPipe.StartAsync();
+        await pythonPipe.InvokeAsync<string>("init", RuntimeFolder);
+    }
+    public async ValueTask DisposeAsync()
+    {
+        if (pythonPipe != null)
+        {
+            await pythonPipe.DisposeAsync();
+        }
+    }
 }

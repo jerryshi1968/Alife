@@ -31,7 +31,6 @@
   <Folder Name="/Sources/Alife.Function/Instrument/">
     <Project Path="Sources/Alife.Function/Alife.Function.Browser/Alife.Function.Browser.csproj" />
     <Project Path="Sources/Alife.Function/Alife.Function.Python/Alife.Function.Python.csproj" />
-    <Project Path="Sources/Alife.Function/Alife.Function.PythonPipe/Alife.Function.PythonPipe.csproj" />
     <Project Path="Sources/Alife.Function/Alife.Function.Vision/Alife.Function.Vision.csproj" />
   </Folder>
   <Folder Name="/Sources/Alife.Function/Interaction/">

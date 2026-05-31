@@ -158,7 +158,7 @@ public partial class ChatActivity(Character character, Kernel kernelService, ICo
     {
         try
         {
-            foreach (ISystemEvent systemEvent in eventPlugins)
+            foreach (ISystemEvent systemEvent in ((IEnumerable<ISystemEvent>)eventPlugins).Reverse())
                 await systemEvent.DestroyAsync();
             await chatBot.DisposeAsync();
             await pluginService.DisposeAsync();

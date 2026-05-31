@@ -85,10 +85,6 @@ public class XmlFunctionCaller(ILogger<XmlFunctionCaller> logger) : InteractiveP
 
     public override async Task DestroyAsync()
     {
-        await Task.Run(async () => {
-            while (ChatBot.IsChatting)
-                await Task.Delay(100);
-        });
         await executor.WaitToInactive();
         await executor.DisposeAsync();
 

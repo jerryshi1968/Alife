@@ -2,13 +2,18 @@
 @using AntDesign
 @using Alife.Framework
 @using Microsoft.Extensions.Logging
-@inherits PluginUIBase<AuditoryService>
+@inherits PluginUIBase<AuditoryService, AuditoryServiceConfig>
 @inject ILogger<AuditoryServiceUI> Logger
 
-<Form TModel="object" Model="@new()" Layout="@FormLayout.Vertical">
-    <FormItem>
-        <Flex Direction="FlexDirection.Vertical" Align="@FlexAlign.Center" Style="padding: 12px 0;">
-            <div style="margin-bottom: 16px;">
+<div style="background: #fafafa; padding: 24px; border-radius: 12px; border: 1px solid #f0f0f0;">
+    <Flex Direction="FlexDirection.Vertical" Gap="@("24")">
+        <div>
+            <Title Level="4" Style="margin-bottom: 16px;">语音识别配置</Title>
+        </div>
+
+        <Flex Direction="FlexDirection.Vertical" Gap="@("16")">
+            @* 状态指示 *@
+            <Flex Direction="FlexDirection.Horizontal" Align="@FlexAlign.Center" Gap="@("8")">
                 @if (Plugin?.IsRunning == true)
                 {
                     <Badge Status="BadgeStatus.Processing" Text="正在监听中..."/>
@@ -17,19 +22,67 @@
                 {
                     <Badge Status="BadgeStatus.Default" Text="未启用"/>
                 }
-            </div>
-            <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" OnClick="@ResetRecognizer"
-                    Loading="@isRestarting">重置录音机
-            </Button>
-            <Text Type="TextElementType.Secondary" Style="font-size: 11px; margin-top: 8px;">
-                当无法进行语音识别时，可以尝试重置录音机（实测没啥用，还是得重启角色）。
-            </Text>
+            </Flex>
+
+            @* 按键说话 *@
+            <Flex Direction="FlexDirection.Vertical" Gap="@("4")">
+                <Text Strong>按键说话</Text>
+                <Text Type="TextElementType.Secondary" Style="font-size: 12px;">
+                    选择一个按键，按住时才会进行语音识别。留空则始终监听。
+                </Text>
+                <Flex Direction="FlexDirection.Horizontal" Align="@FlexAlign.Center" Gap="@("8")">
+                    <Select TItemValue="string" TItem="string"
+                            Style="width: 200px;"
+                            @bind-Value="Configuration.PushToTalkKey"
+                            Placeholder="始终监听（不设置）"
+                            AllowClear>
+                        @foreach (var key in pushToTalkKeys)
+                        {
+                            <SelectOption Value="@key" Label="@key"/>
+                        }
+                    </Select>
+                    @if (Plugin != null && Plugin.Configuration?.PushToTalkKey == Configuration.PushToTalkKey && Configuration.PushToTalkKey != null)
+                    {
+                        @if (Plugin.IsListening)
+                        {
+                            <Badge Status="BadgeStatus.Processing" Text="按键已按下"/>
+                        }
+                        else
+                        {
+                            <Badge Status="BadgeStatus.Default" Text="等待按键"/>
+                        }
+                    }
+                </Flex>
+            </Flex>
+
+            @* 重置按钮 *@
+            <Flex Direction="FlexDirection.Vertical" Gap="@("4")">
+                <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" OnClick="@ResetRecognizer"
+                        Loading="@isRestarting">重置录音机
+                </Button>
+                <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+                    当无法进行语音识别时，可以尝试重置录音机。
+                </Text>
+            </Flex>
         </Flex>
-    </FormItem>
-</Form>
+    </Flex>
+</div>
 
 @code {
     bool isRestarting;
+    readonly string[] pushToTalkKeys = Enum.GetNames<ConsoleKey>();
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        if (Plugin != null)
+            Plugin.IsListeningChanged += OnIsListeningChanged;
+    }
+
+    void OnIsListeningChanged(bool isListening)
+    {
+        InvokeAsync(StateHasChanged);
+    }
 
     async Task ResetRecognizer()
     {

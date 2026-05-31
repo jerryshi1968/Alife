@@ -13,7 +13,7 @@ namespace Alife.Function.Developer;
 [Plugin("开发者服务", "全面暴露项目结构和系统服务信息，让 AI 能完全了解和掌控整个软件。",
 defaultCategory: "Alife 官方/系统服务"
 )]
-[Description(@"你身处一个名 Alife 的代理框架中（项目地址：https://github.com/BDFFZI/Alife）。现在你拥有对其运行环境的完全控制。
+[Description(@"你身处一个名 Alife 的代理框架中（源码仓库：https://github.com/BDFFZI/Alife）。现在你拥有对其运行环境的完全控制。
 你可以通过各项查询函数了解其运行时信息，甚至编辑并热重载插件，实现自我升级（很危险，建议与用户配合）")]
 public class DeveloperService(
     CharacterSystem characterSystem,

@@ -6,31 +6,23 @@ using System.Threading.Tasks;
 using Alife.Framework;
 using Alife.Function.PythonPipe;
 using Alife.Platform;
+using Microsoft.Extensions.Logging;
 
 namespace Alife.Function.Speech;
 
 [Plugin("Genie语音合成", "基于GPT-SoVITS的本地离线语音合成引擎",
 defaultCategory: "Alife 官方/模型接入/语音模型",
 EditorUI = typeof(GenieSpeechModelUI))]
-public class GenieSpeechModel :
-    ISpeechModel,
+public class GenieSpeechModel(
+    ILogger<GenieSpeechModel> logger
+) : ISpeechModel,
     IAsyncDisposable,
-    IDisposable,
+    ISystemEvent,
     IConfigurable<GenieSpeechModelConfig>
 {
     public static string RuntimeFolder => Path.Combine(AlifePath.RuntimeFolderPath, "Genie");
-
     public GenieSpeechModelConfig? Configuration { get; set; }
-
-    public event Action<string>? OnStderr;
-
-    readonly Lazy<Task<PythonPipeProcess>> pipeLazy;
-
-    public GenieSpeechModel()
-    {
-        pipeLazy = new Lazy<Task<PythonPipeProcess>>(CreatePipeAsync);
-    }
-
+    
     public async Task<string?> GenerateSpeechFileAsync(string text, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -52,48 +44,17 @@ public class GenieSpeechModel :
 
         try
         {
-            PythonPipeProcess pipe = await pipeLazy.Value;
-            await pipe.InvokeAsync<string>("synthesize", text, outputPath, charaName);
+            await pythonPipe!.InvokeAsync<string>("synthesize", text, outputPath, charaName);
             return outputPath;
         }
         catch (Exception ex)
         {
-            OnStderr?.Invoke($"Genie synthesis failed: {ex.Message}");
+            logger.LogWarning($"Genie synthesis failed: {ex.Message}");
             return null;
         }
     }
 
-    async Task<PythonPipeProcess> CreatePipeAsync()
-    {
-        string modelPath = RuntimeFolder;
-        string charaName = Configuration?.CharacterName ?? "feibi";
-        string language = Configuration?.Language ?? "Chinese";
-
-        AlifePlatform.Command("python", "-m pip install genie-tts");
-
-        PythonPipeProcess pipe = new("genie_speech", pythonCode, pythonExe: null);
-        pipe.OnStderr += line => OnStderr?.Invoke(line);
-        await pipe.StartAsync();
-
-        await pipe.InvokeAsync<string>("init", modelPath, charaName, language);
-        return pipe;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (pipeLazy.IsValueCreated)
-        {
-            PythonPipeProcess pipe = await pipeLazy.Value;
-            await pipe.DisposeAsync();
-        }
-    }
-
-    public void Dispose()
-    {
-        DisposeAsync().AsTask().GetAwaiter().GetResult();
-        GC.SuppressFinalize(this);
-    }
-
+    PythonPipeProcess? pythonPipe;
     readonly string pythonCode =
         """
         import os, json
@@ -157,4 +118,24 @@ public class GenieSpeechModel :
             )
             return output_path
         """;
+
+    public async Task AwakeAsync(AwakeContext context)
+    {
+        AlifePlatform.Command("python", "-m pip install genie-tts");
+        
+        string charaName = Configuration?.CharacterName ?? "feibi";
+        string language = Configuration?.Language ?? "Chinese";
+        pythonPipe = new("genie_speech", pythonCode);
+        pythonPipe.OnStderr += line => logger.LogWarning(line);
+        await pythonPipe.StartAsync();
+        await pythonPipe.InvokeAsync<string>("init", RuntimeFolder, charaName, language);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (pythonPipe != null)
+        {
+            await pythonPipe.DisposeAsync();
+        }
+    }
 }
