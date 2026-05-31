@@ -10,9 +10,20 @@
     {
         <Alert Type="AlertType.Warning"
                Message="Runtime/VITS 目录不存在"
-               Description="请下载 VITS 模型文件并放置到 Runtime/VITS 目录下，否则语音合成功能将无法使用。"
                ShowIcon="true"
-               Style="margin-bottom: 16px;"/>
+               Style="margin-bottom: 16px">
+            <ChildContent>
+                请下载 VITS 模型文件并放置到 Runtime/VITS 目录下，否则语音合成功能将无法使用。<br/>
+                <br/>
+                <a href="https://github.com/BDFFZI/Alife/releases/download/VITS/VITS.zip">
+                    Github 下载
+                </a>
+                <br/>
+                <a href="https://pan.baidu.com/s/1Iy0NAKH-m2h6uwaPA7Y6rQ?pwd=t1rb">
+                    百度网盘下载
+                </a>
+            </ChildContent>
+        </Alert>
     }
     else
     {
@@ -31,17 +42,20 @@
             </GridCol>
             <GridCol Span="12">
                 <FormItem Label="噪声规模">
-                    <InputNumber TValue="float" @bind-Value="@Configuration.NoiseScale" Min="0" Max="1" Step="0.1f" Style="width: 100%;"/>
+                    <InputNumber TValue="float" @bind-Value="@Configuration.NoiseScale" Min="0" Max="1" Step="0.1f"
+                                 Style="width: 100%;"/>
                 </FormItem>
             </GridCol>
             <GridCol Span="12">
                 <FormItem Label="噪声宽度">
-                    <InputNumber TValue="float" @bind-Value="@Configuration.NoiseScaleW" Min="0" Max="1" Step="0.1f" Style="width: 100%;"/>
+                    <InputNumber TValue="float" @bind-Value="@Configuration.NoiseScaleW" Min="0" Max="1" Step="0.1f"
+                                 Style="width: 100%;"/>
                 </FormItem>
             </GridCol>
             <GridCol Span="12">
                 <FormItem Label="长度规模">
-                    <InputNumber TValue="float" @bind-Value="@Configuration.LengthScale" Min="0.5f" Max="2f" Step="0.1f" Style="width: 100%;"/>
+                    <InputNumber TValue="float" @bind-Value="@Configuration.LengthScale" Min="0.5f" Max="2f" Step="0.1f"
+                                 Style="width: 100%;"/>
                 </FormItem>
             </GridCol>
         </GridRow>

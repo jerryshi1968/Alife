@@ -45,23 +45,21 @@
     private System.Timers.Timer? tipTimer;
     private int tipIndex = 0;
 
-    private readonly string[] tips =
-    [
-        "正在同步量子记忆纠缠...",
-        "正在构建情感共鸣矩阵...",
-        "正在打捞电子梦境碎片...",
-        "思维链条正在逐一啮合...",
-        "正在为数字生命注入灵魂...",
-        "正在优化突触连接速度...",
-        "正在深渊中搜寻语言碎片...",
-        "正在校准性格色彩偏差..."
+    private readonly string[] tips = [
+        "每次对话都会自动保存上下文，所以你可以安全退出程序...",
+        "插件越多消耗越多，关闭不需要的功能可以省钱...",
+        "模型接入类插件只需勾选一个，否则会重复加载...",
+        "阅读完整背景，了解系统是如何教导AI做事的...",
+        "AI忽然功能不正常？检查他的<>标签是否掉了...",
+        "缺乏经验记忆的AI很蠢，但你可以教他如何做事...",
+        "词元的消耗与字数有关，对话看板中字数越少越省钱...",
+        "观察对话看板中工具消息的字数，确认哪些功能最烧...",
     ];
 
     protected override void OnInitialized()
     {
-        tipTimer = new System.Timers.Timer(3000);
-        tipTimer.Elapsed += (_, _) =>
-        {
+        tipTimer = new System.Timers.Timer(5000);
+        tipTimer.Elapsed += (_, _) => {
             tipIndex = (tipIndex + 1) % tips.Length;
             currentTip = tips[tipIndex];
             InvokeAsync(StateHasChanged);
