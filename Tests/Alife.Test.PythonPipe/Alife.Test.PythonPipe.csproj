@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Sources\Alife.Function\Alife.Function.PythonPipe\Alife.Function.PythonPipe.csproj" />
+    <ProjectReference Include="..\..\Sources\Alife.Function\Alife.Function.VisionModel\Alife.Function.VisionModel.csproj" />
+  </ItemGroup>
+</Project>

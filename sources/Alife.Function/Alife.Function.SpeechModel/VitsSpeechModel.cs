@@ -4,8 +4,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Alife.Framework;
+using Alife.Function.PythonPipe;
 using Alife.Platform;
-using Python.Runtime;
 
 namespace Alife.Function.Speech;
 
@@ -14,12 +14,22 @@ defaultCategory: "Alife 官方/模型接入/语音模型",
 EditorUI = typeof(VitsSpeechModelUI))]
 public class VitsSpeechModel :
     ISpeechModel,
+    IAsyncDisposable,
     IDisposable,
     IConfigurable<VitsSpeechModelConfig>
 {
     public static string RuntimeFolder => Path.Combine(AlifePath.RuntimeFolderPath, "VITS");
 
     public VitsSpeechModelConfig? Configuration { get; set; }
+
+    public event Action<string>? OnStderr;
+
+    readonly Lazy<Task<PythonPipeProcess>> pipeLazy;
+
+    public VitsSpeechModel()
+    {
+        pipeLazy = new Lazy<Task<PythonPipeProcess>>(CreatePipeAsync);
+    }
 
     public async Task<string?> GenerateSpeechFileAsync(string text, CancellationToken cancellationToken = default)
     {
@@ -39,25 +49,49 @@ public class VitsSpeechModel :
         if (File.Exists(outputPath))
             return outputPath;
 
-        return await Task.Run(() => {
-            using (Py.GIL())
-            {
-                return pythonModule.InvokeMethod(
-                "synthesize",
-                new PyString(text),
-                new PyString(outputPath),
-                new PyInt(Configuration!.SpeakerId),
-                new PyFloat(Configuration!.NoiseScale),
-                new PyFloat(Configuration!.NoiseScaleW),
-                new PyFloat(Configuration!.LengthScale)
-                ).As<string?>();
-            }
-        }, cancellationToken);
+        try
+        {
+            PythonPipeProcess pipe = await pipeLazy.Value;
+            return await pipe.InvokeAsync<string>("synthesize", text, outputPath,
+                Configuration.SpeakerId, Configuration.NoiseScale,
+                Configuration.NoiseScaleW, Configuration.LengthScale);
+        }
+        catch (Exception ex)
+        {
+            return $"调用失败：{ex}";
+        }
     }
 
-    readonly PyModule pythonModule;
+    async Task<PythonPipeProcess> CreatePipeAsync()
+    {
+        string vitsDir = RuntimeFolder;
+        AlifePlatform.Command("python", $"-m pip install -r {Path.Combine(vitsDir, "requirements.txt").Replace(Path.DirectorySeparatorChar, '/')}");
+
+        PythonPipeProcess pipe = new("vits_speech", pythonCode, pythonExe: null);
+        pipe.OnStderr += line => OnStderr?.Invoke(line);
+        await pipe.StartAsync();
+
+        await pipe.InvokeAsync<string>("init", vitsDir);
+        return pipe;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (pipeLazy.IsValueCreated)
+        {
+            PythonPipeProcess pipe = await pipeLazy.Value;
+            await pipe.DisposeAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        DisposeAsync().AsTask().GetAwaiter().GetResult();
+        GC.SuppressFinalize(this);
+    }
+
     readonly string pythonCode =
-        """"
+        """
         # coding=utf-8
         import sys, os, json, traceback
         import numpy as np
@@ -65,27 +99,39 @@ public class VitsSpeechModel :
         import wave
         from torch import no_grad, LongTensor
 
-        from models import SynthesizerTrn
-        from text import text_to_sequence
-        import commons
-        import utils
+        vits_dir = None
 
-        # ---------------------------------------------------------------------------
-        # Globals – populated in init()
-        # ---------------------------------------------------------------------------
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        print('Use Device ' + str(device))
-        hps_ms = None
-        net_g_ms = None
+        def init(vits_path):
+            global vits_dir
+            vits_dir = vits_path
+            if vits_dir not in sys.path:
+                sys.path.insert(0, vits_dir)
+            from models import SynthesizerTrn
+            from text import text_to_sequence
+            import commons
+            import utils
 
+            global hps_ms, net_g_ms, device
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            hps_ms = utils.get_hparams_from_file(f'{vits_dir}/model/config.json')
+            net_g_ms = SynthesizerTrn(
+                len(hps_ms.symbols),
+                hps_ms.data.filter_length // 2 + 1,
+                hps_ms.train.segment_size // hps_ms.data.hop_length,
+                n_speakers=hps_ms.data.n_speakers,
+                **hps_ms.model)
+            _ = net_g_ms.eval().to(device)
+            utils.load_checkpoint(f'{vits_dir}/model/G_953000.pth', net_g_ms, None)
+            return "ready"
 
         def get_text(text, hps):
+            from text import text_to_sequence
+            import commons
             text_norm, clean_text = text_to_sequence(text, hps.symbols, hps.data.text_cleaners)
             if hps.data.add_blank:
                 text_norm = commons.intersperse(text_norm, 0)
             text_norm = LongTensor(text_norm)
             return text_norm, clean_text
-
 
         def vits(text, language, speaker_id, noise_scale, noise_scale_w, length_scale):
             text = text.replace('\n', ' ').replace('\r', '').replace(' ', '')
@@ -106,24 +152,7 @@ public class VitsSpeechModel :
                 )[0][0, 0].data.cpu().float().numpy()
             return 22050, audio
 
-
-        def init(vitsDir):
-            """加载 VITS 模型（全局只需调用一次）"""
-            global hps_ms, net_g_ms
-
-            hps_ms = utils.get_hparams_from_file(f'{vitsDir}/model/config.json')
-            net_g_ms = SynthesizerTrn(
-                len(hps_ms.symbols),
-                hps_ms.data.filter_length // 2 + 1,
-                hps_ms.train.segment_size // hps_ms.data.hop_length,
-                n_speakers=hps_ms.data.n_speakers,
-                **hps_ms.model)
-            _ = net_g_ms.eval().to(device)
-            utils.load_checkpoint(f'{vitsDir}/model/G_953000.pth', net_g_ms, None)
-
-
         def synthesize(text, output_path, speaker_id=0, noise_scale=0.6, noise_scale_w=0.668, length_scale=1.2):
-            """合成语音到指定路径，返回 {"status": "ok", "result": path} 或 {"status": "error", "message": ...}"""
             sr, audio = vits(text, 0, speaker_id, noise_scale, noise_scale_w, length_scale)
             audio_int16 = (audio * 32767).astype(np.int16)
             with wave.open(output_path, 'wb') as wf:
@@ -132,37 +161,5 @@ public class VitsSpeechModel :
                 wf.setframerate(sr)
                 wf.writeframes(audio_int16.tobytes())
             return output_path
-        """";
-
-    public VitsSpeechModel()
-    {
-        //安装依赖
-        string vitsDir = RuntimeFolder;
-        AlifePlatform.Command("python", $"-m pip install -r {Path.Combine(vitsDir, "requirements.txt").Replace(Path.DirectorySeparatorChar, '/')}");
-
-        //加载功能
-        using (Py.GIL())
-        {
-            //设置环境变量
-            PythonEngine.Exec(
-            $"""
-             import sys
-             p = r'{vitsDir}'
-             if p not in sys.path:
-                 sys.path.insert(0, p)
-             """);
-
-            pythonModule = Py.CreateScope(nameof(VitsSpeechModel));
-            pythonModule.Exec(pythonCode);
-            pythonModule.GetAttr("init").Invoke(new PyString(vitsDir));
-        }
-    }
-    public void Dispose()
-    {
-        using (Py.GIL())
-        {
-            pythonModule.Dispose();
-        }
-        GC.SuppressFinalize(this);
-    }
+        """;
 }

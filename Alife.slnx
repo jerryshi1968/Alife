@@ -31,6 +31,7 @@
   <Folder Name="/Sources/Alife.Function/Instrument/">
     <Project Path="Sources/Alife.Function/Alife.Function.Browser/Alife.Function.Browser.csproj" />
     <Project Path="Sources/Alife.Function/Alife.Function.Python/Alife.Function.Python.csproj" />
+    <Project Path="Sources/Alife.Function/Alife.Function.PythonPipe/Alife.Function.PythonPipe.csproj" />
     <Project Path="Sources/Alife.Function/Alife.Function.Vision/Alife.Function.Vision.csproj" />
   </Folder>
   <Folder Name="/Sources/Alife.Function/Interaction/">
@@ -55,6 +56,7 @@
     <Project Path="Tests/Alife.Test.DeskPet/Alife.Test.DeskPet.csproj" />
     <Project Path="Tests/Alife.Test.Interpreter/Alife.Test.Interpreter.csproj" />
     <Project Path="Tests/Alife.Test.Python/Alife.Test.Python.csproj" />
+    <Project Path="Tests/Alife.Test.PythonPipe/Alife.Test.PythonPipe.csproj" />
     <Project Path="Tests/Alife.Test.QChat/Alife.Test.QChat.csproj" />
     <Project Path="Tests/Alife.Test.Speech/Alife.Test.Speech.csproj" />
   </Folder>

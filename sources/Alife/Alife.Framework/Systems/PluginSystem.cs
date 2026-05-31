@@ -9,7 +9,6 @@ using Alife.Platform;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.Logging;
-using Python.Runtime;
 
 namespace Alife.Framework;
 
@@ -212,83 +211,6 @@ public class PluginSystem
         PreloadAllAssemblies();
         defaultAssemblies = AssemblyLoadContext.Default.Assemblies.Select(assembly => assembly.FullName).ToHashSet()!;
         thisAssemblies = AppDomain.CurrentDomain.GetAssemblies().Where(assembly => assembly.GetName().Name?.StartsWith("Alife") ?? false).ToArray();
-
-        //加载python环境，很多插件会用
-        Runtime.PythonDLL = DetectPythonDll() ?? throw new InvalidOperationException(
-        "未找到 Python DLL，请安装 Python 或设置 PYTHONNET_PYDLL 环境变量。");
-        PythonEngine.Initialize();
-        PythonEngine.BeginAllowThreads();
-
-        string? DetectPythonDll()
-        {
-            // 1. 环境变量
-            string? envPath = Environment.GetEnvironmentVariable("PYTHONNET_PYDLL")
-                              ?? Environment.GetEnvironmentVariable("PYTHON_DLL");
-            if (!string.IsNullOrEmpty(envPath) && File.Exists(envPath))
-                return envPath;
-
-            // 2. PATH 中的 python.exe 所在目录
-            string? pythonDir = FindPythonInPath();
-            if (pythonDir != null)
-            {
-                string? dll = FindDllInDir(pythonDir);
-                if (dll != null) return dll;
-            }
-
-            // 3. 常见安装目录（Windows）
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-
-                string[] searchRoots = [
-                    Path.Combine(appData, "Programs", "Python"),
-                    programFiles,
-                    @"C:\Python",
-                ];
-
-                foreach (string root in searchRoots)
-                {
-                    if (!Directory.Exists(root)) continue;
-
-                    // 按版本降序搜索（优先最新版）
-                    foreach (string dir in Directory.GetDirectories(root).OrderByDescending(d => d))
-                    {
-                        string? dll = FindDllInDir(dir);
-                        if (dll != null) return dll;
-                    }
-                }
-            }
-
-            return null;
-
-            static string? FindPythonInPath()
-            {
-                string? pathEnv = Environment.GetEnvironmentVariable("PATH");
-                if (string.IsNullOrEmpty(pathEnv)) return null;
-
-                foreach (string dir in pathEnv.Split(Path.PathSeparator))
-                {
-                    string pythonExe = Path.Combine(dir, "python.exe");
-                    if (File.Exists(pythonExe)) return dir;
-                }
-                return null;
-            }
-
-            static string? FindDllInDir(string dir)
-            {
-                // python3XX.dll (标准命名)
-                for (int minor = 20; minor >= 8; minor--)
-                {
-                    string dll = Path.Combine(dir, $"python3{minor}.dll");
-                    if (File.Exists(dll)) return dll;
-                }
-                // python3.dll (通用符号链接)
-                string genericDll = Path.Combine(dir, "python3.dll");
-                if (File.Exists(genericDll)) return genericDll;
-                return null;
-            }
-        }
 
         try
         {
