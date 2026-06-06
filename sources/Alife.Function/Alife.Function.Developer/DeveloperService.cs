@@ -33,8 +33,11 @@ public class DeveloperService(
                 ## 示例代码
                 ```csharp
                 using System.ComponentModel;
+                using Alife.Demo.Module;
                 using Alife.Framework;
                 using Alife.Function.FunctionCaller;
+                using Alife.Function.Interpreter;
+                using Microsoft.Extensions.Logging;
 
                 [Module("模块名", "模块描述")]
                 public class MyModule(XmlFunctionCaller functionService) : InteractiveModule<MyModule>
