@@ -26,7 +26,7 @@ public static class AlifeModel
 
     static AlifeModel()
     {
-        AlifePlatform.Command("python", "-m \"pip install modelscope\"");
+        AlifePlatform.Command("python", "-m pip install modelscope");
 
         string modelScopeCachePath = Environment.GetEnvironmentVariable("MODELSCOPE_CACHE") ??
                                      Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache", "modelscope", "hub");

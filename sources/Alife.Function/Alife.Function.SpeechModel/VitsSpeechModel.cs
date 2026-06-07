@@ -134,7 +134,7 @@ public class VitsSpeechModel(
         if (File.Exists(requirements) == false)
             throw new Exception("缺少VITS模型文件，请前往插件页按要求操作！");
 
-        AlifePlatform.Command("python", $"-m \"pip install -r {Path.Combine(RuntimeFolder, "requirements.txt")}\"");
+        AlifePlatform.Command("python", $"-m pip install -r \"{Path.Combine(RuntimeFolder, "requirements.txt")}\"");
         pythonPipe = new("vits_speech", pythonCode);
         pythonPipe.OnStderr += line => logger.LogWarning(line);
         await pythonPipe.StartAsync();

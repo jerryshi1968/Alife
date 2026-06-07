@@ -29,7 +29,7 @@ public class TextVectorizer : IAsyncDisposable
 
     async Task InitAsync()
     {
-        AlifePlatform.Command("python", "-m \"pip install transformers torch sentencepiece\"");
+        AlifePlatform.Command("python", "-m pip install transformers torch sentencepiece");
 
         pythonPipe = new("text_embed", PythonCode);
         pythonPipe.OnStderr += line => Console.WriteLine(line);

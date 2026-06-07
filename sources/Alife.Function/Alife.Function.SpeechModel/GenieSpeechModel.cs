@@ -121,7 +121,7 @@ public class GenieSpeechModel(
 
     public async Task AwakeAsync(AwakeContext context)
     {
-        AlifePlatform.Command("python", "-m \"pip install genie-tts\"");
+        AlifePlatform.Command("python", "-m pip install genie-tts");
         
         string charaName = Configuration?.CharacterName ?? "feibi";
         string language = Configuration?.Language ?? "Chinese";

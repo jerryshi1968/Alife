@@ -106,7 +106,7 @@ public class MiniCPMVisionModel(
         string modelPath = AlifeModel.EnsureModelExisting(ModelId);
         string precision = Configuration?.Precision ?? "int4";
         string extraPackages = precision == "int4" ? " bitsandbytes accelerate" : "";
-        AlifePlatform.Command("python", $"-m \"pip install transformers[torch] torchvision torchcodec{extraPackages} sentencepiece tiktoken\"");
+        AlifePlatform.Command("python", $"-m pip install transformers[torch] torchvision torchcodec{extraPackages} sentencepiece tiktoken");
 
         pythonPipe = new("minicpm_v", pythonCode);
         pythonPipe.OnStderr += line => logger.LogWarning(line);
