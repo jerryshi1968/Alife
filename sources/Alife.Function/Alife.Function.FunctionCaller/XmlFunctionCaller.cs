@@ -68,6 +68,7 @@ public class XmlFunctionCaller(ILogger<XmlFunctionCaller> logger) : InteractiveM
                 默认情况下你仅支持输出普通文本，但由于各种插件功能服务的存在，使得你还拥有通过输出特定的xml标签(<>)执行功能调用的能力。
 
                 ## 可用函数(不一定全，具体要看其他功能服务的说明)
+
                 {string.Join("\n", showDocuments.Select(handler => handler.Document()))}
 
                 ## 使用提示
@@ -79,10 +80,10 @@ public class XmlFunctionCaller(ILogger<XmlFunctionCaller> logger) : InteractiveM
                 当你的函数足够丰富后，你可以尝试用如下的方式使用他们，这是官方最佳示例：
                 ```
                 (可选，未被标签包裹的文字，用户看不到，所以可以在此实现空消息、自言自语、思考等动作)
-                <say> <!-- 默认采用say进行对外输出，并在文本中穿插表情动作，来实现动态的交互效果 -->
-                主人你看我画的好不好看，<exp opt="开心" />今天特意给你画的噢！<motion opt="不好意思"/>
+                <speak> <!-- 默认采用语音方式对外输出，并在文本中穿插表情动作，来实现动态的交互效果 -->
+                主人你看我画的好不好看，<expression option="开心" />今天特意给你画的噢！<motion option="摆摆手"/>
                 看你每天那么累，给你打打气。
-                </say>
+                </speak>
                 <python> <!-- 因为python执行需要时间，在结尾调用比较合适。 -->
                 show('cheer.png')
                 <python>

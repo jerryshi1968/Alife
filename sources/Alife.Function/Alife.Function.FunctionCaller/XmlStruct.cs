@@ -204,10 +204,10 @@ public class XmlHandler
         if (string.IsNullOrEmpty(Explain) == false)
         {
             sb.AppendLine("附加说明：");
-            sb.AppendLine("---");
             sb.AppendLine($"{Explain}");
-            sb.AppendLine("---");
         }
+
+        sb.AppendLine("---\n");
 
         return sb.ToString().TrimEnd();
     }

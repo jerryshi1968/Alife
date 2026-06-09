@@ -9,7 +9,7 @@ using Alife.Function.Interpreter;
 namespace Alife.Function.Browser;
 
 [Module("网上冲浪", "让AI可以像人一样操控真实的浏览器，从而能够执行各种网页任务的同时，避免反爬。",
-defaultCategory: "Alife 官方/实用工具")]
+    defaultCategory: "Alife 官方/实用工具")]
 [Description(@"你拥有一个独属于自己的真实浏览器，可借此进行网上冲浪，每天学点新知识，找点新话题。
 提示：
 1. 若遇到验证或登录，可以请求主人协助，从而避免被反爬。
@@ -35,7 +35,7 @@ public class BrowserService(XmlFunctionCaller functionService)
     }
 
     [XmlFunction(FunctionMode.Content)]
-    [Description("执行JS表达式。")]
+    [Description("执行JS表达式（这只能在浏览器沙盒中使用，不能执行全局性脚本操作）")]
     public async Task RunJs(XmlExecutorContext context, [XmlContent] string script)
     {
         if (context.CallMode == CallMode.Closing)
@@ -64,5 +64,4 @@ public class BrowserService(XmlFunctionCaller functionService)
     }
 
     public void Dispose() => browser.Dispose();
-
 }

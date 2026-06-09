@@ -17,7 +17,6 @@ public class DeveloperService(
     CharacterSystem characterSystem,
     ChatActivitySystem chatActivitySystem,
     ModuleSystem moduleSystem,
-    ConfigurationSystem configurationSystem,
     XmlFunctionCaller functionCaller) :
     InteractiveModule<DeveloperService>
 {
@@ -127,7 +126,7 @@ public class DeveloperService(
     }
 
     [XmlFunction(FunctionMode.OneShot)]
-    public void GetCharacterInfo([Description("为空表示自己")] string? name = null)
+    public void GetCharacterConfig([Description("为空表示自己")] string? name = null)
     {
         Character? character;
         if (name == null)
@@ -142,15 +141,12 @@ public class DeveloperService(
         }
 
         string configPath = characterSystem.GetCharacterConfigFile(character);
-        string modules = string.Join(", ", character.Modules.Select(moduleSystem.GetModule)
-            .Where(type => type != null)
-            .Cast<Type>()
-            .Select(type => type.FullName!));
         Poke($$$"""
-                名称: {{{character.Name}}}
-                描述: {{{character.Description}}}
-                已启用模块（只列出确实已被系统识别到的模块）: {{{modules}}}
-                配置文件地址（你可以修改该文件然后重启活动，来实现角色配置调整，比如借此调整其启用的模块）: {{{configPath}}}
+                配置文件地址：{{{configPath}}}
+                具体内容：
+                ```
+                {{{File.ReadAllText(configPath)}}}
+                ```
                 """);
     }
 
@@ -194,38 +190,6 @@ public class DeveloperService(
         SyncModulesFromCopy();
         moduleSystem.ReloadModules();
         Poke("模块重载成功！接下来请确认角色配置文件中是否正确添加了模块，然后重启角色活动，以使模块生效。");
-    }
-
-    [XmlFunction(FunctionMode.OneShot)]
-    public void GetModuleConfig(string moduleFullTypeName)
-    {
-        Type? type = moduleSystem.GetModule(moduleFullTypeName);
-        if (type == null)
-        {
-            Poke($"模块 '{moduleFullTypeName}' 不存在");
-            return;
-        }
-
-        if (configurationSystem.CanConfiguration(type) == false)
-        {
-            Poke($"模块 '{moduleFullTypeName}' 不支持配置");
-            return;
-        }
-
-        object? config = configurationSystem.GetConfiguration(type, Character.StorageKey);
-        string json = System.Text.Json.JsonSerializer.Serialize(config, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-        string charConfigPath = Path.Combine(AlifePath.StorageFolderPath, Character.StorageKey, "Configuration", $"{moduleFullTypeName}.json");
-        string globalConfigPath = Path.Combine(AlifePath.StorageFolderPath, "Configuration", $"{moduleFullTypeName}.json");
-        Poke($$$"""
-                模块 {{{moduleFullTypeName}}} 的配置（{{{Character.Name}}} 角色）：
-
-                {{{json}}}
-
-                配置查找顺序：
-                1. 角色级配置: {{{charConfigPath}}}
-                2. 全局配置: {{{globalConfigPath}}}
-                未找到则使用代码中的默认值。
-                """);
     }
 
     [XmlFunction(FunctionMode.OneShot)]

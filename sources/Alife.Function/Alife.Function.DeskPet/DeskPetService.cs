@@ -20,7 +20,7 @@ public class DeskPetService(XmlFunctionCaller functionService) : InteractiveModu
 {
     [XmlFunction(FunctionMode.Content)]
     [Description("显示一段气泡文本")]
-    public async Task Say(XmlExecutorContext context, [XmlContent] string content, CancellationToken cancellationToken)
+    public async Task Speak(XmlExecutorContext context, [XmlContent] string content, CancellationToken cancellationToken)
     {
         switch (context.CallMode)
         {
@@ -51,25 +51,25 @@ public class DeskPetService(XmlFunctionCaller functionService) : InteractiveModu
 
     [XmlFunction(FunctionMode.OneShot)]
     [Description("表演一个表情（具体选项见附加说明）")]
-    public void Exp(string opt)
+    public void Expression(string option)
     {
-        opt = opt.Trim();
-        if (string.IsNullOrWhiteSpace(opt))
+        option = option.Trim();
+        if (string.IsNullOrWhiteSpace(option))
             return;
-        if (client!.SupportedExpressions.Contains(opt) == false)
+        if (client!.SupportedExpressions.Contains(option) == false)
             throw new Exception("选项不存在");
 
-        client!.PlayExpression(opt);
+        client!.PlayExpression(option);
     }
 
     [XmlFunction(FunctionMode.OneShot)]
     [Description("表演一个动作（具体选项见附加说明）")]
-    public void Mot(string opt)
+    public void Motion(string option)
     {
-        opt = opt.Trim();
-        if (string.IsNullOrWhiteSpace(opt))
+        option = option.Trim();
+        if (string.IsNullOrWhiteSpace(option))
             return;
-        if (client!.SupportedMotions.TryGetValue(opt, out (string Group, int Index) motion) == false)
+        if (client!.SupportedMotions.TryGetValue(option, out (string Group, int Index) motion) == false)
             throw new Exception("选项不存在");
 
         client.PlayMotion(motion.Group, motion.Index);
@@ -77,7 +77,7 @@ public class DeskPetService(XmlFunctionCaller functionService) : InteractiveModu
 
     [XmlFunction(FunctionMode.OneShot)]
     [Description("获取当前屏幕位置（使用后需等待结果返回）")]
-    public async Task Pos()
+    public async Task Position()
     {
         try
         {
@@ -123,9 +123,9 @@ public class DeskPetService(XmlFunctionCaller functionService) : InteractiveModu
             modelName = "Mao";
         client = new PetServer(modelName);
         string supportedExpressionsDescription = string.Join(", ", client.SupportedExpressions);
-        if (string.IsNullOrEmpty(supportedExpressionsDescription)) supportedExpressionsDescription = $"当前不支持<{nameof(Exp)}>功能";
+        if (string.IsNullOrEmpty(supportedExpressionsDescription)) supportedExpressionsDescription = $"当前不支持<{nameof(Expression)}>功能";
         string supportedMotionsDescription = string.Join(", ", client.SupportedMotions.Keys);
-        if (string.IsNullOrEmpty(supportedMotionsDescription)) supportedMotionsDescription = $"当前不支持<{nameof(Mot)}>功能";
+        if (string.IsNullOrEmpty(supportedMotionsDescription)) supportedMotionsDescription = $"当前不支持<{nameof(Motion)}>功能";
 
         XmlHandler xmlHandler = new(this);
         functionService.RegisterHandlerWithoutDocument(xmlHandler);
@@ -137,8 +137,8 @@ public class DeskPetService(XmlFunctionCaller functionService) : InteractiveModu
                 {xmlHandler.FunctionDocument()}
 
                 ## 工具选项
-                - 支持的 {nameof(Exp)} 选项：{supportedExpressionsDescription}
-                - 支持的 {nameof(Mot)} 选项：{supportedMotionsDescription}
+                - 支持的 {nameof(Expression)} 选项：{supportedExpressionsDescription}
+                - 支持的 {nameof(Motion)} 选项：{supportedMotionsDescription}
 
                 ## 其他信息
                 - 当前屏幕分辨率：{AlifePlatform.GetResolution()}

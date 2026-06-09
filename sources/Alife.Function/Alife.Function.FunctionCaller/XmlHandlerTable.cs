@@ -49,40 +49,6 @@ public class XmlHandlerTable
 
         return sb.ToString().TrimEnd();
     }
-    
-    public string DocumentOnlyFunction()
-    {
-        StringBuilder sb = new();
-        foreach (XmlFunction function in xmlFunctions.Values.SelectMany(set => set))
-        {
-            sb.Append($"- <{function.Name}");
-            foreach (XmlParameter param in function.Parameters)
-            {
-                string pDesc = string.IsNullOrEmpty(param.Description) ? "" : $"（{param.Description}）";
-                sb.Append($" {param.Name}=\"{param.Type}\"{pDesc}");
-            }
-
-            if (function.ContentName != null)
-            {
-                sb.Append(">");
-                string cDesc = string.IsNullOrEmpty(function.ContentDescription)
-                    ? ""
-                    : $"（{function.ContentDescription}）";
-                sb.Append($"{function.ContentName}{cDesc}</{function.Name}>");
-            }
-            else
-            {
-                sb.Append(" />");
-            }
-
-            if (string.IsNullOrEmpty(function.Description) == false)
-                sb.Append($"：{function.Description}");
-
-            sb.AppendLine();
-        }
-
-        return sb.ToString();
-    }
 
     public async Task Handle(string name, XmlContext tagContext, CancellationToken cancellationToken = default)
     {

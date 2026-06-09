@@ -24,7 +24,7 @@ public class SpeechService(
 
     [XmlFunction(FunctionMode.Content, order: -10)]
     [Description("将文本以语音方式输出（这应该是你默认对外的交互方式）")]
-    public async Task Say(XmlExecutorContext context, CancellationToken cancellationToken)
+    public async Task Speak(XmlExecutorContext context, CancellationToken cancellationToken)
     {
         try
         {
