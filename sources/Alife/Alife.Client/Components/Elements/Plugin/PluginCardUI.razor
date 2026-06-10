@@ -1,0 +1,110 @@
+@using Alife.Components.Services
+@using Alife.PluginMarket
+@inject PluginMarketService PluginMarketService
+
+<div class="plugin-card" @onclick="HandleClick">
+    <div class="plugin-card-header">
+        <div class="plugin-icon">
+            <Icon Type="@IconType.Outline.Appstore" Style="font-size: 24px; color: #1890ff;" />
+        </div>
+        @if (showBadge && PluginMarketService.HasUpdate(Plugin))
+        {
+            <Badge Count="1" Style="background: #52c41a;" OverflowCount="99">
+                <span class="new-version-badge">new</span>
+            </Badge>
+        }
+    </div>
+
+    <div class="plugin-card-body">
+        <div class="plugin-name">@Plugin.Name</div>
+        <div class="plugin-meta">
+            <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">@Plugin.Id</Text>
+        </div>
+        <div class="plugin-versions">
+            @if (PluginMarketService.IsInstalled(Plugin.Id))
+            {
+                <Tag Color="@("green")">已安装 v@(PluginMarketService.GetInstalledVersion(Plugin.Id))</Tag>
+            }
+            else
+            {
+                <Tag Color="@("default")">未安装</Tag>
+            }
+            @if (Plugin.Releases != null && Plugin.Releases.Count > 0)
+            {
+                <Tag Color="@("blue")">最新 v@(PluginMarketService.GetLatestVersion(Plugin))</Tag>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .plugin-card {
+        background: #fff;
+        border: 1px solid #f0f0f0;
+        border-radius: 8px;
+        padding: 16px;
+        cursor: pointer;
+        transition: all 0.3s;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .plugin-card:hover {
+        border-color: #1890ff;
+        box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .plugin-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+
+    .plugin-icon {
+        width: 48px;
+        height: 48px;
+        background: #e6f7ff;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .plugin-card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .plugin-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: rgba(0, 0, 0, 0.85);
+        margin-bottom: 4px;
+    }
+
+    .plugin-meta {
+        margin-bottom: 8px;
+    }
+
+    .plugin-versions {
+        margin-top: auto;
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+</style>
+
+@code {
+    [Parameter] public Plugin Plugin { get; set; } = null!;
+    [Parameter] public bool showBadge { get; set; } = true;
+    [Parameter] public EventCallback<Plugin> OnClick { get; set; }
+
+    async Task HandleClick()
+    {
+        await OnClick.InvokeAsync(Plugin);
+    }
+}

@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Alife.Framework\Alife.Framework.csproj" />
+    <ProjectReference Include="..\Alife.PluginMarket\Alife.PluginMarket.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">

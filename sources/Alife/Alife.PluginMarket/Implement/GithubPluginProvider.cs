@@ -1,28 +1,39 @@
-﻿using Newtonsoft.Json;
+﻿using Alife.Platform;
+using Newtonsoft.Json;
 
 namespace Alife.PluginMarket;
 
 public class GithubPluginProvider(string owner, string repo, string branch = "main") : IPluginProvider
 {
-    readonly HttpClient httpClient = new();
-    readonly string apiUrl = $"https://api.github.com/repos/{owner}/{repo}/contents?ref={branch}";
+    readonly string zipUrl = $"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip";
+    readonly string repoDir = Path.Combine(AlifePath.TempFolderPath, "PluginRepo");
 
-    public Plugin[] GetPlugins()
+    public async Task<Plugin[]> GetPluginsAsync()
     {
-        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Alife/1.0");
-        string json = httpClient.GetStringAsync(apiUrl).Result;
-        var items = JsonConvert.DeserializeObject<List<GithubContentItem>>(json) ?? new();
+        await FetchRepositoryAsync();
+        return LoadPlugins();
+    }
+
+    async Task FetchRepositoryAsync()
+    {
+        if (Directory.Exists(repoDir))
+            Directory.Delete(repoDir, true);
+
+        await AlifePlatform.DownloadZipFileAsync(repoDir, zipUrl);
+    }
+
+    Plugin[] LoadPlugins()
+    {
+        if (!Directory.Exists(repoDir))
+            return [];
 
         List<Plugin> plugins = new();
-        foreach (var item in items)
+        foreach (string file in Directory.GetFiles(repoDir, "*.json", SearchOption.AllDirectories))
         {
-            if (item.Type != "file" || item.Name == null || !item.Name.EndsWith(".json") || item.DownloadUrl == null)
-                continue;
-
             try
             {
-                string pluginJson = httpClient.GetStringAsync(item.DownloadUrl).Result;
-                Plugin? plugin = JsonConvert.DeserializeObject<Plugin>(pluginJson);
+                string json = File.ReadAllText(file);
+                Plugin? plugin = JsonConvert.DeserializeObject<Plugin>(json);
                 if (plugin != null && !string.IsNullOrEmpty(plugin.Id))
                     plugins.Add(plugin);
             }
@@ -33,15 +44,5 @@ public class GithubPluginProvider(string owner, string repo, string branch = "ma
         }
 
         return plugins.ToArray();
-    }
-
-    class GithubContentItem
-    {
-        [JsonProperty("name")]
-        public string? Name { get; set; }
-        [JsonProperty("type")]
-        public string? Type { get; set; }
-        [JsonProperty("download_url")]
-        public string? DownloadUrl { get; set; }
     }
 }

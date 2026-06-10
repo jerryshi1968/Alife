@@ -1,6 +1,8 @@
 @page "/system"
 @using Alife.Components.Elements.Character
 @using Alife.Components.Elements.Module
+@using Alife.Components.Elements.Plugin
+@using Alife.Components.Services
 @inject NavigationManager Navigation
 @inject CharacterSystem CharacterSystem
 @inject ChatActivitySystem ChatActivitySystem
@@ -61,6 +63,20 @@
                 <ChildContent>
                     <div style="height: 100%; overflow: hidden; display: flex; flex-direction: column; background: #fafafa;">
                         <ModuleManagementView IsReadOnly="false"></ModuleManagementView>
+                    </div>
+                </ChildContent>
+            </TabPane>
+
+            <TabPane Key="4">
+                <TabTemplate>
+                    <Flex Direction="@FlexDirection.Vertical" Align="@FlexAlign.Center" Gap="@("4")">
+                        <Icon Type="@IconType.Outline.Shop"/>
+                        <span style="font-size: 12px">插件市场</span>
+                    </Flex>
+                </TabTemplate>
+                <ChildContent>
+                    <div style="height: 100%; overflow: hidden; display: flex; flex-direction: column; background: #fafafa;">
+                        <PluginMarketView />
                     </div>
                 </ChildContent>
             </TabPane>
@@ -169,8 +185,6 @@
             _ = NotificationService.Success(new NotificationConfig { Message = $"角色 [{character.Name}] 已删除喵。" });
         }
     }
-
-
 
     public void Dispose()
     {

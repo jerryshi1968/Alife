@@ -6,7 +6,7 @@ public interface IPluginProvider
     /// 获取托管的所有插件信息
     /// </summary>
     /// <returns></returns>
-    public Plugin[] GetPlugins();
+    public Task<Plugin[]> GetPluginsAsync();
 }
 
 public interface IPluginResolver
@@ -56,26 +56,16 @@ public class PluginMarket
             .Where(plugin => plugin != null).Cast<Plugin>().ToArray();
     }
 
-    /// <summary>
-    /// 安装插件。会自动处理环境依赖。如果已经安装则重新安装。
-    /// </summary>
-    /// <param name="plugin"></param>
-    /// <param name="version"></param>
-    /// <exception cref="Exception"></exception>
     public async Task InstallPlugin(Plugin plugin, string version)
     {
-        {
-            //插件有效性判断
-            if (plugin.Releases == null)
-                throw new Exception($"Plugin {plugin.Id} is not released");
-            if (plugin.Releases.ContainsKey(version) == false)
-                throw new Exception($"Plugin {plugin.Id} version {version} not released");
-        }
+        if (plugin.Releases == null)
+            throw new Exception($"Plugin {plugin.Id} is not released");
+        if (plugin.Releases.ContainsKey(version) == false)
+            throw new Exception($"Plugin {plugin.Id} version {version} not released");
 
         var dependencies = plugin.GetDependencies(version);
-        if (dependencies != null)//安装插件依赖
+        if (dependencies != null)
         {
-            //判断当前环境是否满足要求
             VersionResolver versionResolver = new();
             versionResolver.AddRange(dependencies);
 
@@ -98,7 +88,7 @@ public class PluginMarket
         }
 
         var environments = plugin.GetEnvironments(version);
-        if (environments != null)//安装环境依赖
+        if (environments != null)
         {
             List<KeyValuePair<string, string>> environmentManifest = new();
             foreach ((string type, Dictionary<string, string> environment) in environments)
@@ -115,16 +105,28 @@ public class PluginMarket
 
         await pluginInstaller.InstallPlugin(plugin, version);
     }
+
     public async Task UninstallPlugin(Plugin plugin)
     {
         await pluginInstaller.UninstallPlugin(plugin);
     }
 
-    public void RefreshPlugins()
+    /// <summary>
+    /// 刷新本地已安装插件列表
+    /// </summary>
+    public void RefreshLocalPlugins()
     {
-        allPlugins = onlinePlugins.GetPlugins().ToDictionary(plugin => plugin.Id, plugin => plugin);
         hadPlugins = localPlugins.GetPlugins();
     }
+
+    /// <summary>
+    /// 从云端拉取插件列表
+    /// </summary>
+    public async Task FetchOnlinePluginsAsync()
+    {
+        allPlugins = (await onlinePlugins.GetPluginsAsync()).ToDictionary(plugin => plugin.Id, plugin => plugin);
+    }
+
     public void GetEnvironment(string type, List<KeyValuePair<string, string>> environments)
     {
         environments.Clear();
@@ -157,7 +159,11 @@ public class PluginMarket
 
         allPlugins = new Dictionary<string, Plugin>();
         hadPlugins = [];
+    }
 
-        RefreshPlugins();
+    public async Task InitializeAsync()
+    {
+        await FetchOnlinePluginsAsync();
+        RefreshLocalPlugins();
     }
 }

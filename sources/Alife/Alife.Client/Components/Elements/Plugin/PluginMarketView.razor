@@ -1,0 +1,202 @@
+@using Alife.Components.Elements.Plugin
+@using Alife.Components.Services
+@using Alife.PluginMarket
+@inject PluginMarketService PluginMarketService
+@inject IMessageService MessageService
+@implements IDisposable
+
+<div style="height: 100%; overflow: hidden; display: flex; flex-direction: column; background: #fafafa;">
+    @* 标题栏 *@
+    <div style="padding: 16px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; background: #fff;">
+        <Title Level="4" Style="margin: 0;">插件市场</Title>
+        <Flex Gap="@("12")" Align="FlexAlign.Center">
+            <RadioGroup Value="@viewMode" OnChange="@((string v) => OnViewModeChanged(v))">
+                <Radio Value="@("local")">本地</Radio>
+                <Radio Value="@("online")">云端</Radio>
+            </RadioGroup>
+            <Tooltip Title="从云端拉取">
+                <Button Type="@ButtonType.Link" Icon="@IconType.Outline.CloudDownload" OnClick="FetchOnline" Loading="isLoading" />
+            </Tooltip>
+        </Flex>
+    </div>
+
+@* 搜索栏 *@
+<div style="padding: 12px 16px; background: #fff; border-bottom: 1px solid #f0f0f0;">
+    <Search Placeholder="搜索插件..." @bind-Value="searchText" OnSearch="FilterPlugins" />
+</div>
+
+    @* 插件列表 *@
+    <div style="flex: 1; overflow-y: auto; padding: 16px;">
+        @if (isLoading)
+        {
+            <Spin Tip="加载中..." Style="display: flex; justify-content: center; padding: 48px;" />
+        }
+        else if (filteredPlugins.Length == 0)
+        {
+            <Empty Description="@("暂无插件")" />
+        }
+        else
+        {
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                @foreach (var plugin in pagedPlugins)
+                {
+                    <PluginCardUI Plugin="plugin" OnClick="@(() => ShowDetail(plugin))" />
+                }
+            </div>
+
+            @if (totalPages > 1)
+            {
+                <div style="display: flex; justify-content: center; margin-top: 16px;">
+                    <Pagination Current="currentPage" Total="filteredPlugins.Length" PageSize="pageSize"
+                                 OnChange="OnPageChange" ShowSizeChanger="false" />
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@* 插件详情弹窗 *@
+<Modal Title="@(selectedPlugin?.Name ?? "")"
+       Visible="@(selectedPlugin != null)"
+       OnCancel="@(() => selectedPlugin = null)"
+       Footer="null"
+       Width="640"
+       Centered="true"
+       Style="top: 40px;">
+    @if (selectedPlugin != null)
+    {
+        <PluginDetailView Plugin="selectedPlugin" OnBack="@(() => selectedPlugin = null)" />
+    }
+</Modal>
+
+@code {
+    string viewMode = "local";
+    string searchText = "";
+    bool isLoading;
+    int currentPage = 1;
+    int pageSize = 12;
+
+    Plugin[] allPlugins = [];
+    Plugin[] filteredPlugins = [];
+    Plugin[] pagedPlugins = [];
+    Plugin? selectedPlugin;
+    bool initialized;
+
+    int totalPages => (int)Math.Ceiling(filteredPlugins.Length / (double)pageSize);
+
+    protected override async void OnInitialized()
+    {
+        PluginMarketService.OnInstalled += OnPluginsChanged;
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            await PluginMarketService.InitializeAsync();
+            initialized = true;
+            RefreshLocal();
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"初始化插件市场失败: {ex.Message}");
+        }
+
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    void OnViewModeChanged(string value)
+    {
+        viewMode = value;
+        RefreshLocal();
+    }
+
+    void RefreshLocal()
+    {
+        if (!initialized)
+            return;
+
+        PluginMarketService.RefreshLocalPlugins();
+        var onlinePlugins = PluginMarketService.GetAllPlugins();
+        var installed = PluginMarketService.GetInstalledPlugins();
+
+        if (viewMode == "online")
+        {
+            allPlugins = onlinePlugins;
+        }
+        else
+        {
+            allPlugins = onlinePlugins
+                .Where(p => installed.ContainsKey(p.Id))
+                .ToArray();
+        }
+        FilterPlugins();
+        StateHasChanged();
+    }
+
+    async Task FetchOnline()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            await PluginMarketService.FetchOnlinePluginsAsync();
+            RefreshLocal();
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"拉取云端失败: {ex.Message}");
+        }
+
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    void ShowDetail(Plugin plugin)
+    {
+        selectedPlugin = plugin;
+    }
+
+    void FilterPlugins()
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            filteredPlugins = allPlugins;
+        }
+        else
+        {
+            filteredPlugins = allPlugins
+                .Where(p => p.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                            p.Id.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+        }
+
+        currentPage = 1;
+        UpdatePagedPlugins();
+    }
+
+    void UpdatePagedPlugins()
+    {
+        pagedPlugins = filteredPlugins
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToArray();
+    }
+
+    void OnPageChange(PaginationEventArgs args)
+    {
+        currentPage = args.Page;
+        UpdatePagedPlugins();
+    }
+
+    void OnPluginsChanged()
+    {
+        InvokeAsync(() => RefreshLocal());
+    }
+
+    public void Dispose()
+    {
+        PluginMarketService.OnInstalled -= OnPluginsChanged;
+    }
+}

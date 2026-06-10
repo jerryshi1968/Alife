@@ -4,10 +4,10 @@ namespace Alife.PluginMarket;
 
 public class FileSystemPluginProvider(string directoryPath) : IPluginProvider
 {
-    public Plugin[] GetPlugins()
+    public Task<Plugin[]> GetPluginsAsync()
     {
         if (!Directory.Exists(directoryPath))
-            return [];
+            return Task.FromResult(Array.Empty<Plugin>());
 
         string[] files = Directory.GetFiles(directoryPath, "*.json");
         List<Plugin> plugins = new();
@@ -27,6 +27,6 @@ public class FileSystemPluginProvider(string directoryPath) : IPluginProvider
             }
         }
 
-        return plugins.ToArray();
+        return Task.FromResult(plugins.ToArray());
     }
 }
