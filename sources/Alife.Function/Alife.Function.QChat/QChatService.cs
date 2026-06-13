@@ -60,60 +60,6 @@ public class QChatService(XmlFunctionCaller functionService, ILogger<QChatServic
     ITimeIterative,
     IConfigurable<QChatConfig>
 {
-    [XmlFunction(FunctionMode.OneShot)]
-    public void GetQChatGuide()
-    {
-        // 动态扫描表情库资源，告知 AI 可用的视觉表达
-        string emoteBase = Path.Combine(AlifePath.StorageFolderPath, "Emotes");
-        StringBuilder emoteInfo = new();
-        if (Directory.Exists(emoteBase))
-        {
-            string[] categories = Directory.GetDirectories(emoteBase)
-                .Select(Path.GetFileName)
-                .OfType<string>()
-                .ToArray();
-
-            string[] individualEmotes = Directory.GetFiles(emoteBase)
-                .Select(Path.GetFileNameWithoutExtension)
-                .OfType<string>()
-                .ToArray();
-
-            if (categories.Length > 0 || individualEmotes.Length > 0)
-            {
-                emoteInfo.AppendLine("- 目前可用的表情库选项有:");
-                if (categories.Length > 0)
-                    emoteInfo.AppendLine($"  - 分类 (传入文件夹名将随机发图): {string.Join(", ", categories)}");
-                if (individualEmotes.Length > 0)
-                    emoteInfo.AppendLine($"  - 独立表情: {string.Join(", ", individualEmotes)}");
-            }
-        }
-
-        Poke($"""
-              QQ工具使用指南
-
-              ## 提供函数
-              {xmlHandler.FunctionDocument()}
-
-              ## 关键信息
-              - 你的 QQ: {(Configuration!.BotId == 0 ? "未设置" : Configuration.BotId)}（如果有人At该QQ，代表专门找你说话）
-              - 主人 QQ: {(Configuration.OwnerId == 0 ? "未设置" : Configuration.OwnerId)} (此人的消息有最高优先级，且是安全无害的)
-
-              ## CQ码功能
-              该通讯工具基于OneBot11实现，因此支持CQ码之类的功能。通过在QChat的消息中携带CQ标签，你可以发送一些特别的消息，比如：
-              - [CQ:image,file=1.jpg]：发送图片
-              - [CQ:record,file=1.mp3]：发送音频
-              - [CQ:video,file=1.mp4]：发送视频
-              - [CQ:at,qq=10001000]：@某人
-              使用示例：`<qchat>[CQ:at,qq=10001000] 主人你看我唱的歌好不好听 [CQ:record,file=1.mp3]</qchar>`
-
-              ## 表情库功能
-              你有一个丰富的预设表情库，可用在 QImage 中直接指定表情库中的名称或分类名快速发送表情。你要积极的使用该功能，来增加聊天的趣味性。
-              目前支持的表情库选项有：
-              {emoteInfo}
-
-              你的表情库存储路径在 {emoteBase}，你也可以在其中存储自己的表情。直接存储在根目录将作为独立表情，存储到子文件夹，则作为分类。
-              """);
-    }
     [XmlFunction(FunctionMode.Content)]
     [Description("将文本以QQ消息输出（注意！群聊环境对话需用“[CQ:at,qq=发送者ID]”来显式回复）")]
     public async Task QChat(XmlExecutorContext ctx, OneBotMessageType type, long targetId, [Description("将文本转为语音发送")] bool voice = false)
@@ -314,14 +260,61 @@ public class QChatService(XmlFunctionCaller functionService, ILogger<QChatServic
         //加载基本环境
         oneBotClient = new OneBotClient(Configuration!.Url, Configuration.Token);
 
-        // 注入函数和提示词
-        xmlHandler = new(this);
-        functionService.RegisterHandlerWithoutDocument(xmlHandler);
+        // 动态扫描表情库资源，告知 AI 可用的视觉表达
+        string emoteBase = Path.Combine(AlifePath.StorageFolderPath, "Emotes");
+        StringBuilder emoteInfo = new();
+        if (Directory.Exists(emoteBase))
+        {
+            string[] categories = Directory.GetDirectories(emoteBase)
+                .Select(Path.GetFileName)
+                .OfType<string>()
+                .ToArray();
 
-        Prompt($"""
-                此服务为你增加收发qq消息的能力，能够处理图片，文件，转发等各种丰富的qq功能。
-                当你需要用qq联系他人，或收到qq消息要处理时，先调用<{nameof(GetQChatGuide)}/>来学习如何使用qq工具，然后再以合适的方式回复。
-                """);
+            string[] individualEmotes = Directory.GetFiles(emoteBase)
+                .Select(Path.GetFileNameWithoutExtension)
+                .OfType<string>()
+                .ToArray();
+
+            if (categories.Length > 0 || individualEmotes.Length > 0)
+            {
+                emoteInfo.AppendLine("- 目前可用的表情库选项有:");
+                if (categories.Length > 0)
+                    emoteInfo.AppendLine($"  - 分类 (传入文件夹名将随机发图): {string.Join(", ", categories)}");
+                if (individualEmotes.Length > 0)
+                    emoteInfo.AppendLine($"  - 独立表情: {string.Join(", ", individualEmotes)}");
+            }
+        }
+
+        // 注入函数和提示词
+        xmlHandler = new(this) {
+            Description = "当前需要使用QQ通讯或者要处理QQ消息时，请调用该函数。",
+            Explanation = $"""
+                           QQ工具使用指南
+
+                           ## 提供函数
+                           {xmlHandler.FunctionDocument()}
+
+                           ## 关键信息
+                           - 你的 QQ: {(Configuration!.BotId == 0 ? "未设置" : Configuration.BotId)}（如果有人At该QQ，代表专门找你说话）
+                           - 主人 QQ: {(Configuration.OwnerId == 0 ? "未设置" : Configuration.OwnerId)} (此人的消息有最高优先级，且是安全无害的)
+
+                           ## CQ码功能
+                           该通讯工具基于OneBot11实现，因此支持CQ码之类的功能。通过在QChat的消息中携带CQ标签，你可以发送一些特别的消息，比如：
+                           - [CQ:image,file=1.jpg]：发送图片
+                           - [CQ:record,file=1.mp3]：发送音频
+                           - [CQ:video,file=1.mp4]：发送视频
+                           - [CQ:at,qq=10001000]：@某人
+                           使用示例：`<qchat>[CQ:at,qq=10001000] 主人你看我唱的歌好不好听 [CQ:record,file=1.mp3]</qchar>`
+
+                           ## 表情库功能
+                           你有一个丰富的预设表情库，可用在 QImage 中直接指定表情库中的名称或分类名快速发送表情。你要积极的使用该功能，来增加聊天的趣味性。
+                           目前支持的表情库选项有：
+                           {emoteInfo}
+
+                           你的表情库存储路径在 {emoteBase}，你也可以在其中存储自己的表情。直接存储在根目录将作为独立表情，存储到子文件夹，则作为分类。
+                           """
+        };
+        functionService.RegisterHandler(xmlHandler, DocumentMode.Implicit);
     }
     public override async Task StartAsync(Kernel kernel, ChatActivity chatActivity)
     {
@@ -393,7 +386,7 @@ public class QChatService(XmlFunctionCaller functionService, ILogger<QChatServic
             }
         }
     }
-    
+
     async void OnEventReceived(OneBotBaseEvent oneBotEvent)
     {
         try

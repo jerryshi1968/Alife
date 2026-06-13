@@ -1,58 +1,89 @@
-@using Alife.Components.Shared.Characters
-@using Alife.Components.Services
-@inject CharacterSystem CharacterSystem
-@inject ChatActivitySystem ChatActivitySystem
-@inject ConfirmService ConfirmService
 @inject INotificationService NotificationService
 
-<div style="padding: 24px; height: 100%; overflow-y: auto; background: #fafafa;">
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-        <div @onclick="OnCreateClick" style="cursor: pointer;">
-            <Card id="btn-new-character" Title="创建新角色" Class="character-card-new" Hoverable>
-                <Flex Direction="@FlexDirection.Vertical" Align="@FlexAlign.Center"
-                      Justify="@FlexJustify.Center" Style="height: 120px; color: rgba(0,0,0,0.45)">
-                    <Icon Type="@IconType.Outline.Plus" Style="font-size: 32px"/>
-                    <span style="margin-top: 8px">点此添加角色</span>
-                </Flex>
-            </Card>
-        </div>
+<div style="padding: 24px; height: 100%; overflow-y: auto;">
+    <Title Level="4" Style="margin-bottom: 24px;">系统配置</Title>
 
-        @foreach (Character character in CharacterSystem.GetAllCharacters())
-        {
-            <CharacterUI Source="character" OnDelete="@(() => ConfirmDelete(character))"/>
-        }
+    <div style="margin-bottom: 24px;">
+        <Text Strong Style="margin-bottom: 8px; display: block;">数据存储目录 (Storage)</Text>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <Input @bind-Value="storageFolderPath" Style="flex: 1;"/>
+            <Button Icon="@IconType.Outline.FolderOpen" OnClick="@OnPickStorageFolderAsync"/>
+            <Button Type="@ButtonType.Primary" OnClick="@SaveStoragePath">保存</Button>
+        </div>
+        <Text Type="@TextElementType.Secondary" Style="font-size: 12px; margin-top: 4px; display: block;">
+            存放角色数据、对话记录等用户数据。重启后生效。
+        </Text>
     </div>
+
+    <div style="margin-bottom: 24px;">
+        <Text Strong Style="margin-bottom: 8px; display: block;">运行时目录 (Runtime)</Text>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <Input @bind-Value="runtimeFolderPath" Style="flex: 1;"/>
+            <Button Icon="@IconType.Outline.FolderOpen" OnClick="@OnPickRuntimeFolderAsync"/>
+            <Button Type="@ButtonType.Primary" OnClick="@SaveRuntimePath">保存</Button>
+        </div>
+        <Text Type="@TextElementType.Secondary" Style="font-size: 12px; margin-top: 4px; display: block;">
+            存放浏览器数据、模型文件等运行时数据。重启后生效。
+        </Text>
+    </div>
+
+    <Divider Style="margin: 16px 0;"/>
+
+    <Title Level="5" Style="margin-bottom: 12px;">路径一览</Title>
+    <Descriptions Column="1" Size="@DescriptionsSize.Small" Bordered>
+        <DescriptionsItem Title="StorageFolderPath">
+            <Text Code Style="font-size: 12px;">@Platform.AlifePath.StorageFolderPath</Text>
+        </DescriptionsItem>
+        <DescriptionsItem Title="RuntimeFolderPath">
+            <Text Code Style="font-size: 12px;">@Platform.AlifePath.RuntimeFolderPath</Text>
+        </DescriptionsItem>
+        <DescriptionsItem Title="OutputsFolderPath">
+            <Text Code Style="font-size: 12px;">@Platform.AlifePath.OutputsFolderPath</Text>
+        </DescriptionsItem>
+        <DescriptionsItem Title="RootFolderPath">
+            <Text Code Style="font-size: 12px;">@Platform.AlifePath.RootFolderPath</Text>
+        </DescriptionsItem>
+        <DescriptionsItem Title="TempFolderPath">
+            <Text Code Style="font-size: 12px;">@Platform.AlifePath.TempFolderPath</Text>
+        </DescriptionsItem>
+    </Descriptions>
 </div>
 
-<style>
-    .character-card-new {
-        border: 2px dashed #f0f0f0 !important;
-        background: transparent !important;
-    }
-
-    .character-card-new:hover {
-        border-color: #1890ff !important;
-        background: rgba(24, 144, 255, 0.05) !important;
-    }
-</style>
-
 @code {
-    [Parameter] public EventCallback OnCreateClick { get; set; }
+    string storageFolderPath = Platform.AlifePath.StorageFolderPath;
+    string runtimeFolderPath = Platform.AlifePath.RuntimeFolderPath;
 
-    async Task ConfirmDelete(Character character)
+    async Task OnPickStorageFolderAsync()
     {
-        ConfirmResult confirmResult = await ConfirmService.Show(
-            $"确认要删除角色 [{character.Name}] 吗？",
-            "警告",
-            ConfirmButtons.YesNo,
-            ConfirmIcon.Warning);
+        string? result = await Platform.AlifePlatform.PickFolderAsync();
+        if (string.IsNullOrWhiteSpace(result) is false)
+            storageFolderPath = result;
+    }
 
-        if (confirmResult == ConfirmResult.Yes)
-        {
-            if (ChatActivitySystem.IsActivated(character))
-                await ChatActivitySystem.Deactivate(character);
-            CharacterSystem.DeleteCharacter(character);
-            _ = NotificationService.Success(new NotificationConfig { Message = $"角色 [{character.Name}] 已删除喵。" });
-        }
+    void SaveStoragePath()
+    {
+        if (string.IsNullOrWhiteSpace(storageFolderPath))
+            return;
+
+        Platform.AlifePath.SetStorageFolderPath(storageFolderPath);
+        storageFolderPath = Platform.AlifePath.StorageFolderPath;
+        _ = NotificationService.Success(new NotificationConfig { Message = "存储路径已保存！重启后生效喵~" });
+    }
+
+    async Task OnPickRuntimeFolderAsync()
+    {
+        string? result = await Platform.AlifePlatform.PickFolderAsync();
+        if (string.IsNullOrWhiteSpace(result) is false)
+            runtimeFolderPath = result;
+    }
+
+    void SaveRuntimePath()
+    {
+        if (string.IsNullOrWhiteSpace(runtimeFolderPath))
+            return;
+
+        Platform.AlifePath.SetRuntimeFolderPath(runtimeFolderPath);
+        runtimeFolderPath = Platform.AlifePath.RuntimeFolderPath;
+        _ = NotificationService.Success(new NotificationConfig { Message = "运行时目录已保存！重启后生效喵~" });
     }
 }

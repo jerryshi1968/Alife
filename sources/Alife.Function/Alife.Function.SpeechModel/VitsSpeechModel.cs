@@ -136,15 +136,17 @@ public class VitsSpeechModel(
         if (Directory.Exists(RuntimeFolder) == false)
             await DownloadAndExtractAsync();
 
-        string requirements = Path.Combine(RuntimeFolder, "requirements.txt");
-        if (File.Exists(requirements) == false)
-            throw new Exception("VITS 模型文件不完整，请删除 Runtime/VITS 目录后重试。");
-
-        AlifePlatform.Command("python", $"-m pip install -r \"{Path.Combine(RuntimeFolder, "requirements.txt")}\"");
         pythonPipe = new("vits_speech", pythonCode);
         pythonPipe.OnStderr += line => logger.LogWarning(line);
         await pythonPipe.StartAsync();
         await pythonPipe.InvokeAsync<string>("init", RuntimeFolder);
+    }
+    public async ValueTask DisposeAsync()
+    {
+        if (pythonPipe != null)
+        {
+            await pythonPipe.DisposeAsync();
+        }
     }
 
     async Task DownloadAndExtractAsync()
@@ -199,12 +201,5 @@ public class VitsSpeechModel(
         ZipFile.ExtractToDirectory(zipPath, extractRoot, overwriteFiles: true);
         File.Delete(zipPath);
         logger.LogInformation("VITS 模型文件准备就绪。");
-    }
-    public async ValueTask DisposeAsync()
-    {
-        if (pythonPipe != null)
-        {
-            await pythonPipe.DisposeAsync();
-        }
     }
 }

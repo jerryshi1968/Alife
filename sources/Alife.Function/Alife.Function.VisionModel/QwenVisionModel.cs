@@ -110,8 +110,6 @@ public class QwenVisionModel(
     {
         const string ModelId = "Qwen/Qwen2.5-VL-3B-Instruct";
         string modelPath = AlifeModel.EnsureModelExisting(ModelId);
-        AlifePlatform.Command("python", "-m pip install torch torchvision Pillow transformers qwen-vl-utils bitsandbytes accelerate sentencepiece tiktoken");
-        
         pythonPipe = new("qwen_vl", pythonCode);
         pythonPipe.OnStderr += line => logger.LogWarning(line);
         await pythonPipe.StartAsync();

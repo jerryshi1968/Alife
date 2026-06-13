@@ -10,7 +10,7 @@ public class MessageFilterData
     public bool EnableTimestamp { get; set; } = true;
     public string MessageAppend { get; set; } = "(回复消息时保持简洁，禁用旁白、emoji)";
     public string PokeAppend { get; set; } = "";
-    public int MaxMessageLength { get; set; } = 5000;
+    public int MaxMessageLength { get; set; } = 10000;
 }
 
 [Module("消息过滤", "统一管理消息的提示词注入和格式化。负责添加时间戳、通用提示词以及系统消息头。",

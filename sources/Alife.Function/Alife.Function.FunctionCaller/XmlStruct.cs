@@ -12,21 +12,51 @@ public class XmlHandler
 {
     public string? Name { get; set; }
     public string? Description { get; set; }
-    public string? Explain { get; set; }
+    public string? Explanation { get; set; }
     public List<XmlFunction> Functions { get; init; } = new();
     public object? Instance { get; init; }
-    public bool IsImplicit { get; set; }
+    
+    public string FunctionDocument()
+    {
+        StringBuilder sb = new();
+        foreach (XmlFunction function in Functions)
+        {
+            sb.Append($"- <{function.Name}");
+            foreach (XmlParameter param in function.Parameters)
+            {
+                string pDesc = string.IsNullOrEmpty(param.Description) ? "" : $"（{param.Description}）";
+                sb.Append($" {param.Name}=\"{param.Type}\"{pDesc}");
+            }
 
+            if (function.ContentName != null)
+            {
+                sb.Append(">");
+                string cDesc = string.IsNullOrEmpty(function.ContentDescription)
+                    ? ""
+                    : $"（{function.ContentDescription}）";
+                sb.Append($"{function.ContentName}{cDesc}</{function.Name}>");
+            }
+            else
+            {
+                sb.Append(" />");
+            }
+
+            if (string.IsNullOrEmpty(function.Description) == false)
+                sb.Append($" : {function.Description}");
+
+            sb.AppendLine();
+        }
+        return sb.ToString().TrimEnd();
+    }
+    
     public XmlHandler() {}
-
-    public XmlHandler(object instance, string? explain = null, bool isImplicit = false)
+    public XmlHandler(object instance, string? explanation = null)
     {
         Instance = instance;
         Type handlerType = instance.GetType();
         Name = handlerType.Name;
         Description = handlerType.GetCustomAttribute<DescriptionAttribute>()?.Description;
-        IsImplicit = isImplicit;
-        Explain = explain;
+        Explanation = explanation;
 
         foreach (MethodInfo method in handlerType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
         {
@@ -35,7 +65,7 @@ public class XmlHandler
                 Functions.Add(function);
         }
     }
-
+    
     static XmlFunction? ParseFunction(MethodInfo method, object handler)
     {
         XmlFunctionAttribute? functionAttribute = method.GetCustomAttribute<XmlFunctionAttribute>();
@@ -189,59 +219,6 @@ public class XmlHandler
             Order = functionAttribute.Order,
             Invoker = Invoker,
         };
-    }
-
-    public string Document()
-    {
-        StringBuilder sb = new();
-        sb.AppendLine($"> 来源：{Name}");
-        if (string.IsNullOrEmpty(Description) == false)
-            sb.AppendLine($"功能简介：\n{Description}");
-
-        sb.AppendLine("提供函数：");
-        sb.AppendLine(FunctionDocument());
-
-        if (string.IsNullOrEmpty(Explain) == false)
-        {
-            sb.AppendLine("附加说明：");
-            sb.AppendLine($"{Explain}");
-        }
-
-        sb.AppendLine("---\n");
-
-        return sb.ToString().TrimEnd();
-    }
-    public string FunctionDocument()
-    {
-        StringBuilder sb = new();
-        foreach (XmlFunction function in Functions)
-        {
-            sb.Append($"- <{function.Name}");
-            foreach (XmlParameter param in function.Parameters)
-            {
-                string pDesc = string.IsNullOrEmpty(param.Description) ? "" : $"（{param.Description}）";
-                sb.Append($" {param.Name}=\"{param.Type}\"{pDesc}");
-            }
-
-            if (function.ContentName != null)
-            {
-                sb.Append(">");
-                string cDesc = string.IsNullOrEmpty(function.ContentDescription)
-                    ? ""
-                    : $"（{function.ContentDescription}）";
-                sb.Append($"{function.ContentName}{cDesc}</{function.Name}>");
-            }
-            else
-            {
-                sb.Append(" />");
-            }
-
-            if (string.IsNullOrEmpty(function.Description) == false)
-                sb.Append($" : {function.Description}");
-
-            sb.AppendLine();
-        }
-        return sb.ToString().TrimEnd();
     }
 }
 

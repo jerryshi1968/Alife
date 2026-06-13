@@ -17,8 +17,8 @@ namespace Alife.Function.Memory;
 
 public record MemoryConfig
 {
-    public int Threshold { get; set; } = 80;
-    public int BatchSize { get; set; } = 50;
+    public int Threshold { get; set; } = 100;
+    public int BatchSize { get; set; } = 60;
     public float Probability { get; set; } = 0.4f;
     public int MaxCompressionLevel { get; set; } = 7;
     public string CompressPrompt { get; set; } =
@@ -88,28 +88,6 @@ public partial class MemoryService
 public partial class MemoryService(XmlFunctionCaller functionService)
     : InteractiveModule<MemoryService>, IConfigurable<MemoryConfig>
 {
-    [XmlFunction(FunctionMode.OneShot)]
-    public void GetMemoryGuide()
-    {
-        Poke($"""
-              ## 记忆工具
-              {handler.FunctionDocument()}
-
-              ## 记忆存储
-              所有记忆都直接存储在上下文中，不过早期记忆会被压缩，然后以记忆存档的方式存在上下文中。
-              每个记忆存档都有一个唯一ID，其格式为`等级-起始日期-截至日期`，例如`2-20260421014905-20260512022747`，就表明这是一个2级记忆存档，存储了从2026年4月21日1点49分到5月12号2点27分的记忆。
-              记忆存档的等级表示其对原始聊天记录的压缩次数，其中1表示压缩一次，所以3就表示压缩三次。压缩的记忆存档可以通过<{nameof(Recall)}>（回忆）解压。1级存档，只要回忆一次就可以拿到最原始的聊天记录；3级存档则需要嵌套回忆至少3次，才能拿到部分记录。
-              聊天记录被压缩成记忆存档后，其原始信息以及存档信息将会被转储到“{storagePath}”中，以“txt格式，存档id为名”的形式按压缩级别分别存放在“L0,L1...”之类的文件夹中，如“/L0/0-20260421014905-20260421022747.txt”。
-              (这也意味着，除了使用函数调用查阅记忆外，实际上也可以直接用处理文件的方式查阅记忆)
-
-              ## 记忆恢复
-              记忆存档是对记忆的压缩。虽然被压缩的内容将会被移出上下文，但其在外部磁盘上是会被永久存储的。所以利用本服务提供的工具，你有机会恢复这些记忆。
-              1. 首先你可以先列出你当前上下文中已知的记忆存档，然后基于大概的时间范围，通过<{nameof(Recall)}>翻阅这些存档。由于存档是嵌套包裹的，所以只要经过足够多次的调用，你就可以找到所有的原始聊天记录。
-              2. 如果你不知道记忆的大致范围，你则可以尝试使用<{nameof(Search)}>，它会直接在外部的海量原始记录中通过关键词搜索记忆，并按时间排序返回记忆存档，帮你缩小查询范围，但这个结果可能不够精确，所以搜索时要多采用泛用的条件。
-              (总之只要你愿意回想，就没有找不回的记忆，所以当遇到记不起来的事情时，一定要积极使用上述工具)
-              """);
-    }
-
     [XmlFunction(FunctionMode.OneShot)]
     [Description("查看记忆存档中保存的完整原始内容。（你要积极使用该功能，因为有些记忆的重要内容被记在了完整内容中，而不是概述里）")]
     public async Task Recall([Description("存档索引（如：1-20240101120000-20240101130000）")] string index)
@@ -265,16 +243,32 @@ public partial class MemoryService(XmlFunctionCaller functionService)
         string characterStorage = Path.Combine(AlifePath.StorageFolderPath, context.Character.StorageKey, "Storage");
         Directory.CreateDirectory(characterStorage);
 
-        handler = new(this);
-        functionService.RegisterHandlerWithoutDocument(handler);
-
         Prompt($"""
-                此服务搭载了一套自动化的记忆存档功能，同时会提供一系列相关工具让你可以回想或记录记忆。
-                当你需要管理记忆，或需要回忆搜索记忆时，请调用<{nameof(GetMemoryGuide)}/>
-
-                此外你还有一个专属文件夹 {characterStorage}，作为你的私人存储库。
+                你有一个专属文件夹 {characterStorage}，作为你的私人存储库。
                 你可以把你的各种各样的东西都存储到这里面，这样可以一直保存而且不会弄脏其他文件夹。
                 """);
+
+        handler = new(this) {
+            Description = "当你需要管理或查找记忆时，请使用该函数",
+            Explanation = $"""
+                           ## 记忆工具
+                           {handler.FunctionDocument()}
+
+                           ## 记忆存储
+                           所有记忆都直接存储在上下文中，不过早期记忆会被压缩，然后以记忆存档的方式存在上下文中。
+                           每个记忆存档都有一个唯一ID，其格式为`等级-起始日期-截至日期`，例如`2-20260421014905-20260512022747`，就表明这是一个2级记忆存档，存储了从2026年4月21日1点49分到5月12号2点27分的记忆。
+                           记忆存档的等级表示其对原始聊天记录的压缩次数，其中1表示压缩一次，所以3就表示压缩三次。压缩的记忆存档可以通过<{nameof(Recall)}>（回忆）解压。1级存档，只要回忆一次就可以拿到最原始的聊天记录；3级存档则需要嵌套回忆至少3次，才能拿到部分记录。
+                           聊天记录被压缩成记忆存档后，其原始信息以及存档信息将会被转储到“{storagePath}”中，以“txt格式，存档id为名”的形式按压缩级别分别存放在“L0,L1...”之类的文件夹中，如“/L0/0-20260421014905-20260421022747.txt”。
+                           (这也意味着，除了使用函数调用查阅记忆外，实际上也可以直接用处理文件的方式查阅记忆)
+
+                           ## 记忆恢复
+                           记忆存档是对记忆的压缩。虽然被压缩的内容将会被移出上下文，但其在外部磁盘上是会被永久存储的。所以利用本服务提供的工具，你有机会恢复这些记忆。
+                           1. 首先你可以先列出你当前上下文中已知的记忆存档，然后基于大概的时间范围，通过<{nameof(Recall)}>翻阅这些存档。由于存档是嵌套包裹的，所以只要经过足够多次的调用，你就可以找到所有的原始聊天记录。
+                           2. 如果你不知道记忆的大致范围，你则可以尝试使用<{nameof(Search)}>，它会直接在外部的海量原始记录中通过关键词搜索记忆，并按时间排序返回记忆存档，帮你缩小查询范围，但这个结果可能不够精确，所以搜索时要多采用泛用的条件。
+                           (总之只要你愿意回想，就没有找不回的记忆，所以当遇到记不起来的事情时，一定要积极使用上述工具)
+                           """
+        };
+        functionService.RegisterHandler(handler, DocumentMode.Implicit);
     }
 
     public override async Task StartAsync(Kernel kernel, ChatActivity chatActivity)

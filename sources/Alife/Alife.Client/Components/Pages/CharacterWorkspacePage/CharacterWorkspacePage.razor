@@ -2,7 +2,10 @@
 @using Alife.Components.Shared.Characters
 @using Alife.Components.Shared.Modules
 @inject CharacterSystem CharacterSystem
+@inject ChatActivitySystem ChatActivitySystem
+@inject ConfirmService ConfirmService
 @inject INotificationService NotificationService
+@inject NavigationManager Navigation
 
 
 @if (character == null)
@@ -82,6 +85,8 @@ else
                         <Button Danger Block OnClick="@(characterHomeUI.StopActivity)">停止运行</Button>
                     }
                 }
+
+                <Button Danger Block Style="margin-top: 12px;" OnClick="@OnDeleteCharacter">删除角色</Button>
             </div>
         </div>
 
@@ -146,6 +151,27 @@ else
         catch (Exception ex)
         {
             _ = NotificationService.Error(new NotificationConfig { Message = $"无法打开目录喵：{ex.Message}" });
+        }
+    }
+
+    async Task OnDeleteCharacter()
+    {
+        if (character == null) return;
+
+        ConfirmResult confirmResult = await ConfirmService.Show(
+            $"确认要删除角色 [{character.Name}] 吗？此操作不可撤销！",
+            "警告",
+            ConfirmButtons.YesNo,
+            ConfirmIcon.Warning);
+
+        if (confirmResult == ConfirmResult.Yes)
+        {
+            if (characterHomeUI?.Activity != null)
+                await characterHomeUI.StopActivity();
+
+            CharacterSystem.DeleteCharacter(character);
+            _ = NotificationService.Success(new NotificationConfig { Message = $"角色 [{character.Name}] 已删除喵。" });
+            Navigation.NavigateTo("/system");
         }
     }
 

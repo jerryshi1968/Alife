@@ -1,5 +1,6 @@
 @inject CharacterSystem CharacterSystem
 @inject ChatActivitySystem ChatActivitySystem
+@inject NavigationManager Navigation
 @implements IDisposable
 
 <Flex Direction="FlexDirection.Vertical" Gap="@("12")" Style="width: 100%; align-items: center;">
@@ -39,7 +40,24 @@
             </NavLink>
         </Tooltip>
     }
+
+    <Tooltip Title="@("创建新角色")" Placement="@Placement.Right">
+        <div @onclick="@(() => isCreating = true)" class="nav-item-icon" style="border: 1px dashed rgba(255,255,255,0.3);">
+            <Icon Type="@IconType.Outline.Plus" Style="font-size: 20px; color: rgba(255,255,255,0.5);"/>
+        </div>
+    </Tooltip>
 </Flex>
+
+<Modal Title="创建新角色"
+       Visible="@isCreating"
+       OnOk="@OnConfirmCreate"
+       OnCancel="@(() => isCreating = false)">
+    <AntDesign.Text>请输入角色名称：</AntDesign.Text>
+    <Input @bind-Value="@newCharacterName" Placeholder="如：真央"/>
+    <AntDesign.Text Type="@TextElementType.Secondary" Style="font-size: 12px; margin-top: 8px; display: block;">
+        注意：非法字符将被自动替换，建议使用中文或英文。
+    </AntDesign.Text>
+</Modal>
 
 <style>
     .nav-item-icon {
@@ -64,6 +82,9 @@
 </style>
 
 @code {
+    bool isCreating;
+    string newCharacterName = "";
+
     protected override void OnInitialized()
     {
         CharacterSystem.OnChanged += Refresh;
@@ -73,6 +94,15 @@
 
     void OnActivityChanged(ChatActivity _) => Refresh();
     void Refresh() => InvokeAsync(StateHasChanged);
+
+    void OnConfirmCreate()
+    {
+        if (string.IsNullOrWhiteSpace(newCharacterName)) return;
+        CharacterSystem.CreateCharacter(newCharacterName);
+        isCreating = false;
+        Navigation.NavigateTo($"/agent/{newCharacterName}");
+        newCharacterName = "";
+    }
 
     public void Dispose()
     {

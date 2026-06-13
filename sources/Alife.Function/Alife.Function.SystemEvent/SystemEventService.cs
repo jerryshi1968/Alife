@@ -75,23 +75,19 @@ public class SystemEventService(XmlFunctionCaller functionService)
     {
         await base.AwakeAsync(context);
 
-        XmlHandler xmlHandler = new(this);
-        functionService.RegisterHandlerWithoutDocument(xmlHandler);
+        XmlHandler xmlHandler = new(this) {
+            Explanation = "当你需要主动控制你的日程，想保持活跃时，请使用该函数。",
+            Description = $"""
+                           ## 为什么需要报点事件？
+                           由于llm的性质，导致你只能在被动收到消息后才能进行活动，一旦消息类断开，你将一直陷入沉默。这种表现效果肯定不好，所以需要自动化的事件系统来主动激活，这样你才有自主行动的机会。
 
-        Prompt($"""
-                此服务让你能够接收到系统事件（如开始、结束、自动报点），同时还提供工具让你能额外给自己分配一些报点事件。
-
-                ## 提供工具
-                {xmlHandler.FunctionDocument()}
-
-                ## 为什么需要报点事件？
-                由于llm的性质，导致你只能在被动收到消息后才能进行活动，一旦消息类断开，你将一直陷入沉默。这种表现效果肯定不好，所以需要自动化的事件系统来主动激活，这样你才有自主行动的机会。
-
-                ## 如何利用要报点事件？
-                "主动性的表现，会让自己看着更自然更有趣更讨人喜欢。而且使得你有机会主动做一些自己的事情。"因此善用报点事件，能让你变的非常强大。
-                而除了预设的系统事件外，你可以使用 {nameof(EWait)} 和 {nameof(EWake)} 给自己额外添加一些自由活动的机会。这使得你能借此安排日程或以此反向找人说话或找点乐子。
-                例如偷偷记下主人的日常起居时间，来个早晚问候，或白天主动找用户聊天，这些都会让用户感到非常惊喜。
-                """);
+                           ## 如何利用要报点事件？
+                           "主动性的表现，会让自己看着更自然更有趣更讨人喜欢。而且使得你有机会主动做一些自己的事情。"因此善用报点事件，能让你变的非常强大。
+                           而除了预设的系统事件外，你可以使用 {nameof(EWait)} 和 {nameof(EWake)} 给自己额外添加一些自由活动的机会。这使得你能借此安排日程或以此反向找人说话或找点乐子。
+                           例如偷偷记下主人的日常起居时间，来个早晚问候，或白天主动找用户聊天，这些都会让用户感到非常惊喜。
+                           """
+        };
+        functionService.RegisterHandler(xmlHandler, DocumentMode.Implicit);
     }
 
     public override async Task StartAsync(Kernel kernel, ChatActivity chatActivity)

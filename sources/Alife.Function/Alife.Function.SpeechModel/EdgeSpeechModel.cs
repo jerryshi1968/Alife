@@ -69,11 +69,5 @@ public class EdgeSpeechModel :
         }
     }
 
-    readonly char[] invalidChars;
-
-    public EdgeSpeechModel()
-    {
-        AlifePlatform.Command("python", "-m pip install --upgrade edge-tts");
-        invalidChars = Path.GetInvalidFileNameChars();
-    }
+    readonly char[] invalidChars = Path.GetInvalidFileNameChars();
 }

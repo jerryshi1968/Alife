@@ -199,26 +199,47 @@ public class BrowserEngine : IDisposable
                                    if (!found.includes(m[1])) found.push(m[1]);
                                }
 
-                               const ins = [], btns = [];
-                               for (const k of found) {
-                                   const i = map[k];
-                                   if (i.isI) ins.push(`${i.t}[${k}]`);
-                                   else btns.push(`${i.t}[${k}]${i.h}`);
-                               }
+                                const replaced = pageContent.replace(/\[(\d+)\]/g, (_, id) => {
+                                    const i = map[id];
+                                    return i ? `[${id}:${i.t}]` : `[${id}]`;
+                                });
 
-                               let out = `标题:${document.title}\n链接:${location.href}\n分页:${scope}/${totalPages}`;
-                               if (scope < totalPages) out += ` (注意！当前页面显示不完整，请使用 page=${scope + 1} 来查看下一页)`;
-                               out += `\n\n${pageContent}\n\n`;
-
-                               if (ins.length) out += `--INPUTS--\n${ins.join('\n')}\n\n`;
-                               if (btns.length) out += `--BUTTONS--\n${btns.join('\n')}`;
-                               
-                               return out.trim();
+                                let out = `标题:${document.title}\n链接:${location.href}\n分页:${scope}/${totalPages}`;
+                                if (scope < totalPages) out += ` (注意！当前页面显示不完整，请使用 page=${scope + 1} 来查看下一页)`;
+                                out += `\n\n${replaced}`;
+                                
+                                return out.trim();
                            })();
                            """;
 
 
         return await ExecuteScriptAsync(jsCode);
+    }
+
+    /// <summary>
+    /// 查询指定data-alife-id元素的详细信息（href、文本等）
+    /// </summary>
+    public Task<string> GetElementInfoAsync(int id)
+    {
+        string jsCode = $$$"""
+            (() => {
+                const el = document.querySelector('[data-alife-id="{{{id}}}"]');
+                if (!el) return JSON.stringify({ found: false });
+                const info = {
+                    found: true,
+                    id: {{{id}}},
+                    tag: el.tagName.toLowerCase(),
+                    text: (el.innerText || el.value || el.placeholder || el.title || '').trim().slice(0, 200),
+                    href: el.href || '',
+                    type: el.type || '',
+                    placeholder: el.placeholder || '',
+                    ariaLabel: el.getAttribute('aria-label') || '',
+                    className: el.className || '',
+                };
+                return JSON.stringify(info, null, 2);
+            })();
+            """;
+        return ExecuteScriptAsync(jsCode);
     }
 
     readonly WebViewWorker worker = new();

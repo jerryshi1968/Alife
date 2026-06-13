@@ -36,20 +36,6 @@ public class XmlHandlerTable
         }
     }
 
-    public string Document()
-    {
-        StringBuilder sb = new();
-        foreach (XmlHandler handler in xmlHandlers)
-        {
-            if (handler.IsImplicit)
-                continue;
-            sb.AppendLine(handler.Document());
-            sb.AppendLine();
-        }
-
-        return sb.ToString().TrimEnd();
-    }
-
     public async Task Handle(string name, XmlContext tagContext, CancellationToken cancellationToken = default)
     {
         SortedSet<XmlFunction>? xmlFunctionGroup = xmlFunctions.GetValueOrDefault(name.ToLower());

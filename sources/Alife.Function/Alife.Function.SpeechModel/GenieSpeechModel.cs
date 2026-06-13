@@ -11,8 +11,8 @@ using Microsoft.Extensions.Logging;
 namespace Alife.Function.Speech;
 
 [Module("Genie语音合成", "基于GPT-SoVITS的本地离线语音合成引擎",
-defaultCategory: "Alife 官方/模型接入/语音模型",
-EditorUI = typeof(GenieSpeechModelUI))]
+    defaultCategory: "Alife 官方/模型接入/语音模型",
+    EditorUI = typeof(GenieSpeechModelUI))]
 public class GenieSpeechModel(
     ILogger<GenieSpeechModel> logger
 ) : ISpeechModel,
@@ -22,7 +22,7 @@ public class GenieSpeechModel(
 {
     public static string RuntimeFolder => Path.Combine(AlifePath.RuntimeFolderPath, "Genie");
     public GenieSpeechModelConfig? Configuration { get; set; }
-    
+
     public async Task<string?> GenerateSpeechFileAsync(string text, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -121,8 +121,6 @@ public class GenieSpeechModel(
 
     public async Task AwakeAsync(AwakeContext context)
     {
-        AlifePlatform.Command("python", "-m pip install genie-tts");
-        
         string charaName = Configuration?.CharacterName ?? "feibi";
         string language = Configuration?.Language ?? "Chinese";
         pythonPipe = new("genie_speech", pythonCode);
@@ -130,7 +128,6 @@ public class GenieSpeechModel(
         await pythonPipe.StartAsync();
         await pythonPipe.InvokeAsync<string>("init", RuntimeFolder, charaName, language);
     }
-
     public async ValueTask DisposeAsync()
     {
         if (pythonPipe != null)

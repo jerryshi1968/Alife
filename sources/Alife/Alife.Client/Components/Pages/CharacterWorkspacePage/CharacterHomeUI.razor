@@ -7,115 +7,55 @@
 
 @if (Visibility)
 {
-    <div style="padding: 24px; height: 100%; overflow-y: auto;">
+    <div style="padding: 24px; height: 100%; display: flex; flex-direction: column; overflow: hidden;">
         @if (Character != null)
         {
-            <GridRow Gutter="16">
-                <!-- 第一列：状态与控制 -->
-                <GridCol Span="8">
-                    <Card Title="状态控制" Style="border-radius: 12px; height: 100%;">
-                        <Flex Direction="@FlexDirection.Vertical"
-                              Align="@FlexAlign.Center" Justify="@FlexJustify.Center"
-                              Style="padding: 24px 0;">
-                            <Avatar Size="@AvatarSize.Large"
-                                    Style="background: #1890ff; width: 80px; height: 80px; line-height: 80px; font-size: 32px; margin-bottom: 24px;">
-                                @(Character.Name.FirstOrDefault())
-                            </Avatar>
-                            <Title Level="2">@Character.Name</Title>
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 16px; flex-shrink: 0;">
+                @if (activity == null)
+                {
+                    <Button id="btn-save-character-settings"
+                            Type="@ButtonType.Primary"
+                            Icon="@IconType.Outline.Save"
+                            Loading="isSaving" OnClick="@(SaveSettings)">保存变更
+                    </Button>
+                }
+            </div>
 
-                            <div style="margin: 24px 0;">
-                                @if (activity != null)
-                                {
-                                    <Tag Color="@("green")" Style="padding: 4px 12px; font-size: 14px;">
-                                        正在活跃中
-                                    </Tag>
-                                    <div style="margin-top: 16px;">
-                                        <Button Danger Type="@ButtonType.Primary" Block
-                                                Size="@ButtonSize.Large"
-                                                Icon="@IconType.Outline.Poweroff" OnClick="@(StopActivity)">停止运行
-                                        </Button>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <Tag Color="default" Style="padding: 4px 12px; font-size: 14px;">
-                                        待机中
-                                    </Tag>
-                                    <div style="margin-top: 16px;">
-                                        <Button id="btn-activate-character"
-                                                Type="@ButtonType.Primary" Block
-                                                Size="@ButtonSize.Large"
-                                                Icon="@IconType.Outline.Rocket"
-                                                OnClick="@(StartActivity)">激活角色
-                                        </Button>
-                                    </div>
-                                }
-                            </div>
-                        </Flex>
-                    </Card>
-                </GridCol>
+            <Alert Message="提示" Description="角色活动时无法修改配置喵。" Type="@AlertType.Info"
+                   ShowIcon="true"
+                   Style="@($"margin-bottom: 16px; flex-shrink: 0; display: {(activity != null ? "block" : "none")}")"/>
 
-                <!-- 第二列：核心设定与插件 -->
-                <GridCol Span="16">
-                    <Card Title="角色配置" Style="border-radius: 12px;">
-                        <Alert Message="提示" Description="角色活动时无法修改配置喵。" Type="@AlertType.Info"
-                               ShowIcon="true"
-                               Style="@($"margin-bottom: 12px; display: {(activity != null ? "block" : "none")}")"/>
+            <div style="flex: 1; display: flex; gap: 24px; min-height: 0;">
+                <div style="flex: 3; display: flex; flex-direction: column; min-width: 0;">
+                    <Title Level="5" Style="flex-shrink: 0;">简介 (Description)</Title>
+                    <Input @bind-Value="Character.Description"
+                           Placeholder="一句话介绍一下角色，如：一只的猫娘。"
+                           Disabled="@(activity != null)"
+                           Style="margin-bottom: 16px; border-radius: 8px; flex-shrink: 0;"/>
 
-                        <Title Level="5">简介 (Description)</Title>
-                        <Input @bind-Value="Character.Description"
-                               Placeholder="一句话介绍一下角色，如：一只的猫娘。"
-                               Disabled="@(activity != null)"
-                               Style="margin-bottom: 16px; border-radius: 8px;"/>
+                    <Title Level="5" Style="flex-shrink: 0;">设定 (System Prompt)</Title>
+                    <TextArea @bind-Value="Character.Prompt"
+                              Disabled="@(activity != null)"
+                              Style="border-radius: 8px; flex: 1; resize: none;"></TextArea>
+                </div>
 
-                        <Title Level="5">设定 (System Prompt)</Title>
-                        <TextArea MinRows="6" MaxRows="12" @bind-Value="Character.Prompt"
-                                  Disabled="@(activity != null)"
-                                  Style="margin-bottom: 24px; border-radius: 8px;"></TextArea>
-
-                        <Title Level="5">模块 (Modules)</Title>
-                        <div
-                            style="max-height: 400px; overflow-y: auto; border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; background: @(activity != null ? "#fafafa" : "#fff")">
-                            <StringFolderSelectorUI
-                                Context="@(ModuleSystem.GetModuleFolder())"
-                                ItemTitleFilter="@(fullName => GetModuleName(fullName))"
-                                IsChecking="moduleIDs"
-                                IsReadOnly="@(activity != null)"
-
-                                IsCheckingChanged="OnModuleCheckingChanged">
-                            </StringFolderSelectorUI>
-                        </div>
-                        @if (activity == null)
-                        {
-                            <div style="margin-top: 24px; text-align: right;">
-                                <Button id="btn-save-character-settings"
-                                        Type="@ButtonType.Primary"
-                                        Size="@ButtonSize.Large" Icon="@IconType.Outline.Save"
-                                        Loading="isSaving" OnClick="@(SaveSettings)">保存变更
-                                </Button>
-                            </div>
-                        }
-                    </Card>
-                </GridCol>
-            </GridRow>
+                <div style="flex: 2; display: flex; flex-direction: column; min-width: 0;">
+                    <Title Level="5" Style="flex-shrink: 0;">模块 (Modules)</Title>
+                    <div style="flex: 1; overflow-y: auto; border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; background: @(activity != null ? "#fafafa" : "#fff")">
+                        <StringFolderSelectorUI
+                            Context="@(ModuleSystem.GetModuleFolder())"
+                            ItemTitleFilter="@(fullName => GetModuleName(fullName))"
+                            IsChecking="moduleIDs"
+                            IsReadOnly="@(activity != null)"
+                            IsCheckingChanged="OnModuleCheckingChanged">
+                        </StringFolderSelectorUI>
+                    </div>
+                </div>
+            </div>
         }
         else
         {
             <Empty Description="@("角色为空！")"/>
-        }
-
-        @if (activity != null)
-        {
-            <Divider>隐含上下文 (Implicit Context / Effective Tools)</Divider>
-            <Card Title="函数调用" Style="border-radius: 12px; margin-top: 16px;">
-                @foreach (var sysPrompt in activity.GetImplicitFunctionContext())
-                {
-                    <Paragraph Copyable
-                               style="white-space: pre-wrap; background: #fafafa; padding: 12px; border-radius: 4px; border: 1px solid #f0f0f0; margin-bottom: 12px;">
-                        @sysPrompt
-                    </Paragraph>
-                }
-            </Card>
         }
     </div>
 }

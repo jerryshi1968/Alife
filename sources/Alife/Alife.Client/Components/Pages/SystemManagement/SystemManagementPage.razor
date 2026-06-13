@@ -1,6 +1,4 @@
 @page "/system"
-@inject NavigationManager Navigation
-@inject CharacterSystem CharacterSystem
 
 <div
     style="height: calc(100vh - 24px); margin: 12px; overflow: hidden; display: flex; flex-direction: column; background: #fff; border-radius: 8px; border: 1px solid #f0f0f0; animation: fadeIn 0.5s ease-out;">
@@ -19,7 +17,7 @@
                     </Flex>
                 </TabTemplate>
                 <ChildContent>
-                    <OverviewTab OnCreateClick="@(() => isCreating = true)"/>
+                    <OverviewTab/>
                 </ChildContent>
             </TabPane>
 
@@ -46,35 +44,11 @@
                     <PluginMarketTab/>
                 </ChildContent>
             </TabPane>
-
-            <TabPane Key="3">
-                <TabTemplate>
-                    <Flex Direction="@FlexDirection.Vertical" Align="@FlexAlign.Center" Gap="@("4")">
-                        <Icon Type="@IconType.Outline.Notification"/>
-                        <span style="font-size: 12px">活动监测</span>
-                    </Flex>
-                </TabTemplate>
-                <ChildContent>
-                    <ActivityMonitorTab/>
-                </ChildContent>
-            </TabPane>
         </Tabs>
     </div>
 </div>
 
-<Modal Title="创建新角色"
-       Visible="@isCreating"
-       OnOk="@OnConfirmCreate"
-       OnCancel="@(() => isCreating = false)">
-    <AntDesign.Text>请输入角色名称：</AntDesign.Text>
-    <Input @bind-Value="@newCharacterName" Placeholder="如：真央"/>
-    <AntDesign.Text Type="@TextElementType.Secondary" Style="font-size: 12px; margin-top: 8px; display: block;">
-        注意：非法字符将被自动替换，建议使用中文或英文。
-    </AntDesign.Text>
-</Modal>
-
 <style>
-    /* 修复 AntDesign Tabs 在 Left 模式下的高度塌陷问题 */
     .ant-tabs-content-holder {
         height: 100%;
         display: flex;
@@ -91,29 +65,3 @@
         overflow: hidden;
     }
 </style>
-
-@code {
-    bool isCreating;
-    string newCharacterName = "";
-
-    protected override void OnInitialized()
-    {
-        CharacterSystem.OnChanged += StateHasChanged;
-    }
-
-    void OnConfirmCreate()
-    {
-        if (string.IsNullOrWhiteSpace(newCharacterName)) return;
-        CharacterSystem.CreateCharacter(newCharacterName);
-        isCreating = false;
-
-        Navigation.NavigateTo($"/agent/{newCharacterName}");
-
-        newCharacterName = "";
-    }
-
-    public void Dispose()
-    {
-        CharacterSystem.OnChanged -= StateHasChanged;
-    }
-}

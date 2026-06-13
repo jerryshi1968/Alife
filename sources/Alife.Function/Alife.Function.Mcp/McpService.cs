@@ -15,6 +15,7 @@ public class McpServerConfig
     public string Description { get; set; } = "";
     public string Command { get; set; } = "";
     public string[] Arguments { get; set; } = [];
+    public bool IsImplicit { get; set; } = true;
 }
 
 public class McpModuleConfig
@@ -23,8 +24,8 @@ public class McpModuleConfig
 }
 
 [Module("MCP服务", "让AI可以通过Model Context Protocol接入外部工具。",
-defaultCategory: "Alife 官方/功能底座",
-editorUI: typeof(McpServiceUI))]
+    defaultCategory: "Alife 官方/功能底座",
+    editorUI: typeof(McpServiceUI))]
 public class McpService(XmlFunctionCaller functionService, ILoggerFactory loggerFactory)
     : InteractiveModule<McpService>, IConfigurable<McpModuleConfig>
 {
@@ -42,15 +43,15 @@ public class McpService(XmlFunctionCaller functionService, ILoggerFactory logger
             if (server.Enabled == false) continue;
 
             (McpClient client, XmlHandler handler) = await McpXmlAdapter.CreateAsync(
-            server,
-            (name, result) => Poke($"{server.Name}.{name} 执行完成\n{result}"),
-            loggerFactory
+                server,
+                (name, result) => Poke($"{server.Name}.{name} 执行完成\n{result}"),
+                loggerFactory
             );
 
             mcpClients.Add(client);
             xmlHandlers.Add(handler);
 
-            functionService.RegisterHandler(handler);
+            functionService.RegisterHandler(handler, server.IsImplicit ? DocumentMode.Implicit : DocumentMode.Explicit);
         }
     }
 

@@ -12,61 +12,67 @@ public static class AlifePath
 
     public static void SetStorageFolderPath(string path)
     {
-        string oldPath = StorageFolderPath;
-        string newPath = path;
+        StorageFolderPath = MigrateDirectory(StorageFolderPath, path, "存储");
+        AlifeConfig.SetString("storage_path", StorageFolderPath);
+    }
 
-        // 如果路径没变，直接返回
+    public static void SetRuntimeFolderPath(string path)
+    {
+        RuntimeFolderPath = MigrateDirectory(RuntimeFolderPath, path, "运行时");
+        AlifeConfig.SetString("runtime_path", RuntimeFolderPath);
+    }
+
+    static string MigrateDirectory(string oldPath, string newPath, string label)
+    {
         if (string.Equals(Path.GetFullPath(oldPath), Path.GetFullPath(newPath), StringComparison.OrdinalIgnoreCase))
-            return;
+            return oldPath;
 
         try
         {
-            // 场景：目标地址不存在，且旧地址存在 -> 执行搬家
             if (!Directory.Exists(newPath) && Directory.Exists(oldPath))
             {
-                // 确保父目录存在
                 string? parent = Path.GetDirectoryName(newPath);
                 if (!string.IsNullOrEmpty(parent) && !Directory.Exists(parent))
                     Directory.CreateDirectory(parent);
-
                 Directory.Move(oldPath, newPath);
-                AlifeTerminal.LogHint($"检测到存储位置变更，数据已从 {oldPath} 迁移至 {newPath}");
+                AlifeTerminal.LogHint($"检测到{label}位置变更，数据已从 {oldPath} 迁移至 {newPath}");
             }
             else if (!Directory.Exists(newPath))
             {
-                // 目标地址不存在且旧地址也不存在，直接创建
                 Directory.CreateDirectory(newPath);
             }
         }
         catch (Exception ex)
         {
-            AlifeTerminal.LogError($"存储位置迁移失败: {ex.Message}");
-            // 如果迁移失败，至少保证新目录存在，避免后续业务崩溃
+            AlifeTerminal.LogError($"{label}位置迁移失败: {ex.Message}");
             if (!Directory.Exists(newPath)) Directory.CreateDirectory(newPath);
         }
 
-        // 更新配置
-        StorageFolderPath = newPath;
-        File.WriteAllText(Path.Combine(RuntimeFolderPath, "storage_path.txt"), newPath);
+        return newPath;
     }
 
     static AlifePath()
     {
-        //默认地址
         OutputsFolderPath = Path.GetDirectoryName(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar))!;
         RootFolderPath = Path.GetDirectoryName(OutputsFolderPath)!;
-        StorageFolderPath = Path.Combine(RootFolderPath, "Storage");
-        RuntimeFolderPath = Path.Combine(RootFolderPath, "Runtime");
+        string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        StorageFolderPath = Path.Combine(documentsPath, "Alife", "Storage");
+        RuntimeFolderPath = Path.Combine(documentsPath, "Alife", "Runtime");
         TempFolderPath = Path.Combine(Path.GetTempPath(), "Alife.Client");
 
-        //后处理
-        string configPath = Path.Combine(RuntimeFolderPath, "storage_path.txt");
-        if (File.Exists(configPath))
-            StorageFolderPath = File.ReadAllText(configPath).Trim();
+        AlifeConfig.Initialize(Path.Combine(RootFolderPath, "alife_config.json"));
+
+        string configRuntime = AlifeConfig.GetString("runtime_path");
+        if (!string.IsNullOrEmpty(configRuntime))
+            RuntimeFolderPath = configRuntime;
+
+        string configStorage = AlifeConfig.GetString("storage_path");
+        if (!string.IsNullOrEmpty(configStorage))
+            StorageFolderPath = configStorage;
+
         if (Directory.Exists(TempFolderPath))
             Directory.Delete(TempFolderPath, recursive: true);
 
-        //保障
         Directory.CreateDirectory(StorageFolderPath);
         Directory.CreateDirectory(RuntimeFolderPath);
         Directory.CreateDirectory(TempFolderPath);
