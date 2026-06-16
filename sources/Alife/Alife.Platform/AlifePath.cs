@@ -55,8 +55,8 @@ public static class AlifePath
 
     static AlifePath()
     {
-        OutputsFolderPath = Path.GetDirectoryName(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar))!;
-        RootFolderPath = Path.GetDirectoryName(OutputsFolderPath)!;
+        OutputsFolderPath = Path.GetDirectoryName(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar)) ?? "";
+        RootFolderPath = Path.GetDirectoryName(OutputsFolderPath) ?? "";
 
         string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         StorageFolderPath = Directory.Exists(Path.Combine(RootFolderPath, "Storage"))
