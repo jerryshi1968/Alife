@@ -27,7 +27,7 @@ if (-not $OutputDir) {
 
 # Resolve to absolute path before any operations
 $OutputDir = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDir)
-$PluginTarget = Join-Path (Split-Path $OutputDir -Parent) "Storage\Plugins"
+$PluginTarget = Join-Path (Split-Path $OutputDir -Parent) "Plugins"
 
 Write-Host "===================================================" -ForegroundColor Cyan
 Write-Host "[Alife] Publish Mode"                                  -ForegroundColor Cyan

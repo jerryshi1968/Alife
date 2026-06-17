@@ -74,7 +74,7 @@ public class PluginMarket
             return false;
 
         string? latestVersion = plugin.Releases.Keys
-            .OrderByDescending(v => v)
+            .OrderByDescending(v => v, Comparer<string>.Create(VersionResolver.CompareVersions))
             .FirstOrDefault();
 
         return latestVersion != null && latestVersion != installedVersion;
@@ -83,7 +83,7 @@ public class PluginMarket
     public string? GetLatestVersion(Plugin plugin)
     {
         return plugin.Releases?.Keys
-            .OrderByDescending(v => v)
+            .OrderByDescending(v => v, Comparer<string>.Create(VersionResolver.CompareVersions))
             .FirstOrDefault();
     }
 
@@ -278,18 +278,18 @@ public class PluginMarket
     readonly IPluginResolver localPlugins;
     readonly IPluginInstaller pluginInstaller;
     readonly Dictionary<string, IEnvironmentInstaller> environmentInstallers;
-    readonly string cachePath;
+    readonly string pluginsRootPath;
     Dictionary<string, Plugin> allPlugins;
     Dictionary<string, string> hadPlugins;
 
-    public PluginMarket(IPluginProvider onlinePlugins, IPluginResolver localPlugins, IPluginInstaller pluginInstaller, Dictionary<string, IEnvironmentInstaller> environmentInstallers)
+    public PluginMarket(IPluginProvider onlinePlugins, IPluginResolver localPlugins, IPluginInstaller pluginInstaller, Dictionary<string, IEnvironmentInstaller> environmentInstallers, string pluginsRootPath)
     {
         this.onlinePlugins = onlinePlugins;
         this.localPlugins = localPlugins;
         this.pluginInstaller = pluginInstaller;
         this.environmentInstallers = environmentInstallers;
+        this.pluginsRootPath = pluginsRootPath;
 
-        cachePath = Path.Combine(AlifePath.RuntimeFolderPath, "plugin_market_cache.json");
         allPlugins = new Dictionary<string, Plugin>();
         hadPlugins = [];
 
@@ -311,8 +311,26 @@ public class PluginMarket
         try
         {
             if (allPlugins.Count == 0) return;
-            string json = JsonConvert.SerializeObject(allPlugins.Values.ToArray(), Formatting.Indented);
-            File.WriteAllText(cachePath, json);
+            foreach (var plugin in allPlugins.Values)
+            {
+                SavePluginCache(plugin);
+            }
+        }
+        catch
+        {
+            // ignore cache write errors
+        }
+    }
+
+    void SavePluginCache(Plugin plugin)
+    {
+        try
+        {
+            string pluginDir = Path.Combine(pluginsRootPath, plugin.Id);
+            Directory.CreateDirectory(pluginDir);
+            string cacheFile = Path.Combine(pluginDir, "plugin.json");
+            string json = JsonConvert.SerializeObject(plugin, Formatting.Indented);
+            File.WriteAllText(cacheFile, json);
         }
         catch
         {
@@ -324,14 +342,29 @@ public class PluginMarket
     {
         try
         {
-            if (!File.Exists(cachePath))
+            if (!Directory.Exists(pluginsRootPath))
                 return;
-            string json = File.ReadAllText(cachePath);
-            var plugins = JsonConvert.DeserializeObject<Plugin[]>(json);
-            if (plugins == null || plugins.Length == 0)
-                return;
-            allPlugins = plugins.ToDictionary(p => p.Id, p => p);
-            return;
+
+            foreach (string pluginDir in Directory.GetDirectories(pluginsRootPath))
+            {
+                string cacheFile = Path.Combine(pluginDir, "plugin.json");
+                if (!File.Exists(cacheFile))
+                    continue;
+
+                try
+                {
+                    string json = File.ReadAllText(cacheFile);
+                    Plugin? plugin = JsonConvert.DeserializeObject<Plugin>(json);
+                    if (plugin != null && !string.IsNullOrEmpty(plugin.Id))
+                    {
+                        allPlugins[plugin.Id] = plugin;
+                    }
+                }
+                catch
+                {
+                    // ignore individual plugin cache errors
+                }
+            }
         }
         catch
         {

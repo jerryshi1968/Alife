@@ -28,6 +28,7 @@ public record QChatConfig
     public string WakingWords { get; set; } = "";//原始群消息中触发开启群消息监听的唤醒词，以逗号分隔
     public float ProactiveChatProbability { get; set; }//收到原始群消息时自动激活群消息监听的概率
     //群监听缓存
+    public int PerBufferSize { get; set; } = 5;//激活前的一个持久群消息缓冲区，会在角色激活时同步发送
     public int MaxBufferMessages { get; set; } = -1;//最大群消息暂存数量，发生溢出时会立即推送，-1表示无限
     public float FlushInterval { get; set; } = 15f;//推送倒计时，隔一段时间推送暂存的群消息
     public bool DebounceEnabled { get; set; }//消息防抖，接收消息后重置推送倒计时，继续等待消息
@@ -44,6 +45,7 @@ public class GroupState
     public DateTime LastActivityTime { get; set; }
     public DateTime LastFlushedTime { get; set; }
     public List<string> MessageBuffer { get; set; } = [];
+    public Queue<string> PreMessageBuffer { get; set; } = [];
 }
 
 [Module("QQ聊天", """
@@ -210,6 +212,30 @@ public class QChatService(XmlFunctionCaller functionService, ILogger<QChatServic
 
         string formatted = OneBotSegment.FormatForwardList(id, messages, oneBotClient!);
         Poke(formatted);
+    }
+
+    [XmlFunction(FunctionMode.OneShot)]
+    [Description("获取最近的群聊消息记录")]
+    public async Task QGroupHistory(long groupId, int count = 20)
+    {
+        List<OneBotMessageEvent>? messages = await oneBotClient!.GetGroupMsgHistory(groupId, null, count);
+        if (messages == null || messages.Count == 0)
+        {
+            Poke($"群 {groupId} 没有历史消息或获取失败。");
+            return;
+        }
+
+        StringBuilder sb = new();
+        sb.AppendLine($"群 {groupId} 的最近 {messages.Count} 条消息：");
+        foreach (OneBotMessageEvent msg in messages)
+        {
+            string speaker = msg.GetSpeakerTag();
+            string content = await msg.GetReadableMessage(oneBotClient!);
+            DateTime time = DateTimeOffset.FromUnixTimeSeconds(msg.Time).LocalDateTime;
+            sb.AppendLine($"[{time:HH:mm:ss}] {speaker}:{content}");
+        }
+
+        Poke(sb.ToString());
     }
 
     public async Task ReconnectAsync()
@@ -452,6 +478,12 @@ public class QChatService(XmlFunctionCaller functionService, ILogger<QChatServic
                 BufferGroupMessage(state, formatted);
                 state.LastFlushedTime = DateTime.Now;
             }
+            else//未通过发送检测，但缓存消息，作为未来发送时的上下文
+            {
+                state.PreMessageBuffer.Enqueue(formatted);
+                if (state.PreMessageBuffer.Count > Configuration.PerBufferSize)
+                    state.PreMessageBuffer.Dequeue();
+            }
         }
     }
 
@@ -471,9 +503,16 @@ public class QChatService(XmlFunctionCaller functionService, ILogger<QChatServic
         if (state.MessageBuffer.Count == 0)
             return;
 
+        string preCachedMessage = "";
+        if (state.PreMessageBuffer.Count != 0)
+        {
+            preCachedMessage = "\n" + string.Join("\n", state.PreMessageBuffer);
+            state.PreMessageBuffer.Clear();
+        }
+
         string cachedMessage =
             $"""
-             > 以下是群 {state.Tag} 的消息
+             > 以下是群 {state.Tag} 的消息{preCachedMessage}
              {string.Join("\n", state.MessageBuffer)}
              <
              """;

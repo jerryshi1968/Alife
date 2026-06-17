@@ -18,7 +18,7 @@
                         <Tag Color="@("green")">已安装</Tag>
                     }
                 </Flex>
-                <Text Type="@TextElementType.Secondary" Style="margin-top: 4px; display: block;">@Plugin.Id</Text>
+                <AntDesign.Text Type="@TextElementType.Secondary" Style="margin-top: 4px; display: block;">@Plugin.Id</AntDesign.Text>
                 @if (!string.IsNullOrEmpty(Plugin.Author))
                 {
                     <span style="margin-top: 2px; display: block; color: rgba(0,0,0,0.45); font-size: 14px;">作者: @Plugin.Author</span>
@@ -30,6 +30,15 @@
             @Plugin.Description
         </Paragraph>
 
+        @if (!string.IsNullOrEmpty(Plugin.Source))
+        {
+            <div style="margin-top: 8px;">
+                <AntDesign.Text Type="@TextElementType.Secondary" Style="font-size: 13px;">
+                    <Icon Type="@IconType.Outline.Link" /> <a href="@Plugin.Source" target="_blank" style="color: #1890ff;">@Plugin.Source</a>
+                </AntDesign.Text>
+            </div>
+        }
+
         @* 操作按钮 *@
         <Flex Gap="@("12")" Style="margin-top: 16px;">
             @if (!isInstalled)
@@ -40,12 +49,12 @@
             }
             else
             {
-                <Button Type="@ButtonType.Primary" OnClick="@(() => Install($"插件 [{Plugin.Name}] 重装成功"))" Loading="isOperating">
+                <Button Type="@ButtonType.Primary" OnClick="Reinstall" Loading="isOperating">
                     <Icon Type="@IconType.Outline.Reload" /> 重装
                 </Button>
                 @if (hasUpdate)
                 {
-                    <Button Type="@ButtonType.Primary" OnClick="@(() => Install($"插件 [{Plugin.Name}] 升级成功"))" Loading="isOperating" Style="background: #52c41a; border-color: #52c41a;">
+                    <Button Type="@ButtonType.Primary" OnClick="Upgrade" Loading="isOperating" Style="background: #52c41a; border-color: #52c41a;">
                         <Icon Type="@IconType.Outline.ArrowUp" /> 升级
                     </Button>
                 }
@@ -65,11 +74,11 @@
         <Timeline>
             @if (Plugin.Releases != null)
             {
-                @foreach (var release in Plugin.Releases.OrderByDescending(r => r.Key))
+                @foreach (var release in Plugin.Releases.OrderByDescending(r => r.Key, Comparer<string>.Create(VersionResolver.CompareVersions)))
                 {
                     <TimelineItem Color="@(release.Key == latestVersion ? "blue" : "gray")">
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <Text Strong>@release.Key</Text>
+                            <AntDesign.Text Strong>@release.Key</AntDesign.Text>
                             @if (isInstalled && release.Key == installedVersion)
                             {
                                 <Tag Color="@("green")">当前版本</Tag>
@@ -86,10 +95,18 @@
                                 </Button>
                             }
                         </div>
-                        <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">@release.Value.Date</Text>
+                        <AntDesign.Text Type="@TextElementType.Secondary" Style="font-size: 12px;">@release.Value.Date</AntDesign.Text>
                         @if (!string.IsNullOrEmpty(release.Value.Note))
                         {
                             <div style="margin-top: 4px;">@release.Value.Note</div>
+                        }
+                        @if (!string.IsNullOrEmpty(release.Value.File))
+                        {
+                            <div style="margin-top: 4px; word-break: break-all;">
+                                <a href="@release.Value.File" target="_blank" style="font-size: 12px; color: #1890ff;">
+                                    <Icon Type="@IconType.Outline.Download" /> @release.Value.File
+                                </a>
+                            </div>
                         }
                     </TimelineItem>
                 }
@@ -131,6 +148,48 @@
         }
         catch (Exception ex)
         {
+            operException = ex;
+        }
+        isOperating = false;
+    }
+
+    async Task Reinstall()
+    {
+        if (installedVersion == null) return;
+        isOperating = true;
+        try
+        {
+            await PluginMarketService.InstallPlugin(Plugin, installedVersion);
+            _ = NotificationService.Success(new NotificationConfig { Message = $"插件 [{Plugin.Name}] 重装成功" });
+            OnParametersSet();
+        }
+        catch (Exception ex)
+        {
+            operException = ex;
+        }
+        isOperating = false;
+    }
+
+    async Task Upgrade()
+    {
+        if (latestVersion == null || installedVersion == null) return;
+        string previousVersion = installedVersion;
+        isOperating = true;
+        try
+        {
+            await PluginMarketService.InstallPlugin(Plugin, latestVersion);
+            _ = NotificationService.Success(new NotificationConfig { Message = $"插件 [{Plugin.Name}] 升级成功" });
+            OnParametersSet();
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                await PluginMarketService.InstallPlugin(Plugin, previousVersion);
+                _ = NotificationService.Warning(new NotificationConfig { Message = $"插件 [{Plugin.Name}] 升级失败，已回退到 v{previousVersion}" });
+                OnParametersSet();
+            }
+            catch { }
             operException = ex;
         }
         isOperating = false;

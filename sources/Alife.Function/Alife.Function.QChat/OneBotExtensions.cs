@@ -54,4 +54,12 @@ public static class OneBotExtensions
         OneBotForwardData? data = await client.CallActionAsync<OneBotForwardData>("get_forward_msg", new { id = forwardId });
         return data?.Messages;
     }
+    /// <summary>
+    /// 获取群聊天记录（LLOneBot 扩展 API）。
+    /// </summary>
+    public static async Task<List<OneBotMessageEvent>?> GetGroupMsgHistory(this OneBotClient client, long groupId, long? messageSeq = null, int count = 20)
+    {
+        OneBotGroupHistoryData? data = await client.CallActionAsync<OneBotGroupHistoryData>("get_group_msg_history", new { group_id = groupId, message_seq = messageSeq, count });
+        return data?.Messages;
+    }
 }

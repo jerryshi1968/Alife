@@ -38,7 +38,7 @@ public class FileSystemPluginManager(string rootPath) : IPluginResolver, IPlugin
             switch (extension)
             {
                 case ".zip":
-                    await UninstallPlugin(plugin);//清除目录
+                    await UninstallPlugin(plugin);
                     await AlifePlatform.DownloadZipFileAsync(pluginDirectory, pluginRelease.File);
                     break;
                 default:

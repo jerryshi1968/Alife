@@ -123,7 +123,7 @@ public class VersionResolver
             yield return (kvp.Key, kvp.Value.Min, kvp.Value.Max);
     }
 
-    static int CompareVersions(string v1, string v2)
+    public static int CompareVersions(string v1, string v2)
     {
         string[] parts1 = v1.Split('.');
         string[] parts2 = v2.Split('.');

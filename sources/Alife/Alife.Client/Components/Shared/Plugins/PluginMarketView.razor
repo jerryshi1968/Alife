@@ -2,9 +2,11 @@
 @using Alife.Components.Services
 @using Alife.PluginMarket
 @using Alife.Platform
+@using Microsoft.JSInterop
 @inject PluginMarketService PluginMarketService
 @inject IMessageService MessageService
-@implements IDisposable
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
 
 <div style="height: 100%; overflow: hidden; display: flex; flex-direction: column; background: #fafafa;">
     @* 标题栏 *@
@@ -16,9 +18,9 @@
                 <Radio Value="@("all")">全部插件</Radio>
                 <Radio Value="@("installed")">已安装</Radio>
             </RadioGroup>
-            <Tooltip Title="贡献插件">
+            <Tooltip Title="上传自己的插件或用Issue反馈已有插件的问题">
                 <Button Type="@ButtonType.Link" Icon="@IconType.Outline.PlusCircle" OnClick="OpenContributePage">
-                    贡献插件
+                    贡献反馈插件
                 </Button>
             </Tooltip>
             <Tooltip Title="打开插件目录">
@@ -31,6 +33,15 @@
                 <Button Type="@ButtonType.Link" Icon="@IconType.Outline.CloudDownload" OnClick="FetchOnline"
                         Loading="isLoading"/>
             </Tooltip>
+            @if (upgradableCount > 0)
+            {
+                <Badge Count="@upgradableCount" Size="@AntDesign.BadgeSize.Small">
+                    <Button Type="@ButtonType.Link" Icon="@IconType.Outline.ArrowUp" OnClick="OpenUpgradeModal"
+                            Loading="isUpgrading" Style="color: #52c41a;">
+                        一键升级
+                    </Button>
+                </Badge>
+            }
         </Flex>
     </div>
 
@@ -45,12 +56,58 @@
 
     @* 搜索栏 *@
     <div style="padding: 8px 16px; background: #fff; border-bottom: 1px solid #f0f0f0;">
-        <Search Placeholder="搜索插件..." @bind-Value="searchText" OnSearch="@(() => FilterPlugins())"/>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <Search Placeholder="搜索插件名称、ID、描述..." @bind-Value="searchText" OnSearch="@(() => FilterPlugins())" Style="flex: 1;"/>
+            <AutoComplete @bind-Value="authorSearchText"
+                          Options="authorOptions"
+                          Placeholder="作者筛选"
+                          Style="flex: 1; min-width: 180px;"
+                          AllowClear="true"
+                          AllowFilter="true"
+                          OnSelectionChange="@((e) => { authorSearchText = e?.Value?.ToString() ?? ""; FilterPlugins(); })"
+                          OnInput="@((e) => { authorSearchText = e?.Value?.ToString() ?? ""; FilterPlugins(); })">
+            </AutoComplete>
+        </div>
+        @if (allTags.Length > 0)
+        {
+            <div style="display: flex; gap: 6px; align-items: center; margin-top: 8px; flex-wrap: wrap;">
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 56px; overflow: hidden; flex: 1; min-width: 0;">
+                    @foreach (var tag in allTags)
+                    {
+                        <Tag Color="@GetTagColor(tag)"
+                             Style="@GetTagStyle(tag)"
+                             OnClick="@(() => ToggleTag(tag))">
+                            @GetTagPrefix(tag)@tag
+                        </Tag>
+                    }
+                </div>
+                <Popover Trigger="@(new[] { AntDesign.Trigger.Click })" Placement="@Placement.BottomRight">
+                    <ChildContent>
+                        <Tag Style="cursor: pointer; flex-shrink: 0;"><Icon Type="@IconType.Outline.Search" /></Tag>
+                    </ChildContent>
+                    <ContentTemplate>
+                        <div style="width: 200px;">
+                            <Input Placeholder="搜索标签..." @bind-Value="tagSearchText" Size="@InputSize.Small"/>
+                            <div style="max-height: 200px; overflow-y: auto; margin-top: 8px;">
+                                @foreach (var tag in allTags.Where(t => string.IsNullOrEmpty(tagSearchText) || t.Contains(tagSearchText, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    <Tag Color="@GetTagColor(tag)"
+                                         Style="@GetTagStyle(tag)"
+                                         OnClick="@(() => ToggleTag(tag))">
+                                        @GetTagPrefix(tag)@tag
+                                    </Tag>
+                                }
+                            </div>
+                        </div>
+                    </ContentTemplate>
+                </Popover>
+            </div>
+        }
     </div>
 
     @* 插件列表 *@
-    <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
-        <div style="flex: 1; overflow-y: auto; padding: 12px;">
+    <div style="flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0;">
+        <div id="pluginMarketContainer" style="flex: 1; overflow: hidden; padding: 12px; min-width: 0; display: flex; align-items: center; justify-content: center;">
             @if (isLoading)
             {
                 <Spin Tip="加载中..." Style="display: flex; justify-content: center; padding: 48px;"/>
@@ -62,10 +119,10 @@
                     <div
                         style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.6;">
                         <Icon Type="@IconType.Outline.CloudDownload" Style="font-size: 48px; margin-bottom: 16px;"/>
-                        <Text Style="font-size: 14px; margin-bottom: 8px;">暂无插件信息</Text>
-                        <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
+                        <AntDesign.Text Style="font-size: 14px; margin-bottom: 8px;">暂无插件信息</AntDesign.Text>
+                        <AntDesign.Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
                             请点击右上角的「从云端拉取」按钮获取插件市场信息
-                        </Text>
+                        </AntDesign.Text>
                     </div>
                 }
                 else
@@ -75,7 +132,7 @@
             }
             else
             {
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;">
+                <div id="pluginMarketGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; padding: 4px; justify-content: center; align-content: center; width: 100%;">
                     @foreach (var plugin in pagedPlugins)
                     {
                         <PluginCardUI Plugin="plugin" OnClick="@(() => ShowDetail(plugin))" OnInstalled="@(() => RefreshLocal(resetPage: false))"/>
@@ -109,13 +166,52 @@
     }
 </Modal>
 
+@* 一键升级弹窗 *@
+<Modal Title="一键升级"
+       Visible="showUpgradeModal"
+       OnCancel="@(() => showUpgradeModal = false)"
+       Footer="null"
+       Width="520"
+       Centered="true">
+    <div style="max-height: 400px; overflow-y: auto;">
+        @foreach (var item in upgradeList)
+        {
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-weight: 600; font-size: 14px;">@item.plugin.Name</div>
+                    <div style="font-size: 12px; color: #999;">
+                        v@(item.oldVersion) → v@(item.newVersion)
+                    </div>
+                </div>
+                <Button Size="@ButtonSize.Small" Loading="item.isOperating"
+                        OnClick="@(() => UpgradeSingle(item))">
+                    升级
+                </Button>
+            </div>
+        }
+        @if (upgradeList.Count == 0)
+        {
+            <Empty Description="@("暂无可用升级")"/>
+        }
+    </div>
+    <div style="display: flex; justify-content: flex-end; gap: 8px; padding-top: 12px; border-top: 1px solid #f0f0f0;">
+        <Button OnClick="@(() => showUpgradeModal = false)">取消</Button>
+        <Button Type="@ButtonType.Primary" Loading="isUpgrading" OnClick="UpgradeAll">全部升级</Button>
+    </div>
+</Modal>
+
 @code {
     static bool hasFetched;
     string viewMode = "all";
     string searchText = "";
     string sourceUrl = "";
+    string authorSearchText = "";
+    Dictionary<string, bool> selectedTags = []; // true=include, false=exclude
+    string tagSearchText = "";
     bool isLoading;
     bool isSaving;
+    bool isUpgrading;
+    int upgradableCount;
     int currentPage = 1;
     int pageSize = 12;
 
@@ -123,6 +219,23 @@
     Plugin[] filteredPlugins = [];
     Plugin[] pagedPlugins = [];
     Plugin? selectedPlugin;
+    DotNetObjectReference<PluginMarketView>? dotnetRef;
+
+    bool showUpgradeModal;
+    List<UpgradeItem> upgradeList = [];
+
+    class UpgradeItem
+    {
+        public Plugin plugin { get; set; } = null!;
+        public string newVersion { get; set; } = "";
+        public string oldVersion { get; set; } = "";
+        public bool isOperating;
+    }
+
+    string[] allTags = [];
+    string[] authorOptions = [];
+
+    static readonly string[] TagColorPool = ["#f50", "#2db7f5", "#87d068", "#108ee9", "#f56a00", "#722ed1", "#eb2f96", "#52c41a", "#1890ff", "#faad14"];
 
     int totalPages => (int)Math.Ceiling(filteredPlugins.Length / (double)pageSize);
 
@@ -133,26 +246,81 @@
         RefreshLocal();
     }
 
-    protected override async void OnAfterRender(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || hasFetched) return;
-        hasFetched = true;
+        if (!firstRender) return;
 
-        isLoading = true;
-        StateHasChanged();
+        if (!hasFetched)
+        {
+            hasFetched = true;
+
+            isLoading = true;
+            StateHasChanged();
+
+            try
+            {
+                await PluginMarketService.FetchOnlinePluginsAsync();
+                RefreshLocal();
+            }
+            catch
+            {
+                // 首次拉取失败不影响正常使用
+            }
+
+            isLoading = false;
+            StateHasChanged();
+        }
 
         try
         {
-            await PluginMarketService.FetchOnlinePluginsAsync();
-            RefreshLocal();
-        }
-        catch
-        {
-            // 首次拉取失败不影响正常使用
-        }
+            dotnetRef = DotNetObjectReference.Create(this);
+            await JsRuntime.InvokeVoidAsync("watchPluginMarketResize", dotnetRef);
 
-        isLoading = false;
-        StateHasChanged();
+            var dimensions = await JsRuntime.InvokeAsync<Dimensions>("getPluginMarketDimensions");
+            if (dimensions.Width > 0 && dimensions.Height > 0)
+                ApplyPageSize(dimensions.Width, dimensions.Height);
+        }
+        catch { }
+    }
+
+    [JSInvokable]
+    public void OnContainerResized(int width, int height)
+    {
+        if (width > 0 && height > 0)
+            ApplyPageSize(width, height);
+    }
+
+    void ApplyPageSize(int containerWidth, int containerHeight)
+    {
+        int newPageSize = CalculatePageSize(containerWidth, containerHeight);
+        if (newPageSize != pageSize && newPageSize > 0)
+        {
+            pageSize = newPageSize;
+            int newTotalPages = (int)Math.Ceiling(filteredPlugins.Length / (double)pageSize);
+            if (currentPage > newTotalPages && newTotalPages > 0)
+                currentPage = newTotalPages;
+            UpdatePagedPlugins();
+            StateHasChanged();
+        }
+    }
+
+    int CalculatePageSize(int containerWidth, int containerHeight)
+    {
+        const int CARD_MIN_WIDTH = 220;
+        const int CARD_HEIGHT = 100;
+        const int GAP = 12;
+        const int PADDING = 24;
+
+        int columns = Math.Max(1, (containerWidth - PADDING + GAP) / (CARD_MIN_WIDTH + GAP));
+        int rows = Math.Max(1, (containerHeight - PADDING + GAP) / (CARD_HEIGHT + GAP));
+
+        return columns * rows;
+    }
+
+    class Dimensions
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
     }
 
     void OnViewModeChanged(string value)
@@ -180,6 +348,85 @@
         StateHasChanged();
     }
 
+    void OpenUpgradeModal()
+    {
+        upgradeList = allPlugins
+            .Where(p => PluginMarketService.HasUpdate(p))
+            .Select(p => new UpgradeItem
+            {
+                plugin = p,
+                newVersion = PluginMarketService.GetLatestVersion(p) ?? "",
+                oldVersion = PluginMarketService.GetInstalledVersion(p.Id) ?? ""
+            })
+            .Where(x => !string.IsNullOrEmpty(x.newVersion) && !string.IsNullOrEmpty(x.oldVersion))
+            .ToList();
+        showUpgradeModal = true;
+    }
+
+    async Task UpgradeSingle(UpgradeItem item)
+    {
+        item.isOperating = true;
+        StateHasChanged();
+
+        try
+        {
+            await PluginMarketService.InstallPlugin(item.plugin, item.newVersion);
+            MessageService.Success($"[{item.plugin.Name}] 升级成功");
+            upgradeList.Remove(item);
+            RefreshLocal();
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                await PluginMarketService.InstallPlugin(item.plugin, item.oldVersion);
+                MessageService.Warning($"[{item.plugin.Name}] 升级失败，已回退到 v{item.oldVersion}");
+            }
+            catch { }
+            MessageService.Error($"[{item.plugin.Name}] 升级失败: {ex.Message}");
+        }
+
+        item.isOperating = false;
+        StateHasChanged();
+    }
+
+    async Task UpgradeAll()
+    {
+        var toUpgrade = upgradeList
+            .Where(x => !x.isOperating)
+            .ToList();
+
+        if (toUpgrade.Count == 0) return;
+
+        isUpgrading = true;
+        StateHasChanged();
+
+        try
+        {
+            await PluginMarketService.InstallPlugins(toUpgrade.Select(x => (x.plugin, x.newVersion)));
+            MessageService.Success($"已升级 {toUpgrade.Count} 个插件");
+            upgradeList.Clear();
+            showUpgradeModal = false;
+            RefreshLocal();
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                await PluginMarketService.InstallPlugins(toUpgrade.Select(x => (x.plugin, x.oldVersion)));
+                MessageService.Warning($"升级失败，已回滚 {toUpgrade.Count} 个插件");
+                RefreshLocal();
+            }
+            catch
+            {
+                MessageService.Error($"升级失败且回滚失败: {ex.Message}");
+            }
+        }
+
+        isUpgrading = false;
+        StateHasChanged();
+    }
+
     void ShowDetail(Plugin plugin)
     {
         selectedPlugin = plugin;
@@ -187,21 +434,74 @@
 
     void FilterPlugins(bool resetPage = true)
     {
-        if (string.IsNullOrWhiteSpace(searchText))
+        IEnumerable<Plugin> result = allPlugins;
+
+        if (!string.IsNullOrWhiteSpace(searchText))
         {
-            filteredPlugins = allPlugins;
+            result = result.Where(p =>
+                p.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                p.Id.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                p.Description.Contains(searchText, StringComparison.OrdinalIgnoreCase));
         }
-        else
+
+        if (!string.IsNullOrWhiteSpace(authorSearchText))
         {
-            filteredPlugins = allPlugins
-                .Where(p => p.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                            p.Id.Contains(searchText, StringComparison.OrdinalIgnoreCase))
-                .ToArray();
+            result = result.Where(p =>
+                p.Author.Contains(authorSearchText, StringComparison.OrdinalIgnoreCase));
         }
+
+        if (selectedTags.Any())
+        {
+            var includeTags = selectedTags.Where(kv => kv.Value).Select(kv => kv.Key).ToList();
+            var excludeTags = selectedTags.Where(kv => !kv.Value).Select(kv => kv.Key).ToList();
+
+            if (includeTags.Any())
+                result = result.Where(p => p.Tags != null && includeTags.All(t => p.Tags.Contains(t, StringComparer.OrdinalIgnoreCase)));
+            if (excludeTags.Any())
+                result = result.Where(p => p.Tags == null || !excludeTags.Any(t => p.Tags.Contains(t, StringComparer.OrdinalIgnoreCase)));
+        }
+
+        filteredPlugins = result.ToArray();
 
         if (resetPage)
             currentPage = 1;
         UpdatePagedPlugins();
+    }
+
+    string GetTagColor(string tag)
+    {
+        if (!selectedTags.TryGetValue(tag, out var mode))
+            return null;
+        return mode
+            ? TagColorPool[Math.Abs(tag.GetHashCode()) % TagColorPool.Length]
+            : "#ff4d4f";
+    }
+
+    string GetTagStyle(string tag)
+    {
+        if (!selectedTags.TryGetValue(tag, out var mode))
+            return "cursor: pointer; border: 1px dashed #d9d9d9; background: #fafafa;";
+        if (mode)
+            return "cursor: pointer;";
+        return "cursor: pointer; text-decoration: line-through;";
+    }
+
+    string GetTagPrefix(string tag)
+    {
+        if (selectedTags.TryGetValue(tag, out var mode) && !mode)
+            return "✕ ";
+        return "";
+    }
+
+    void ToggleTag(string tag)
+    {
+        if (!selectedTags.TryGetValue(tag, out var mode))
+            selectedTags[tag] = true;      // not selected → include
+        else if (mode)
+            selectedTags[tag] = false;     // include → exclude
+        else
+            selectedTags.Remove(tag);      // exclude → not selected
+        FilterPlugins();
     }
 
     void UpdatePagedPlugins()
@@ -239,6 +539,27 @@
         {
             allPlugins = onlinePlugins;
         }
+
+        allTags = allPlugins
+            .Where(p => p.Tags != null)
+            .SelectMany(p => p.Tags!)
+            .GroupBy(t => t, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(g => g.Count())
+            .Select(g => g.Key)
+            .ToArray();
+
+        authorOptions = allPlugins
+            .Where(p => !string.IsNullOrEmpty(p.Author))
+            .Select(p => p.Author)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(a => a)
+            .ToArray();
+
+        upgradableCount = allPlugins.Count(p => PluginMarketService.HasUpdate(p));
+
+        foreach (var key in selectedTags.Keys.Where(k => !allTags.Contains(k, StringComparer.OrdinalIgnoreCase)).ToList())
+            selectedTags.Remove(key);
+
         FilterPlugins(resetPage);
         StateHasChanged();
     }
@@ -292,8 +613,14 @@
         });
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         PluginMarketService.OnInstalled -= OnPluginsChanged;
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("unwatchPluginMarketResize");
+        }
+        catch { }
+        dotnetRef?.Dispose();
     }
 }

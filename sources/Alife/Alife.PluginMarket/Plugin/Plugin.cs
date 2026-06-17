@@ -22,6 +22,12 @@ public class Plugin
     [JsonProperty("environments")]
     public Dictionary<string, Dictionary<string, string>>? Environments { get; set; }
 
+    [JsonProperty("tags")]
+    public List<string>? Tags { get; set; }
+
+    [JsonProperty("source")]
+    public string Source { get; set; } = string.Empty;
+
     [JsonProperty("releases")]
     public Dictionary<string, PluginRelease>? Releases { get; set; }
 

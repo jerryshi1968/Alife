@@ -8,51 +8,51 @@
 
 <div class="plugin-card" @onclick="HandleClick">
     <div class="plugin-card-header">
-        <div class="plugin-icon">
-            <Icon Type="@IconType.Outline.Appstore" Style="font-size: 16px; color: #1890ff;" />
+        <div class="plugin-icon-wrapper">
+            <div class="plugin-icon">
+                <Icon Type="@IconType.Outline.Appstore" Style="font-size: 16px; color: #1890ff;" />
+            </div>
+            @if (PluginMarketService.IsInstalled(Plugin.Id))
+            {
+                <div class="plugin-badge"></div>
+            }
+        </div>
+        <div class="plugin-info">
+            <div class="plugin-name">@Plugin.Name</div>
+            @if (!string.IsNullOrEmpty(Plugin.Author))
+            {
+                <div class="plugin-author">@Plugin.Author</div>
+            }
         </div>
         <div class="plugin-actions">
-            @if (!PluginMarketService.IsInstalled(Plugin.Id))
+            @if (PluginMarketService.IsInstalled(Plugin.Id))
+            {
+                <span class="plugin-version">v@(PluginMarketService.GetInstalledVersion(Plugin.Id))</span>
+                if (hasUpdate)
+                {
+                    <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" Loading="isOperating"
+                             OnClick="Upgrade" OnClickStopPropagation="true"
+                             Style="background: #52c41a; border-color: #52c41a;">
+                        升级
+                    </Button>
+                }
+            }
+            else
             {
                 <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" Loading="isOperating"
                          OnClick="@(() => Install($"插件 [{Plugin.Name}] 安装成功"))" OnClickStopPropagation="true">
                     安装
                 </Button>
             }
-            else if (hasUpdate)
-            {
-                <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" Loading="isOperating"
-                         OnClick="@(() => Install($"插件 [{Plugin.Name}] 升级成功"))" OnClickStopPropagation="true"
-                         Style="background: #52c41a; border-color: #52c41a;">
-                    升级
-                </Button>
-            }
         </div>
     </div>
 
-    <div class="plugin-card-body">
-        <div class="plugin-name">@Plugin.Name</div>
-        @if (!string.IsNullOrEmpty(Plugin.Author))
-        {
-            <div class="plugin-author">@Plugin.Author</div>
-        }
-        <div class="plugin-meta">
-            <Text Type="@TextElementType.Secondary" Style="font-size: 11px;">@Plugin.Id</Text>
-        </div>
-        <div class="plugin-versions">
-            @if (PluginMarketService.IsInstalled(Plugin.Id))
-            {
-                <Tag Color="@("green")">已安装 v@(PluginMarketService.GetInstalledVersion(Plugin.Id))</Tag>
-            }
-            else
-            {
-                <Tag Color="@("default")">未安装</Tag>
-            }
-            @if (Plugin.Releases != null && Plugin.Releases.Count > 0)
-            {
-                <Tag Color="@("blue")">最新 v@(PluginMarketService.GetLatestVersion(Plugin))</Tag>
-            }
-        </div>
+    <div class="plugin-meta">
+        <Tooltip Title="@(Plugin.Description)" Disabled="@(string.IsNullOrWhiteSpace(Plugin.Description))">
+            <AntDesign.Text Type="@TextElementType.Secondary" Style="font-size: 11px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">
+                @(string.IsNullOrWhiteSpace(Plugin.Description) ? Plugin.Id : Plugin.Description)
+            </AntDesign.Text>
+        </Tooltip>
     </div>
 </div>
 
@@ -77,9 +77,14 @@
 
     .plugin-card-header {
         display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 6px;
+        align-items: center;
+        margin-bottom: 8px;
+        gap: 8px;
+    }
+
+    .plugin-icon-wrapper {
+        position: relative;
+        flex-shrink: 0;
     }
 
     .plugin-icon {
@@ -92,17 +97,26 @@
         justify-content: center;
     }
 
-    .plugin-card-body {
+    .plugin-badge {
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        width: 12px;
+        height: 12px;
+        background: #52c41a;
+        border-radius: 50%;
+        border: 2px solid #fff;
+    }
+
+    .plugin-info {
         flex: 1;
-        display: flex;
-        flex-direction: column;
+        min-width: 0;
     }
 
     .plugin-name {
         font-size: 13px;
         font-weight: 600;
         color: rgba(0, 0, 0, 0.85);
-        margin-bottom: 2px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -111,21 +125,24 @@
     .plugin-author {
         font-size: 11px;
         color: rgba(0, 0, 0, 0.45);
-        margin-bottom: 2px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    .plugin-meta {
-        margin-bottom: 4px;
+    .plugin-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
     }
 
-    .plugin-versions {
-        margin-top: auto;
-        display: flex;
-        gap: 4px;
-        flex-wrap: wrap;
+    .plugin-version {
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.45);
+    }
+
+    .plugin-meta {
     }
 </style>
 
@@ -162,6 +179,32 @@
         }
         catch (Exception ex)
         {
+            operException = ex;
+        }
+        isOperating = false;
+    }
+
+    async Task Upgrade()
+    {
+        string? version = PluginMarketService.GetLatestVersion(Plugin);
+        string? currentVersion = PluginMarketService.GetInstalledVersion(Plugin.Id);
+        if (version == null || currentVersion == null) return;
+        isOperating = true;
+        try
+        {
+            await PluginMarketService.InstallPlugin(Plugin, version);
+            _ = NotificationService.Success(new NotificationConfig { Message = $"插件 [{Plugin.Name}] 升级成功" });
+            hasUpdate = PluginMarketService.HasUpdate(Plugin);
+            await OnInstalled.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                await PluginMarketService.InstallPlugin(Plugin, currentVersion);
+                _ = NotificationService.Warning(new NotificationConfig { Message = $"插件 [{Plugin.Name}] 升级失败，已回退到 v{currentVersion}" });
+            }
+            catch { }
             operException = ex;
         }
         isOperating = false;

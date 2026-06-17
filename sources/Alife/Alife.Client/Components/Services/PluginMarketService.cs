@@ -43,7 +43,7 @@ public class PluginMarketService
 
         var config = GetConfig();
         var onlineProvider = new ZipPluginProvider(config.SourceUrl);
-        pluginMarket = new Alife.PluginMarket.PluginMarket(onlineProvider, localManager, localManager, environmentInstallers);
+        pluginMarket = new Alife.PluginMarket.PluginMarket(onlineProvider, localManager, localManager, environmentInstallers, installedDir);
 
         pluginMarket.RefreshLocalPlugins();
         UpdateModuleDirectories();
@@ -80,10 +80,11 @@ public class PluginMarketService
         SaveConfig(config);
 
         var onlineProvider = new ZipPluginProvider(sourceUrl);
+        string installedDir = Path.Combine(AlifePath.StorageFolderPath, "Plugins");
         pluginMarket = new Alife.PluginMarket.PluginMarket(onlineProvider, localManager, localManager, new Dictionary<string, IEnvironmentInstaller> {
             { "nuget", nugetInstaller },
             { "pip", new PipEnvironmentInstaller() }
-        });
+        }, installedDir);
 
         pluginMarket.RefreshLocalPlugins();
         UpdateModuleDirectories();
@@ -155,7 +156,7 @@ public class PluginMarketService
             return false;
 
         string? latestVersion = plugin.Releases.Keys
-            .OrderByDescending(v => v)
+            .OrderByDescending(v => v, Comparer<string>.Create(VersionResolver.CompareVersions))
             .FirstOrDefault();
 
         return latestVersion != null && latestVersion != installedVersion;
@@ -164,7 +165,7 @@ public class PluginMarketService
     public string? GetLatestVersion(Plugin plugin)
     {
         return plugin.Releases?.Keys
-            .OrderByDescending(v => v)
+            .OrderByDescending(v => v, Comparer<string>.Create(VersionResolver.CompareVersions))
             .FirstOrDefault();
     }
 

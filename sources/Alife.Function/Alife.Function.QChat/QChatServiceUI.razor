@@ -4,132 +4,119 @@
 @implements IDisposable
 @inject IMessageService MessageService
 
-<div style="background: #fff; padding: 20px; border-radius: 8px;">
+<div style="background: #fff; padding: 20px; border-radius: 8px; overflow: hidden;">
     @* ───── 运行时状态 ───── *@
     @if (Module != null)
     {
-        <Title Level="4" Style="margin: 0;">群消息接收状态</Title>
-        <Tabs @bind-ActiveKey="@activeTabKey" Style="margin-bottom: 24px;">
-            <TabPane Tab="系统概览" Key="overview">
-                <GridRow Gutter="16">
-                    <GridCol Span="8">
-                        <Card Size="CardSize.Small" Style="border-radius: 8px;">
-                            <Text Type="TextElementType.Secondary" Style="display: block; margin-bottom: 4px;">
-                                总缓存消息
-                            </Text>
-                            <Text Strong
-                                  Style="font-size: 18px;">@Module.GroupStates.Values.Sum(i => i.MessageBuffer.Count) 条
-                            </Text>
-                        </Card>
-                    </GridCol>
-                    <GridCol Span="16">
-                        <Card Size="CardSize.Small" Style="border-radius: 8px;">
-                            <Text Type="TextElementType.Secondary" Style="display: block; margin-bottom: 4px;">
-                                活跃群组统计
-                            </Text>
-                            <Text Strong>@Module.GroupStates.Count(kv => kv.Value.IsEnabled) 个激活中 /
-                                共 @Module.GroupStates.Count 个记录
-                            </Text>
-                        </Card>
-                    </GridCol>
-                </GridRow>
-            </TabPane>
+        <Flex Justify="FlexJustify.SpaceBetween" Align="FlexAlign.Center" Style="margin-bottom: 16px;">
+            <Title Level="4" Style="margin: 0;">群消息接收状态</Title>
+            <AntDesign.Text Type="TextElementType.Secondary">
+                @Module.GroupStates.Count(kv => kv.Value.IsEnabled) 个激活 / 共 @Module.GroupStates.Count 个群
+            </AntDesign.Text>
+        </Flex>
 
-            @foreach (var kv in Module.GroupStates.OrderBy(x => x.Key).Take(20))
+        <Flex Align="FlexAlign.Center" Style="margin-bottom: 16px; gap: 8px;">
+            <Select TItemValue="long?" TItem="GroupState"
+                    @bind-Value="@selectedGroupId"
+                    Placeholder="选择群号"
+                    AllowClear
+                    Style="width: 240px;"
+                    ShowSearch>
+                <SelectOptions>
+                    @foreach (var kv in Module.GroupStates.OrderByDescending(x => x.Value.IsEnabled).ThenBy(x => x.Key))
+                    {
+                        <SelectOption TItemValue="long?" TItem="GroupState"
+                                      Value="@((long?)kv.Key)" Item="@kv.Value">
+                            @(kv.Value.IsEnabled ? "🟢" : "⚪") @kv.Key@(kv.Value.Tag != null ? $" ({kv.Value.Tag})" : "")
+                        </SelectOption>
+                    }
+                </SelectOptions>
+            </Select>
+
+            @if (selectedGroupId is { } gid && Module.GroupStates.TryGetValue(gid, out var selState))
             {
-                var groupId = kv.Key;
-                var state = kv.Value;
-                <TabPane Key="@groupId.ToString()">
-                    <TabTemplate>
-                        <span>
-                            @(state.IsEnabled ? "🟢" : "⚪") @groupId
-                            @if (state.MessageBuffer.Count > 0)
-                            {
-                                <Badge Count="@state.MessageBuffer.Count" Style="margin-left: 4px;"/>
-                            }
-                        </span>
-                    </TabTemplate>
-                    <ChildContent>
-                        <Card Size="CardSize.Small" Style="border-radius: 8px;">
-                            <Flex Direction="FlexDirection.Vertical">
-                                <Flex Justify="FlexJustify.SpaceBetween" Align="FlexAlign.Center"
-                                      Style="margin-bottom: 12px;">
-                                    <div>
-                                        <Space Align="SpaceAlign.Center">
-                                            <SpaceItem>
-                                                <Text Strong Style="font-size: 16px;">群号: @groupId</Text>
-                                            </SpaceItem>
-                                            <SpaceItem>
-                                                @{
-                                                    var remaining = Configuration.FlushInterval - (DateTime.Now - state.LastFlushedTime).TotalSeconds;
-                                                }
-                                                <Tag Color="TagColor.Orange">
-                                                    <Icon Type="@IconType.Outline.ClockCircle"/>
-                                                    @(state.IsEnabled || state.MessageBuffer.Count != 0
-                                                        ? $"下次推送: {Math.Ceiling(Math.Max(0, remaining))}s"
-                                                        : "休眠中")
-                                                </Tag>
-                                            </SpaceItem>
-                                        </Space>
-                                        @if (!string.IsNullOrEmpty(state.Tag))
-                                        {
-                                            <div style="margin-top: 4px;">
-                                                <Tag Color="TagColor.Blue">标题: @state.Tag</Tag>
-                                            </div>
-                                        }
-                                        <div style="margin-top: 4px;">
-                                            <Text Type="TextElementType.Secondary" Style="font-size: 12px;">
-                                                最后活动: @state.LastActivityTime.ToString("HH:mm:ss")
-                                            </Text>
-                                        </div>
-                                    </div>
-                                    <Space>
-                                        <SpaceItem>
-                                            <Button Danger="@state.IsEnabled"
-                                                    Type="@ButtonType.Primary"
-                                                    Size="@ButtonSize.Small"
-                                                    OnClick="@(() => Module.QGroup(groupId, !state.IsEnabled))">
-                                                @(state.IsEnabled ? "关闭" : "开启")
-                                            </Button>
-                                        </SpaceItem>
-                                        <SpaceItem>
-                                            <Button Type="@ButtonType.Default"
-                                                    Size="@ButtonSize.Small"
-                                                    Disabled="@(state.MessageBuffer.Count == 0)"
-                                                    OnClick="@(() => Module.FlushGroupBuffer(state))">
-                                                手动推送
-                                            </Button>
-                                        </SpaceItem>
-                                    </Space>
-                                </Flex>
-
-                                <Divider Style="margin: 4px 0;"/>
-
-                                <div
-                                    style="max-height: 200px; overflow-y: auto; background: #fafafa; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">
-                                    @if (state.MessageBuffer.Count > 0)
-                                    {
-                                        @foreach (var msg in state.MessageBuffer)
-                                        {
-                                            <div
-                                                style="margin-bottom: 4px; border-bottom: 1px solid #f0f0f0; padding-bottom: 2px;">
-                                                @msg
-                                            </div>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <div style="color: #bfbfbf; text-align: center; padding: 20px;">
-                                            暂无缓存消息
-                                        </div>
-                                    }
-                                </div>
-                            </Flex>
-                        </Card>
-                    </ChildContent>
-                </TabPane>
+                <Button Danger="@selState.IsEnabled"
+                        Type="@ButtonType.Primary"
+                        Size="@ButtonSize.Small"
+                        OnClick="@(() => Module.QGroup(gid, !selState.IsEnabled))">
+                    @(selState.IsEnabled ? "关闭" : "开启")
+                </Button>
+                <Button Type="@ButtonType.Default"
+                        Size="@ButtonSize.Small"
+                        Disabled="@(selState.MessageBuffer.Count == 0)"
+                        OnClick="@(() => Module.FlushGroupBuffer(selState))">
+                    立即推送
+                </Button>
             }
-        </Tabs>
+        </Flex>
+
+        @if (selectedGroupId is { } gid2 && Module.GroupStates.TryGetValue(gid2, out var st))
+        {
+            var remaining = Configuration.FlushInterval - (DateTime.Now - st.LastFlushedTime).TotalSeconds;
+            <Card Size="CardSize.Small" Style="border-radius: 8px; margin-bottom: 16px; max-width: 100%;">
+                <Flex Justify="FlexJustify.SpaceBetween" Align="FlexAlign.Center" Style="margin-bottom: 8px;">
+                    <Space Align="SpaceAlign.Center">
+                        <SpaceItem>
+                            <AntDesign.Text Strong Style="font-size: 16px;">群 @gid2</AntDesign.Text>
+                        </SpaceItem>
+                        <SpaceItem>
+                            <Tag Color="@(st.IsEnabled ? TagColor.Green : TagColor.Default)">@(st.IsEnabled ? "已激活" : "休眠")</Tag>
+                        </SpaceItem>
+                        <SpaceItem>
+                            <Tag Color="TagColor.Orange">
+                                <Icon Type="@IconType.Outline.ClockCircle"/>
+                                @(st.IsEnabled || st.MessageBuffer.Count != 0
+                                    ? $"推送: {Math.Ceiling(Math.Max(0, remaining))}s"
+                                    : "休眠")
+                            </Tag>
+                        </SpaceItem>
+                    </Space>
+                    <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 12px;">
+                        最后活动: @st.LastActivityTime.ToString("HH:mm:ss")
+                    </AntDesign.Text>
+                </Flex>
+
+                @if (!string.IsNullOrEmpty(st.Tag))
+                {
+                    <div style="margin-bottom: 8px;">
+                        <Tag Color="TagColor.Blue">@st.Tag</Tag>
+                    </div>
+                }
+
+                @if (st.PreMessageBuffer.Count > 0)
+                {
+                    <div style="margin-bottom: 8px;">
+                        <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 12px;">
+                            激活前缓冲 (@st.PreMessageBuffer.Count):
+                        </AntDesign.Text>
+                        <div style="max-height: 80px; overflow-y: auto; background: #f6f8fa; padding: 6px; border-radius: 4px; font-family: monospace; font-size: 11px; border: 1px dashed #d9d9d9; margin-top: 4px; word-break: break-all; overflow-wrap: break-word;">
+                            @foreach (var msg in st.PreMessageBuffer)
+                            {
+                                <div style="color: #8c8c8c; margin-bottom: 2px;">@msg</div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 12px; display: block; margin-bottom: 4px;">
+                    消息缓冲 (@st.MessageBuffer.Count):
+                </AntDesign.Text>
+                <div style="max-height: 200px; overflow-y: auto; background: #fafafa; padding: 6px; border-radius: 4px; font-family: monospace; font-size: 12px; word-break: break-all; overflow-wrap: break-word;">
+                    @if (st.MessageBuffer.Count > 0)
+                    {
+                        @foreach (var msg in st.MessageBuffer)
+                        {
+                            <div style="margin-bottom: 4px; border-bottom: 1px solid #f0f0f0; padding-bottom: 2px;">@msg</div>
+                        }
+                    }
+                    else
+                    {
+                        <div style="color: #bfbfbf; text-align: center; padding: 16px;">暂无缓存消息</div>
+                    }
+                </div>
+            </Card>
+        }
+
         <Divider></Divider>
     }
 
@@ -157,14 +144,14 @@
         </FormItem>
         <FormItem Label="Access Token">
             <InputPassword @bind-Value="@Configuration.Token" placeholder="如果服务端配置了access_token，在此填入"/>
-            <Text Type="TextElementType.Secondary" Style="font-size: 11px;">留空表示无需认证。</Text>
+            <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 11px;">留空表示无需认证。</AntDesign.Text>
         </FormItem>
         <FormItem Label="自动重连间隔（秒）">
             <AntDesign.InputNumber @bind-Value="@Configuration.AutoReconnectSeconds"
                                    Style="width: 100%;"/>
-            <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+            <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 11px;">
                 当机器人ID不为0时，断开连接后，每隔此时间自动尝试重连；设为0表示禁用自动重连。
-            </Text>
+            </AntDesign.Text>
         </FormItem>
         <FormItem Label="机器人 ID">
             <Input @bind-Value="@Configuration.BotId" Style="width: 100%;"/>
@@ -183,63 +170,70 @@
         <Divider>群消息接收开启条件</Divider>
         <FormItem Label="屏蔽群号">
             <Input @bind-Value="@Configuration.IgnoredGroup" Placeholder="每个群号间用英文逗号分隔，如：1111,2222"/>
-            <Text Type="TextElementType.Secondary" Style="font-size: 11px;">上述群号的消息将会被完全屏蔽不可见。</Text>
+            <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 11px;">上述群号的消息将会被完全屏蔽不可见。</AntDesign.Text>
         </FormItem>
         <FormItem Label="唤醒关键词">
             <Input @bind-Value="@Configuration.WakingWords" Placeholder="每个关键词间用英文逗号分隔，如: 小猫,喵喵"/>
-            <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+            <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 11px;">
                 默认只有被@@或戳一戳时才开始群聊接收。如果原始群信息中包含上述关键词，则也会打开。
-            </Text>
+            </AntDesign.Text>
         </FormItem>
         <FormItem Label="自动开启概率">
             <AntDesign.InputNumber @bind-Value="@Configuration.ProactiveChatProbability" Min="0f" Max="1f"
                                    Step="0.05f"
                                    Style="width: 100%;"/>
-            <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+            <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 11px;">
                 0 表示关闭。收到非@@、非唤醒消息时，会尝试以此概率打开群聊接收。
-            </Text>
+            </AntDesign.Text>
         </FormItem>
 
         @* ───── 群消息缓存 ───── *@
         <Divider>群消息缓存推送条件</Divider>
         <Paragraph Type="TextElementType.Secondary">群消息优先存储到缓冲区中，当触发条件时才会推送给AI。
         </Paragraph>
+        <FormItem Label="激活前缓冲大小">
+            <AntDesign.InputNumber @bind-Value="@Configuration.PerBufferSize" Min="0"
+                                   Style="width: 100%;"/>
+            <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+                群聊激活前暂存的历史消息数量，激活时会一并发送给AI作为上下文。
+            </AntDesign.Text>
+        </FormItem>
         <FormItem Label="最大缓存数量">
             <AntDesign.InputNumber @bind-Value="@Configuration.MaxBufferMessages" Min="-1"
                                    Style="width: 100%;"/>
-            <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+            <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 11px;">
                 当缓存消息超出最大数量时，将会立即推送。值为-1表示不限数量。
-            </Text>
+            </AntDesign.Text>
         </FormItem>
         <FormItem Label="推送倒计时 (秒)">
             <AntDesign.InputNumber @bind-Value="@Configuration.FlushInterval" Min="0.5f" Step="0.5f"
                                    Style="width: 100%;"/>
-            <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+            <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 11px;">
                 每隔一段时间自动推送缓冲区，无论是否溢出。
-            </Text>
+            </AntDesign.Text>
         </FormItem>
         <FormItem Label="启用防抖">
             <Switch @bind-Value="@Configuration.DebounceEnabled"/>
             <br/>
-            <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+            <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 11px;">
                 开启后当收到新的群消息时，会重置发送倒计时。
-            </Text>
+            </AntDesign.Text>
         </FormItem>
 
         @* ───── 群消息关闭 ───── *@
         <Divider>群消息接收关闭条件</Divider>
         <FormItem Label="自动休眠时间 (分钟)">
             <AntDesign.InputNumber @bind-Value="@Configuration.AutoCloseMinutes" Min="1f" Style="width: 100%;"/>
-            <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+            <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 11px;">
                 群聊接收期间，若AI长期不参与，则超过此时间后将自动关闭群聊接收。
-            </Text>
+            </AntDesign.Text>
         </FormItem>
         <FormItem Label="回复后立即停用">
             <Switch @bind-Value="@Configuration.CloseGroupAfterReply"/>
             <br/>
-            <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+            <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 11px;">
                 AI回复群消息后立即关闭当前群消息接收。
-            </Text>
+            </AntDesign.Text>
         </FormItem>
 
         @* ───── 快速预设 ───── *@
@@ -260,8 +254,9 @@
 </div>
 
 @code {
-    string activeTabKey = "overview";
+    long? selectedGroupId;
     bool isReconnecting;
+
     System.Timers.Timer? refreshTimer;
 
     protected override void OnInitialized()
@@ -276,6 +271,7 @@
         Configuration.DebounceEnabled = false;
         Configuration.FlushInterval = 15f;
         Configuration.MaxBufferMessages = -1;
+        Configuration.PerBufferSize = 5;
         Configuration.ProactiveChatProbability = 0;
         Configuration.CloseGroupAfterReply = false;
     }
@@ -285,6 +281,7 @@
         Configuration.DebounceEnabled = true;
         Configuration.FlushInterval = 3f;
         Configuration.MaxBufferMessages = 5;
+        Configuration.PerBufferSize = 3;
         Configuration.ProactiveChatProbability = 0.05f;
         Configuration.CloseGroupAfterReply = true;
     }

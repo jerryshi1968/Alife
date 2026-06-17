@@ -145,6 +145,12 @@ public record OneBotForwardData
     public List<OneBotForwardMessage> Messages { get; init; } = [];
 }
 
+public record OneBotGroupHistoryData
+{
+    [JsonPropertyName("messages")]
+    public List<OneBotMessageEvent> Messages { get; init; } = [];
+}
+
 #endregion
 
 #region API 模型
