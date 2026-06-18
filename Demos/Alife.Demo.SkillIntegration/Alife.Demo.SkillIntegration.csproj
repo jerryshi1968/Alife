@@ -9,14 +9,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Sources\Alife\Alife.Platform\Alife.Platform.csproj" />
     <ProjectReference Include="..\..\Sources\Alife\Alife.Framework\Alife.Framework.csproj" />
-    <ProjectReference Include="..\..\Sources\Alife\Alife.LanguageModel\Alife.LanguageModel.csproj" />
     <ProjectReference Include="..\..\Sources\Alife.Function\Alife.Function.Skill\Alife.Function.Skill.csproj" />
     <ProjectReference Include="..\..\Sources\Alife.Function\Alife.Function.Python\Alife.Function.Python.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.76.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.7" />
-  </ItemGroup>
+
 
 </Project>

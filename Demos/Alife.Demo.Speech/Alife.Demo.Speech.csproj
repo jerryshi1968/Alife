@@ -8,9 +8,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Alife.Demo.Framework\Alife.Demo.Framework.csproj" />
     <ProjectReference Include="..\..\Sources\Alife\Alife.Framework\Alife.Framework.csproj" />
-    <ProjectReference Include="..\..\Sources\Alife\Alife.LanguageModel\Alife.LanguageModel.csproj" />
 
     <ProjectReference Include="..\..\Sources\Alife.Function\Alife.Function.Speech\Alife.Function.Speech.csproj" />
+    <ProjectReference Include="..\..\Sources\Alife.Function\Alife.Function.Speech.VITS\Alife.Function.Speech.VITS.csproj" />
   </ItemGroup>
 </Project>
 

@@ -1,7 +1,7 @@
 @using Alife.Components.Services
 @using Alife.Platform
 @using System.IO
-@inject EnvironmentChecker EnvChecker
+@inject EnvironmentInstaller EnvChecker
 
 <div class="step-content">
     <div class="step-icon" style="background:rgba(24,144,255,.1);color:#1890ff;">
@@ -99,7 +99,7 @@
         if (EnvChecker.DotNetSdk.Status != EnvStatus.Ready) await EnvChecker.InstallDotNetSdkAsync(p);
         p.Report("验证环境");
         await EnvChecker.CheckAllAsync();
-        EnvironmentChecker.SetupEnvironmentPaths();
+        EnvironmentInstaller.SetupEnvironmentPaths();
         envProgressMsg = "必要环境配置完成！";
         isInstallingEnv = false; StateHasChanged();
     }

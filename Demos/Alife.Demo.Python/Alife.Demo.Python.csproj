@@ -8,7 +8,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Sources\Alife\Alife.Framework\Alife.Framework.csproj" />
-        <ProjectReference Include="..\..\Sources\Alife\Alife.LanguageModel\Alife.LanguageModel.csproj" />
         <ProjectReference Include="..\..\Sources\Alife.Function\Alife.Function.Python\Alife.Function.Python.csproj" />
         <ProjectReference Include="..\Alife.Demo.Framework\Alife.Demo.Framework.csproj" />
     </ItemGroup>

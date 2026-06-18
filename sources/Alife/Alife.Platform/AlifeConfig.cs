@@ -6,54 +6,37 @@ namespace Alife.Platform;
 
 public static class AlifeConfig
 {
-    public static string ConfigFilePath { get; private set; } = "";
-
-    static Dictionary<string, string> data = new();
-
-    static AlifeConfig()
-    {
-        string dir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        ConfigFilePath = Path.Combine(Path.GetDirectoryName(dir)!, "config.json");
-        Load();
-    }
-    
     public static string GetString(string key, string defaultValue = "")
     {
         if (data.TryGetValue(key, out string? value))
             return value;
         return defaultValue;
     }
-
     public static void SetString(string key, string value)
     {
         data[key] = value;
         Save();
     }
-
     public static int GetInt(string key, int defaultValue = 0)
     {
         if (int.TryParse(GetString(key), out int result))
             return result;
         return defaultValue;
     }
-
     public static void SetInt(string key, int value)
     {
         SetString(key, value.ToString());
     }
-
     public static float GetFloat(string key, float defaultValue = 0f)
     {
         if (float.TryParse(GetString(key), NumberStyles.Float, CultureInfo.InvariantCulture, out float result))
             return result;
         return defaultValue;
     }
-
     public static void SetFloat(string key, float value)
     {
         SetString(key, value.ToString(CultureInfo.InvariantCulture));
     }
-
     public static bool GetBool(string key, bool defaultValue = false)
     {
         string value = GetString(key);
@@ -65,27 +48,33 @@ public static class AlifeConfig
             return false;
         return defaultValue;
     }
-
     public static void SetBool(string key, bool value)
     {
         SetString(key, value.ToString());
     }
-
     public static bool HasKey(string key)
     {
         return data.ContainsKey(key);
     }
-
     public static void Remove(string key)
     {
         if (data.Remove(key))
             Save();
     }
-
     public static void Clear()
     {
         data.Clear();
         Save();
+    }
+
+    static readonly string ConfigFilePath;
+    static Dictionary<string, string> data = new();
+
+    static AlifeConfig()
+    {
+        string dir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        ConfigFilePath = Path.Combine(Path.GetDirectoryName(dir)!, "config.json");
+        Load();
     }
 
     static void Load()
@@ -109,7 +98,6 @@ public static class AlifeConfig
             data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
     }
-
     static void Save()
     {
         try
@@ -124,7 +112,7 @@ public static class AlifeConfig
         }
         catch (Exception ex)
         {
-            AlifeTerminal.LogError($"AlifeConfig save failed: {ex.Message}");
+            Console.WriteLine($"AlifeConfig save failed: {ex.Message}");
         }
     }
 }

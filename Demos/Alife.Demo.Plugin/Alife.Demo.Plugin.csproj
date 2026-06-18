@@ -11,8 +11,6 @@
     <ProjectReference Include="..\..\Sources\Alife.Function\Alife.Function.FunctionCaller\Alife.Function.FunctionCaller.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.0" />
-  </ItemGroup>
+
 
 </Project>

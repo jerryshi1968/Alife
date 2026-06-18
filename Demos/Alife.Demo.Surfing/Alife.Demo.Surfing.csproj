@@ -9,7 +9,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Sources\Alife\Alife.Framework\Alife.Framework.csproj" />
-    <ProjectReference Include="..\..\Sources\Alife\Alife.LanguageModel\Alife.LanguageModel.csproj" />
     <ProjectReference Include="..\..\Sources\Alife.Function\Alife.Function.Memory\Alife.Function.Memory.csproj" />
     <ProjectReference Include="..\..\Sources\Alife.Function\Alife.Function.Browser\Alife.Function.Browser.csproj" />
     <ProjectReference Include="..\Alife.Demo.Framework\Alife.Demo.Framework.csproj" />

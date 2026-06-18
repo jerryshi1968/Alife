@@ -1,10 +1,5 @@
-@using System.Diagnostics
-@using System.IO
-@using System.Net.Http
-@using System.Reflection
-@using System.Windows
-@using Alife.Platform
-@using Newtonsoft.Json.Linq
+@using Alife.Components.Services
+@inject UpdateService UpdateService
 
 @if (updateInfo != null)
 {
@@ -38,76 +33,20 @@
 }
 
 @code {
-    record UpdateInfo(string Version, string? ReleaseNotes, string DownloadUrl);
-
-    const string GitHubApiUrl = "https://api.github.com/repos/BDFFZI/Alife/releases/latest";
-
     UpdateInfo? updateInfo;
     bool isFadingOut;
     bool isDownloading;
     int downloadProgress;
-    System.Timers.Timer? dismissTimer;
 
     protected override async Task OnInitializedAsync()
     {
-        await CheckForUpdateAsync();
-    }
-
-    async Task CheckForUpdateAsync()
-    {
-        try
-        {
-            using var http = new HttpClient();
-            http.DefaultRequestHeaders.Add("User-Agent", "Alife-DesktopPet");
-            var response = await http.GetStringAsync(GitHubApiUrl);
-            var json = JObject.Parse(response);
-
-            string? tagName = json["tag_name"]?.ToString();
-            if (string.IsNullOrEmpty(tagName))
-                return;
-
-            string latestVersion = tagName.TrimStart('v');
-            string currentVersion = Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "0.0.0";
-
-            if (new Version(latestVersion) > new Version(currentVersion))
-            {
-                string? body = json["body"]?.ToString();
-                string? downloadUrl = json["assets"]?[0]?["browser_download_url"]?.ToString();
-
-                if (!string.IsNullOrEmpty(downloadUrl))
-                {
-                    updateInfo = new UpdateInfo(latestVersion, body, downloadUrl);
-                    StartAutoDismissTimer();
-                    await InvokeAsync(StateHasChanged);
-                }
-            }
-        }
-        catch
-        {
-            // 网络异常静默忽略，不影响正常启动
-        }
-    }
-
-    void StartAutoDismissTimer()
-    {
-        dismissTimer = new System.Timers.Timer(5000);
-        dismissTimer.Elapsed += (_, _) =>
-        {
-            dismissTimer?.Stop();
-            isFadingOut = true;
-            InvokeAsync(StateHasChanged);
-            Task.Delay(500).ContinueWith(_ =>
-            {
-                updateInfo = null;
-                InvokeAsync(StateHasChanged);
-            });
-        };
-        dismissTimer.Start();
+        updateInfo = await UpdateService.CheckForUpdateAsync();
+        if (updateInfo != null)
+            await InvokeAsync(StateHasChanged);
     }
 
     void Dismiss()
     {
-        dismissTimer?.Stop();
         isFadingOut = true;
         Task.Delay(500).ContinueWith(_ =>
         {
@@ -120,108 +59,16 @@
     {
         if (updateInfo == null) return;
 
-        dismissTimer?.Stop();
         isDownloading = true;
         await InvokeAsync(StateHasChanged);
 
         try
         {
-            string tempDir = Path.Combine(AlifePath.TempFolderPath, "Update");
-            if (Directory.Exists(tempDir))
-                Directory.Delete(tempDir, true);
-
-            using var http = new HttpClient();
-            http.DefaultRequestHeaders.Add("User-Agent", "Alife-DesktopPet");
-
-            // 下载 ZIP
-            string zipPath = Path.Combine(tempDir, "Alife.zip");
-            using (var response = await http.GetAsync(updateInfo.DownloadUrl, HttpCompletionOption.ResponseHeadersRead))
+            await UpdateService.ApplyUpdateAsync(updateInfo, progress =>
             {
-                response.EnsureSuccessStatusCode();
-                var totalBytes = response.Content.Headers.ContentLength ?? -1L;
-                var buffer = new byte[8192];
-
-                Directory.CreateDirectory(tempDir);
-                using var stream = await response.Content.ReadAsStreamAsync();
-                using var fileStream = File.Create(zipPath);
-
-                long totalRead = 0;
-                int bytesRead;
-                while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
-                {
-                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
-                    totalRead += bytesRead;
-                    if (totalBytes > 0)
-                    {
-                        downloadProgress = (int)(totalRead * 100 / totalBytes);
-                        await InvokeAsync(StateHasChanged);
-                    }
-                }
-            }
-
-            // 启动外部更新脚本，由脚本完成解压和重启
-            string currentDir = AppContext.BaseDirectory.TrimEnd('\\', '/');
-            string exePath = Process.GetCurrentProcess().MainModule?.FileName ?? "";
-            string exeName = Path.GetFileName(exePath);
-            string psPath = Path.Combine(tempDir, "update.ps1");
-            File.WriteAllText(psPath, $@"
-Write-Host '=== Alife Update ===' -ForegroundColor Cyan
-Write-Host ''
-
-$proc = Get-Process -Name '{exeName.Replace(".exe","")}' -ErrorAction SilentlyContinue
-if ($proc) {{
-    Write-Host 'Waiting for old process to exit...' -ForegroundColor Yellow
-    $proc | Wait-Process -Timeout 15 -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 2
-}}
-
-Write-Host 'ZipPath:    {zipPath}'
-Write-Host 'CurrentDir: {currentDir}'
-Write-Host ''
-if (-not (Test-Path '{zipPath}')) {{
-    Write-Host 'ERROR: ZIP not found!' -ForegroundColor Red
-    Read-Host 'Press Enter to exit'
-    exit 1
-}}
-
-$extractTemp = '{tempDir}\_extract_tmp'
-if (Test-Path $extractTemp) {{ Remove-Item $extractTemp -Recurse -Force }}
-New-Item -ItemType Directory -Path $extractTemp -Force | Out-Null
-
-Write-Host 'Extracting to temp...' -ForegroundColor Yellow
-try {{
-    Expand-Archive -Path '{zipPath}' -DestinationPath $extractTemp -Force
-    Write-Host 'Extraction succeeded.' -ForegroundColor Green
-}} catch {{
-    Write-Host ""Extraction failed: $($_.Exception.Message)"" -ForegroundColor Red
-    Read-Host 'Press Enter to exit'
-    exit 1
-}}
-
-Write-Host 'Cleaning old files...' -ForegroundColor Yellow
-Get-ChildItem '{currentDir}' -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-
-Write-Host 'Moving new files...' -ForegroundColor Yellow
-Get-ChildItem $extractTemp | Move-Item -Destination '{currentDir}' -Force
-Remove-Item $extractTemp -Recurse -Force -ErrorAction SilentlyContinue
-
-Write-Host ''
-Write-Host 'Starting Alife...' -ForegroundColor Cyan
-Start-Process -FilePath '{exePath}'
-Write-Host ''
-Write-Host 'Upgrade successful! Press Enter to exit.' -ForegroundColor Green
-Read-Host
-");
-
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                Arguments = $"-ExecutionPolicy Bypass -File \"{psPath}\"",
-                CreateNoWindow = false,
-                UseShellExecute = true
+                downloadProgress = progress;
+                InvokeAsync(StateHasChanged);
             });
-
-            Application.Current.Shutdown();
         }
         catch (Exception ex)
         {
@@ -230,12 +77,6 @@ Read-Host
             Console.WriteLine($"更新失败: {ex.Message}");
             await InvokeAsync(StateHasChanged);
         }
-    }
-
-    public void Dispose()
-    {
-        dismissTimer?.Stop();
-        dismissTimer?.Dispose();
     }
 }
 

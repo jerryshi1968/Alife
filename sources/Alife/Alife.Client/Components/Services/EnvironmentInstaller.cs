@@ -14,7 +14,7 @@ public class EnvCheckResult
     public bool IsOptional { get; set; }
 }
 
-public class EnvironmentChecker
+public class EnvironmentInstaller
 {
     public EnvCheckResult VCRedist { get; } = new();
     public EnvCheckResult Python { get; } = new();
@@ -297,7 +297,8 @@ public class EnvironmentChecker
             AlifePlatform.Command(pyExe, "-m pip uninstall torch torchvision -y");
 
             progress?.Report("正在安装 PyTorch 2.10.0 + CUDA 12.8（可能需要较长时间）...");
-            string pipInstall = "install torch==2.10.0+cu128 torchvision==0.25.0+cu128";
+            string pytorchIndex = MirrorProvider.TransformUrl("https://download.pytorch.org/whl/cu128");
+            string pipInstall = $"install torch==2.10.0+cu128 torchvision==0.25.0+cu128 --index-url {pytorchIndex}";
             AlifePlatform.Command(pyExe, $"-m pip {pipInstall}");
 
             await CheckCudaAsync();

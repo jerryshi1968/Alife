@@ -2,6 +2,7 @@ using Alife.Platform;
 using Alife.Framework;
 using Alife.Function.FunctionCaller;
 using Alife.Function.Speech;
+using Alife.Function.Speech.VITS;
 
 
 // VitsSpeechSynthesizer speechSynthesizer = new VitsSpeechSynthesizer();

@@ -15,7 +15,7 @@ Dictionary<string, IEnvironmentInstaller> environmentInstallers = new()
     { "nuget", new NuGetEnvironmentInstaller(packageListFile) }
 };
 
-PluginMarket market = new PluginMarket(provider, manager, manager, environmentInstallers);
+PluginMarket market = new PluginMarket(provider, manager, manager, environmentInstallers, pluginInstalledDir);
 
 // ============ 1. 在线插件列表 ============
 Console.WriteLine("=== 在线插件列表 ===");
@@ -52,7 +52,8 @@ foreach (var kvp in installedPlugins)
 // ============ 4. 查看nuget包目录列表 ============
 Console.WriteLine("\n=== nuget包目录 ===");
 var nugetInstaller = new NuGetEnvironmentInstaller(packageListFile);
-string[] packagePaths = nugetInstaller.ReadPackageList();
+(string[] managed, string[] unmanaged) = nugetInstaller.ReadPackageList();
+string[] packagePaths = managed;
 Console.WriteLine($"  找到 {packagePaths.Length} 个包");
 foreach (string path in packagePaths)
 {

@@ -1,4 +1,6 @@
 using Alife.Function.DeskPet;
+using Alife.Platform;
+using System.IO;
 using System.Windows;
 
 namespace Alife.Test.DeskPet;
@@ -93,7 +95,7 @@ public class PetFunctionTests
     [OneTimeSetUp]
     public async Task Setup()
     {
-        server = new PetServer("Mao");
+        server = new PetServer(Path.Combine(AlifePath.OutputsFolderPath, "Alife.DeskPet.Client"), "Mao");
         server.OnInteracted += key => recordedInteractions.Add(key);
         server.OnInput += text => recordedInputs.Add(text);
         await server.WaitReadyAsync();

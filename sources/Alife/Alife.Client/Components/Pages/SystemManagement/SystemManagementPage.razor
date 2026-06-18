@@ -21,6 +21,18 @@
                 </ChildContent>
             </TabPane>
 
+            <TabPane Key="0">
+                <TabTemplate>
+                    <Flex Direction="@FlexDirection.Vertical" Align="@FlexAlign.Center" Gap="@("4")">
+                        <Icon Type="@IconType.Outline.CloudDownload"/>
+                        <span style="font-size: 12px">镜像配置</span>
+                    </Flex>
+                </TabTemplate>
+                <ChildContent>
+                    <MirrorSettingsTab/>
+                </ChildContent>
+            </TabPane>
+
             <TabPane Key="2">
                 <TabTemplate>
                     <Flex Direction="@FlexDirection.Vertical" Align="@FlexAlign.Center" Gap="@("4")">

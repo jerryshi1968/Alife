@@ -1,5 +1,5 @@
 using Alife.Platform;
-using Alife.Function.Speech;
+using Alife.Function.Speech.VITS;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Alife.Test.Speech;

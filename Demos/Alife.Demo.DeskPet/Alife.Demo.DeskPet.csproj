@@ -7,15 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.76.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.76.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Alife.Demo.Framework\Alife.Demo.Framework.csproj" />
     <ProjectReference Include="..\..\Sources\Alife\Alife.Framework\Alife.Framework.csproj" />
-    <ProjectReference Include="..\..\Sources\Alife\Alife.LanguageModel\Alife.LanguageModel.csproj" />
     <ProjectReference Include="..\..\Sources\Alife.Function\Alife.Function.DeskPet\Alife.Function.DeskPet.csproj" />
   </ItemGroup>
 

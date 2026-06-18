@@ -156,39 +156,16 @@ public class VitsSpeechModel(
 
         logger.LogInformation("正在下载 VITS 模型文件...");
 
-        using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
-        using var request = new HttpRequestMessage(HttpMethod.Get, zipUrl);
-        request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-        response.EnsureSuccessStatusCode();
-
+        await AlifePlatform.DownloadFileAsync(zipUrl, zipPath, (readSoFar, totalBytes) =>
         {
-            long totalBytes = response.Content.Headers.ContentLength ?? -1;
-            await using var contentStream = await response.Content.ReadAsStreamAsync();
-            await using var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None);
-
-            byte[] buffer = new byte[81920];
-            long readSoFar = 0;
-            int bytesRead;
-            long nextReport = 10 * 1024 * 1024;
-
-            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
-            {
-                await fileStream.WriteAsync(buffer, 0, bytesRead);
-                readSoFar += bytesRead;
-                if (readSoFar >= nextReport)
-                {
-                    if (totalBytes > 0)
-                        logger.LogInformation("下载进度: {Pct:F1}% ({ReadMB}MB / {TotalMB}MB)",
-                            (double)readSoFar / totalBytes * 100,
-                            readSoFar / 1024 / 1024,
-                            totalBytes / 1024 / 1024);
-                    else
-                        logger.LogInformation("下载进度: {ReadMB}MB", readSoFar / 1024 / 1024);
-                    nextReport = readSoFar + 10 * 1024 * 1024;
-                }
-            }
-        }
+            if (totalBytes > 0)
+                logger.LogInformation("下载进度: {Pct:F1}% ({ReadMB}MB / {TotalMB}MB)",
+                    (double)readSoFar / totalBytes * 100,
+                    readSoFar / 1024 / 1024,
+                    totalBytes / 1024 / 1024);
+            else
+                logger.LogInformation("下载进度: {ReadMB}MB", readSoFar / 1024 / 1024);
+        }, TimeSpan.FromMinutes(30));
 
         logger.LogInformation("下载完成，正在解压...");
         string extractRoot = AlifePath.RuntimeFolderPath;
