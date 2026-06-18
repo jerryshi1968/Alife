@@ -72,8 +72,7 @@ public static class AlifeConfig
 
     static AlifeConfig()
     {
-        string dir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        ConfigFilePath = Path.Combine(Path.GetDirectoryName(dir)!, "config.json");
+        ConfigFilePath = Path.Combine(AppContext.BaseDirectory, "config.json");
         Load();
     }
 

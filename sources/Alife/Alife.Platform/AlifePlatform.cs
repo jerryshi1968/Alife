@@ -32,7 +32,7 @@ public static class AlifePlatform
             request.Headers.Add("Referer", "https://q.qq.com/");
 
         //设置超时
-        using var httpClient = timeout.HasValue ? new HttpClient { Timeout = timeout.Value } : SharedHttpClient;
+        using var httpClient = timeout.HasValue ? new HttpClient { Timeout = timeout.Value } : new HttpClient();
         using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
         response.EnsureSuccessStatusCode();
 
@@ -85,7 +85,7 @@ public static class AlifePlatform
         request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 
         //设置超时
-        using var httpClient = timeout.HasValue ? new HttpClient { Timeout = timeout.Value } : SharedHttpClient;
+        using var httpClient = timeout.HasValue ? new HttpClient { Timeout = timeout.Value } : new HttpClient();
         using var response = await httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
 
@@ -202,10 +202,7 @@ public static class AlifePlatform
 
         return "当前平台不支持 OCR";
     }
-
-
-
-    static readonly HttpClient SharedHttpClient = new();
+    
     static readonly string[] CommandIgnore;
 
     static AlifePlatform()

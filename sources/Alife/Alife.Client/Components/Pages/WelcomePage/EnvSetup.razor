@@ -4,6 +4,7 @@
 @inject EnvironmentInstaller EnvChecker
 
 <div class="step-content">
+    <ErrorWindowUI @bind-Value="@installException"/>
     <div class="step-icon" style="background:rgba(24,144,255,.1);color:#1890ff;">
         <Icon Type="@IconType.Outline.CloudDownload" Style="font-size:28px;"/>
     </div>
@@ -23,32 +24,38 @@
             </div>
         </div>
     }
-    
+
     <div class="env-grid">
-        @RenderEnv("VC++ 运行库", EnvChecker.VCRedist)
-        @RenderEnv("Python 3.12", EnvChecker.Python)
-        @RenderEnv(".NET SDK 10", EnvChecker.DotNetSdk)
-        @RenderEnv("CUDA 加速", EnvChecker.Cuda, true)
+        @RenderEnv("VC++ 运行库", EnvChecker.IsVCRedistReady)
+        @RenderEnv("Python 3.12", EnvChecker.IsPythonReady)
+        @RenderEnv(".NET SDK 10", EnvChecker.IsDotNetSdkReady)
+        @RenderEnv("CUDA 加速", EnvChecker.IsCudaReady, true)
     </div>
-    
+
     @if (isInstallingEnv && !string.IsNullOrEmpty(envProgressMsg))
     {
-        <div class="progress-tip"><Icon Type="loading"/>@envProgressMsg</div>
+        <div class="progress-tip">
+            <Icon Type="loading"/>@envProgressMsg</div>
     }
     else if (!string.IsNullOrEmpty(envProgressMsg))
     {
         <div class="progress-tip">@envProgressMsg</div>
     }
-    
+
     <div class="step-actions">
-        <Button Size="@ButtonSize.Small" Icon="@IconType.Outline.Reload" Loading="@isCheckingEnv" OnClick="@OnCheckEnv">检测</Button>
-        <Button Size="@ButtonSize.Small" Type="@ButtonType.Primary" Icon="@IconType.Outline.Thunderbolt" Loading="@isInstallingEnv" OnClick="@OnInstallAllRequired">一键安装必要环境</Button>
+        <Button Size="@ButtonSize.Small" Icon="@IconType.Outline.Reload" Loading="@isCheckingEnv" OnClick="@OnCheckEnv">
+            检测
+        </Button>
+        <Button Size="@ButtonSize.Small" Type="@ButtonType.Primary" Icon="@IconType.Outline.Thunderbolt"
+                Loading="@isInstallingEnv" OnClick="@OnInstallAllRequired">一键安装必要环境
+        </Button>
         <Button Size="@ButtonSize.Small" OnClick="@OnInstallCuda" Loading="@isInstallingCuda">配置 CUDA</Button>
     </div>
-    
+
     <div class="step-next">
         <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large" Disabled="@(!envAllReady)" OnClick="@OnNext">
-            下一步 <Icon Type="@IconType.Outline.ArrowRight"/>
+            下一步
+            <Icon Type="@IconType.Outline.ArrowRight"/>
         </Button>
     </div>
 </div>
@@ -61,10 +68,44 @@
     bool hasNonAsciiPath;
     string appPath = "";
     string runtimePath = "";
+    Exception? installException;
     bool envAllReady =>
-        EnvChecker.VCRedist.Status == EnvStatus.Ready
-        && EnvChecker.Python.Status == EnvStatus.Ready
-        && EnvChecker.DotNetSdk.Status == EnvStatus.Ready;
+        EnvChecker.IsVCRedistReady
+        && EnvChecker.IsPythonReady
+        && EnvChecker.IsDotNetSdkReady;
+
+    RenderFragment RenderEnv(string label, bool isReady, bool optional = false) => builder => {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "ev" + (optional ? " ev-opt" : ""));
+
+        builder.OpenElement(2, "span");
+        builder.AddAttribute(3, "class", "ev-icon " + (isReady ? "ev-ok" : ""));
+        if (isReady)
+            builder.AddMarkupContent(4, "<svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M22 11.08V12a10 10 0 1 1-5.93-9.14\"/><polyline points=\"22 4 12 14.01 9 11.01\"/></svg>");
+        else
+            builder.AddMarkupContent(4, "<svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"15\" y1=\"9\" x2=\"9\" y2=\"15\"/><line x1=\"9\" y1=\"9\" x2=\"15\" y2=\"15\"/></svg>");
+        builder.CloseElement();
+
+        builder.OpenElement(5, "span");
+        builder.AddAttribute(6, "class", "ev-name");
+        builder.AddContent(7, label);
+        builder.CloseElement();
+
+        if (optional)
+        {
+            builder.OpenElement(8, "span");
+            builder.AddAttribute(9, "class", "ev-tag");
+            builder.AddContent(10, "可选");
+            builder.CloseElement();
+        }
+
+        builder.OpenElement(11, "span");
+        builder.AddAttribute(12, "class", "ev-msg");
+        builder.AddContent(13, isReady ? "已就绪" : "未安装");
+        builder.CloseElement();
+
+        builder.CloseElement();
+    };
 
     protected override void OnInitialized()
     {
@@ -85,31 +126,70 @@
 
     async Task OnCheckEnv()
     {
-        isCheckingEnv = true; StateHasChanged();
+        isCheckingEnv = true;
+        StateHasChanged();
         await EnvChecker.CheckAllAsync();
         isCheckingEnv = false;
     }
 
     async Task OnInstallAllRequired()
     {
-        isInstallingEnv = true; envProgressMsg = ""; StateHasChanged();
-        IProgress<string> p = new System.Progress<string>(msg => { envProgressMsg = msg; InvokeAsync(StateHasChanged); });
-        if (EnvChecker.VCRedist.Status != EnvStatus.Ready) await EnvChecker.InstallVCppRedistAsync(p);
-        if (EnvChecker.Python.Status != EnvStatus.Ready) await EnvChecker.InstallPythonAsync(p);
-        if (EnvChecker.DotNetSdk.Status != EnvStatus.Ready) await EnvChecker.InstallDotNetSdkAsync(p);
-        p.Report("验证环境");
-        await EnvChecker.CheckAllAsync();
-        EnvironmentInstaller.SetupEnvironmentPaths();
-        envProgressMsg = "必要环境配置完成！";
-        isInstallingEnv = false; StateHasChanged();
+        isInstallingEnv = true;
+        envProgressMsg = "";
+        installException = null;
+        StateHasChanged();
+        try
+        {
+            IProgress<string> p = new Progress<string>(msg => {
+                envProgressMsg = msg;
+                InvokeAsync(StateHasChanged);
+            });
+            await Task.Run(async () => {
+                if (!EnvChecker.IsVCRedistReady) await EnvChecker.InstallVCppRedistAsync(p);
+                if (!EnvChecker.IsPythonReady) await EnvChecker.InstallPythonAsync(p);
+                if (!EnvChecker.IsDotNetSdkReady) await EnvChecker.InstallDotNetSdkAsync(p);
+            });
+            p.Report("验证环境");
+            await EnvChecker.CheckAllAsync();
+            EnvironmentInstaller.SetupEnvironmentPaths();
+            envProgressMsg = "必要环境配置完成！";
+        }
+        catch (Exception ex)
+        {
+            installException = ex;
+        }
+        finally
+        {
+            isInstallingEnv = false;
+            StateHasChanged();
+        }
     }
 
     async Task OnInstallCuda()
     {
-        isInstallingCuda = true; envProgressMsg = ""; StateHasChanged();
-        IProgress<string> p = new System.Progress<string>(msg => { envProgressMsg = msg; InvokeAsync(StateHasChanged); });
-        await EnvChecker.InstallCudaAsync(p);
-        isInstallingCuda = false; StateHasChanged();
+        isInstallingCuda = true;
+        envProgressMsg = "";
+        installException = null;
+        StateHasChanged();
+        try
+        {
+            IProgress<string> p = new System.Progress<string>(msg => {
+                envProgressMsg = msg;
+                InvokeAsync(StateHasChanged);
+            });
+            await Task.Run(async () => {
+                await EnvChecker.InstallCudaAsync(p);
+            });
+        }
+        catch (Exception ex)
+        {
+            installException = ex;
+        }
+        finally
+        {
+            isInstallingCuda = false;
+            StateHasChanged();
+        }
     }
 
     async Task OnNext()
@@ -117,65 +197,139 @@
         await OnNextStep.InvokeAsync();
     }
 
-    RenderFragment RenderEnv(string label, EnvCheckResult result, bool optional = false) => builder =>
-    {
-        int s = 0;
-        builder.OpenElement(s++, "div");
-        builder.AddAttribute(s++, "class", "ev" + (optional ? " ev-opt" : ""));
 
-        builder.OpenElement(s++, "span");
-        string c = result.Status == EnvStatus.Ready ? "ev-ok" : result.Status == EnvStatus.Error ? "ev-err" : "";
-        builder.AddAttribute(s++, "class", "ev-icon " + c);
-        if (result.Status == EnvStatus.Checking)
-            builder.AddMarkupContent(s++, "<svg style=\"animation:spin 1s linear infinite\" viewBox=\"0 0 1024 1024\" width=\"14\" height=\"14\"><path d=\"M988 548c-19.9 0-36-16.1-36-36 0-117.3-94.7-212-212-212-48.1 0-93.3 15.7-130.3 42.1-15.5-5.3-32.5-8.2-50-8.2-85.3 0-154.7 69.4-154.7 154.7 0 5.9.7 11.7 1.8 17.4C302.2 343.5 221.7 441.5 221.5 555.5c0 19.9 16.1 36 36 36s36-16.1 36-36c0-117.3 94.7-212 212-212 48.1 0 93.3 15.7 130.3 42.1 15.5 5.3 32.5 8.2 50 8.2 85.3 0 154.7-69.4 154.7-154.7 0-5.9-.7-11.7-1.8-17.4C961.4 568.8 982 554.6 988 548z\" fill=\"currentColor\"/></svg>");
-        else if (result.Status == EnvStatus.Ready)
-            builder.AddMarkupContent(s++, "<svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M22 11.08V12a10 10 0 1 1-5.93-9.14\"/><polyline points=\"22 4 12 14.01 9 11.01\"/></svg>");
-        else
-            builder.AddMarkupContent(s++, "<svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"15\" y1=\"9\" x2=\"9\" y2=\"15\"/><line x1=\"9\" y1=\"9\" x2=\"15\" y2=\"15\"/></svg>");
-        builder.CloseElement();
-
-        builder.OpenElement(s++, "span");
-        builder.AddAttribute(s++, "class", "ev-name");
-        builder.AddContent(s++, label);
-        builder.CloseElement();
-
-        if (optional)
-        {
-            builder.OpenElement(s++, "span");
-            builder.AddAttribute(s++, "class", "ev-tag");
-            builder.AddContent(s++, "可选");
-            builder.CloseElement();
-        }
-
-        builder.OpenElement(s++, "span");
-        builder.AddAttribute(s++, "class", "ev-msg");
-        builder.AddContent(s++, result.Message);
-        builder.CloseElement();
-
-        builder.CloseElement();
-    };
 }
 
 <style>
-.step-icon {
-    width: 56px; height: 56px; border-radius: 16px;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 16px;
-}
-.step-title { margin: 0 0 8px; font-size: 20px; font-weight: 700; color: #1a1a1a; text-align: center; }
-.step-desc { margin: 0 0 20px; font-size: 13px; color: rgba(0,0,0,.45); text-align: center; }
-.step-hint { margin: -12px 0 16px; font-size: 11px; color: #faad14; text-align: center; }
-.env-grid { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-.ev { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(0,0,0,.02); border-radius: 8px; font-size: 13px; }
-.ev-opt { opacity: .7; }
-.ev-icon { display: flex; align-items: center; width: 16px; justify-content: center; flex-shrink: 0; color: rgba(0,0,0,.2); }
-.ev-ok { color: #52c41a; }
-.ev-err { color: #ff4d4f; }
-.ev-name { font-weight: 500; color: #333; }
-.ev-tag { font-size: 10px; background: #f0f0f0; color: rgba(0,0,0,.35); padding: 2px 6px; border-radius: 4px; line-height: 16px; }
-.ev-msg { margin-left: auto; font-size: 11px; color: rgba(0,0,0,.3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
-.progress-tip { margin-bottom: 12px; padding: 8px 12px; background: rgba(24,144,255,.04); border: 1px solid rgba(24,144,255,.1); border-radius: 8px; font-size: 12px; color: #1890ff; display: flex; align-items: center; gap: 6px; }
-.path-error { margin-bottom: 12px; padding: 10px 12px; background: #fff2f0; border: 1px solid #ffccc7; border-radius: 8px; font-size: 12px; color: #a8071a; display: flex; align-items: flex-start; gap: 8px; }
-.step-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; }
-.step-next { margin-top: 16px; text-align: center; }
+    .step-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+    }
+
+    .step-title {
+        margin: 0 0 8px;
+        font-size: 20px;
+        font-weight: 700;
+        color: #1a1a1a;
+        text-align: center;
+    }
+
+    .step-desc {
+        margin: 0 0 20px;
+        font-size: 13px;
+        color: rgba(0, 0, 0, .45);
+        text-align: center;
+    }
+
+    .step-hint {
+        margin: -12px 0 16px;
+        font-size: 11px;
+        color: #faad14;
+        text-align: center;
+    }
+
+    .env-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+
+    .ev {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, .02);
+        border-radius: 8px;
+        font-size: 13px;
+    }
+
+    .ev-opt {
+        opacity: .7;
+    }
+
+    .ev-icon {
+        display: flex;
+        align-items: center;
+        width: 16px;
+        justify-content: center;
+        flex-shrink: 0;
+        color: rgba(0, 0, 0, .2);
+    }
+
+    .ev-ok {
+        color: #52c41a;
+    }
+
+    .ev-err {
+        color: #ff4d4f;
+    }
+
+    .ev-name {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .ev-tag {
+        font-size: 10px;
+        background: #f0f0f0;
+        color: rgba(0, 0, 0, .35);
+        padding: 2px 6px;
+        border-radius: 4px;
+        line-height: 16px;
+    }
+
+    .ev-msg {
+        margin-left: auto;
+        font-size: 11px;
+        color: rgba(0, 0, 0, .3);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 160px;
+    }
+
+    .progress-tip {
+        margin-bottom: 12px;
+        padding: 8px 12px;
+        background: rgba(24, 144, 255, .04);
+        border: 1px solid rgba(24, 144, 255, .1);
+        border-radius: 8px;
+        font-size: 12px;
+        color: #1890ff;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .path-error {
+        margin-bottom: 12px;
+        padding: 10px 12px;
+        background: #fff2f0;
+        border: 1px solid #ffccc7;
+        border-radius: 8px;
+        font-size: 12px;
+        color: #a8071a;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .step-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: auto;
+    }
+
+    .step-next {
+        margin-top: 16px;
+        text-align: center;
+    }
 </style>

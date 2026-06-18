@@ -9,30 +9,14 @@ namespace Alife.Platform;
 /// </summary>
 public static class MirrorProvider
 {
-    const string UrlMapKey = "mirror_url_map";
-    const string EnvVarsKey = "mirror_env_vars";
-
     /// <summary>
     /// URL 替换映射表。Key 为原始 URL 前缀，Value 为镜像 URL 前缀。
     /// </summary>
-    public static Dictionary<string, string> MirrorUrlMap { get; private set; } = new()
-    {
-        { "https://github.com", "https://gh-proxy.com/https://github.com" },
-        { "https://api.github.com", "https://gh-proxy.com/https://api.github.com" },
-        { "https://raw.githubusercontent.com", "https://gh-proxy.com/https://raw.githubusercontent.com" },
-        { "https://bootstrap.pypa.io", "https://gh-proxy.com/https://bootstrap.pypa.io" },
-        { "https://download.pytorch.org", "https://mirrors.aliyun.com/pytorch-wheels" },
-    };
-
+    public static Dictionary<string, string> MirrorUrlMap { get; private set; }
     /// <summary>
     /// 环境变量配置表。启动 Python 进程时会自动设置这些环境变量。
     /// </summary>
-    public static Dictionary<string, string> MirrorEnvironmentVariables { get; private set; } = new()
-    {
-        { "HF_ENDPOINT", "https://hf-mirror.com" },
-        { "PIP_INDEX_URL", "https://mirrors.aliyun.com/pypi/simple/" },
-        { "PIP_TRUSTED_HOST", "mirrors.aliyun.com" },
-    };
+    public static Dictionary<string, string> MirrorEnvironmentVariables { get; private set; }
 
     /// <summary>
     /// 根据 MirrorUrlMap 替换 URL 中的匹配字符串。
@@ -51,7 +35,6 @@ public static class MirrorProvider
 
         return url;
     }
-
     /// <summary>
     /// 设置环境变量，使 Python 进程能够使用镜像源。
     /// 应在应用程序启动时调用一次。
@@ -82,7 +65,7 @@ public static class MirrorProvider
                 if (loaded is not null)
                     MirrorUrlMap = loaded;
             }
-            catch { }
+            catch {}
         }
 
         // 加载环境变量
@@ -95,10 +78,9 @@ public static class MirrorProvider
                 if (loaded is not null)
                     MirrorEnvironmentVariables = loaded;
             }
-            catch { }
+            catch {}
         }
     }
-
     /// <summary>
     /// 保存当前镜像配置到配置文件。
     /// </summary>
@@ -118,7 +100,6 @@ public static class MirrorProvider
         MirrorUrlMap = urlMap;
         Save();
     }
-
     /// <summary>
     /// 更新环境变量配置并保存。
     /// </summary>
@@ -133,27 +114,31 @@ public static class MirrorProvider
     /// </summary>
     public static void ResetToDefaults()
     {
-        MirrorUrlMap = new Dictionary<string, string>
-        {
-            { "https://github.com", "https://gh-proxy.com/https://github.com" },
-            { "https://api.github.com", "https://gh-proxy.com/https://api.github.com" },
-            { "https://raw.githubusercontent.com", "https://gh-proxy.com/https://raw.githubusercontent.com" },
-            { "https://bootstrap.pypa.io", "https://gh-proxy.com/https://bootstrap.pypa.io" },
-            { "https://download.pytorch.org", "https://mirrors.aliyun.com/pytorch-wheels" },
-        };
-
-        MirrorEnvironmentVariables = new Dictionary<string, string>
-        {
-            { "HF_ENDPOINT", "https://hf-mirror.com" },
-            { "PIP_INDEX_URL", "https://mirrors.aliyun.com/pypi/simple/" },
-            { "PIP_TRUSTED_HOST", "mirrors.aliyun.com" },
-        };
+        MirrorUrlMap = DefaultMirrorUrlMap;
+        MirrorEnvironmentVariables = DefaultMirrorEnvironmentVariables;
 
         Save();
     }
 
+    const string UrlMapKey = "mirror_url_map";
+    const string EnvVarsKey = "mirror_env_vars";
+    static readonly Dictionary<string, string> DefaultMirrorUrlMap = new() {
+        { "https://github.com", "https://gh-proxy.com/https://github.com" },
+        { "https://api.github.com", "https://gh-proxy.com/https://api.github.com" },
+        { "https://raw.githubusercontent.com", "https://gh-proxy.com/https://raw.githubusercontent.com" },
+        { "--index-url https://download.pytorch.org/whl/cu128", "--find-links https://mirrors.aliyun.com/pytorch-wheels/cu128" }
+    };
+    static readonly Dictionary<string, string> DefaultMirrorEnvironmentVariables = new() {
+        { "HF_ENDPOINT", "https://hf-mirror.com" },
+        { "PIP_INDEX_URL", "https://mirrors.aliyun.com/pypi/simple/" },
+        { "PIP_TRUSTED_HOST", "mirrors.aliyun.com" },
+    };
+
     static MirrorProvider()
     {
+        MirrorUrlMap = DefaultMirrorUrlMap;
+        MirrorEnvironmentVariables = DefaultMirrorEnvironmentVariables;
+
         Load();
     }
 }
