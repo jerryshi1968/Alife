@@ -60,6 +60,26 @@ public class ConfigurationSystem(StorageSystem storageSystem)
         string path = Path.Combine(root, "Configuration", target.FullName!);
         return storageSystem.GetObject<JObject>(path) != null;
     }
+    public string? GetConfigurationFilePath(Type target, string root = "")
+    {
+        if (GetConfigurationType(target) == null)
+            return null;
+
+        // 先检查角色配置
+        if (!string.IsNullOrEmpty(root))
+        {
+            string rootPath = storageSystem.GetObjectRealPath(Path.Combine(root, "Configuration", target.FullName!));
+            if (File.Exists(rootPath))
+                return rootPath;
+        }
+
+        // 回退到全局配置
+        string globalPath = storageSystem.GetObjectRealPath(Path.Combine("Configuration", target.FullName!));
+        if (File.Exists(globalPath))
+            return globalPath;
+
+        return null;
+    }
 
     readonly Dictionary<Type, Type> configurationTypes = new();
 }

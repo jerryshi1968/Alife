@@ -5,7 +5,19 @@
 @inject IMessageService MessageService
 
 <div>
-    <Flex Justify="FlexJustify.End" Align="FlexAlign.Center">
+    <Flex Justify="FlexJustify.SpaceBetween" Align="FlexAlign.Center">
+        @* 左侧：打开配置文件夹 *@
+        @if (!string.IsNullOrEmpty(configFilePath))
+        {
+            <Tooltip Title="@("打开配置文件所在目录")">
+                <Button Type="@ButtonType.Text"
+                        Icon="@IconType.Outline.FolderOpen"
+                        Size="@ButtonSize.Small"
+                        OnClick="@OpenConfigFolder"/>
+            </Tooltip>
+        }
+
+        @* 右侧：保存操作按钮 *@
         <Space>
             <SpaceItem>
                 <Popconfirm Title="确认保存到全局吗？所有未单独配置的角色将默认使用此配置。" OnConfirm="SaveToGlobal">
@@ -57,10 +69,24 @@
     public EventCallback<object> OnConfigurationChanged { get; set; }
 
     bool hasCharacterConfig;
+    string? configFilePath;
 
     protected override void OnParametersSet()
     {
         UpdateStatus();
+        UpdateConfigFilePath();
+    }
+
+    void UpdateConfigFilePath()
+    {
+        if (ModuleType == null)
+        {
+            configFilePath = null;
+            return;
+        }
+
+        string root = !string.IsNullOrEmpty(CharacterName) ? Path.Combine("Character", CharacterName) : "";
+        configFilePath = ConfigurationSystem.GetConfigurationFilePath(ModuleType, root);
     }
 
     void UpdateStatus()
@@ -106,6 +132,22 @@
         }
 
         MessageService.Success($"角色 [{CharacterName}] 的独立配置已删除，已回退至全局配置喵！");
+    }
+
+    void OpenConfigFolder()
+    {
+        if (string.IsNullOrEmpty(configFilePath)) return;
+
+        string dirPath = Path.GetDirectoryName(configFilePath)!;
+
+        try
+        {
+            System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{configFilePath}\"");
+        }
+        catch (Exception ex)
+        {
+            MessageService.Error($"无法打开目录喵：{ex.Message}");
+        }
     }
 
 }

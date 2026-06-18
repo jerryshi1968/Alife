@@ -63,33 +63,11 @@
     object? configuration;
     bool isConfigurable;
 
-    string jsonConfig = "{}";
-    bool isInputted;
-
     RenderFragment DefaultUI => __builder => {
         if (isConfigurable)
         {
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-                <!-- 新增相对定位容器 -->
-                <div style="position: relative;">
-                    <TextArea AutoSize="true"
-                              MinRows="10"
-                              Style="font-family: monospace; padding-right: 32px;"
-                              @bind-Value="jsonConfig"
-                              OnInput="@(() => isInputted = true)">
-                    </TextArea>
-
-                    <Button Type="@ButtonType.Primary"
-                            Icon="@IconType.Outline.Check"
-                            OnClick="@(() => {
-                                         OnConfigSaved(GetConfigFromText());
-                                         isInputted = false;
-                                     })"
-                            Disabled="@(!isInputted)"
-                            Style="position: absolute; top: 8px; right: 8px; z-index: 1;">
-                    </Button>
-                </div>
-            </div>
+            <AutoFormUI Configuration="@configuration"
+                        ConfigurationChanged="@OnConfigSaved"/>
         }
     };
 
@@ -120,21 +98,18 @@
         {
             string json = JsonConvert.SerializeObject(raw);
             configuration = JsonConvert.DeserializeObject(json, raw.GetType());
-            jsonConfig = JsonConvert.SerializeObject(configuration, Formatting.Indented);
         }
         else
         {
             Type? configType = ConfigurationSystem.GetConfigurationType(ModuleType);
             if (configType != null)
                 configuration = Activator.CreateInstance(configType);
-            jsonConfig = JsonConvert.SerializeObject(configuration, Formatting.Indented);
         }
     }
 
     void OnConfigSaved(object? newConfig)
     {
         configuration = newConfig ?? configuration;
-        jsonConfig = JsonConvert.SerializeObject(configuration, Formatting.Indented);
 
         // 运行时自动回写到 Module
         if (Module != null)
@@ -147,29 +122,8 @@
         StateHasChanged();
     }
 
-    object? GetConfigFromText()
-    {
-        if (isConfigurable == false) return null;
-        try
-        {
-            Type type = ConfigurationSystem.GetConfigurationType(ModuleType)!;
-            return JsonConvert.DeserializeObject(jsonConfig, type)
-                   ?? Activator.CreateInstance(type);
-        }
-        catch
-        {
-            return configuration;
-        }
-    }
-
     Dictionary<string, object?> GetParameters()
     {
-        // DefaultUI 中的 JSON 文本修改后同步到 configuration
-        if (isConfigurable && ModuleAttr.EditorUI == null)
-        {
-            configuration = GetConfigFromText();
-        }
-
         return new Dictionary<string, object?> {
             { "Character", Character },
             { "ChatActivity", ChatActivity },

@@ -10,7 +10,7 @@ public class StorageSystem
 {
     public string GetObjectRealPath(string key)
     {
-        return $"{AlifePath.StorageFolderPath}/{key}.json";
+        return Path.Combine(AlifePath.StorageFolderPath, key + ".json");
     }
     public string[] GetFolders(string key)
     {
