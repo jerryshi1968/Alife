@@ -123,9 +123,9 @@ public static class MirrorProvider
     const string UrlMapKey = "mirror_url_map";
     const string EnvVarsKey = "mirror_env_vars";
     static readonly Dictionary<string, string> DefaultMirrorUrlMap = new() {
-        { "https://github.com", "https://gh-proxy.com/https://github.com" },
-        { "https://api.github.com", "https://gh-proxy.com/https://api.github.com" },
-        { "https://raw.githubusercontent.com", "https://gh-proxy.com/https://raw.githubusercontent.com" },
+        { "https://github.com", "https://v4.gh-proxy.org/https://github.com" },
+        { "https://api.github.com", "https://v4.gh-proxy.org/https://api.github.com" },
+        { "https://raw.githubusercontent.com", "https://v4.gh-proxy.org/https://raw.githubusercontent.com" },
         { "--index-url https://download.pytorch.org/whl/cu128", "--find-links https://mirrors.aliyun.com/pytorch-wheels/cu128" }
     };
     static readonly Dictionary<string, string> DefaultMirrorEnvironmentVariables = new() {
