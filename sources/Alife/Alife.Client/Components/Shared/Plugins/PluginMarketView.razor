@@ -1,5 +1,6 @@
 @using Alife.Components.Shared.Plugins
 @using Alife.Components.Services
+@using Alife.Components.Shared.Common
 @using Alife.PluginMarket
 @using Alife.Platform
 @using Microsoft.JSInterop
@@ -7,6 +8,8 @@
 @inject IMessageService MessageService
 @inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
+
+<ErrorWindowUI @bind-Value="@operException" />
 
 <div style="height: 100%; overflow: hidden; display: flex; flex-direction: column; background: #fafafa;">
     @* 标题栏 *@
@@ -185,7 +188,7 @@
                 </div>
                 <Button Size="@ButtonSize.Small" Loading="item.isOperating"
                         OnClick="@(() => UpgradeSingle(item))">
-                    升级
+                    @(item.isOperating && isRollingBack ? "回滚中" : "升级")
                 </Button>
             </div>
         }
@@ -196,7 +199,9 @@
     </div>
     <div style="display: flex; justify-content: flex-end; gap: 8px; padding-top: 12px; border-top: 1px solid #f0f0f0;">
         <Button OnClick="@(() => showUpgradeModal = false)">取消</Button>
-        <Button Type="@ButtonType.Primary" Loading="isUpgrading" OnClick="UpgradeAll">全部升级</Button>
+        <Button Type="@ButtonType.Primary" Loading="isUpgrading" OnClick="UpgradeAll">
+            @(isUpgrading && isRollingBack ? "回滚中" : "全部升级")
+        </Button>
     </div>
 </Modal>
 
@@ -211,6 +216,7 @@
     bool isLoading;
     bool isSaving;
     bool isUpgrading;
+    bool isRollingBack;
     int upgradableCount;
     int currentPage = 1;
     int pageSize = 12;
@@ -220,6 +226,7 @@
     Plugin[] pagedPlugins = [];
     Plugin? selectedPlugin;
     DotNetObjectReference<PluginMarketView>? dotnetRef;
+    Exception? operException;
 
     bool showUpgradeModal;
     List<UpgradeItem> upgradeList = [];
@@ -377,13 +384,17 @@
         }
         catch (Exception ex)
         {
+            isRollingBack = true;
+            StateHasChanged();
+
             try
             {
                 await PluginMarketService.InstallPlugin(item.plugin, item.oldVersion);
                 MessageService.Warning($"[{item.plugin.Name}] 升级失败，已回退到 v{item.oldVersion}");
             }
             catch { }
-            MessageService.Error($"[{item.plugin.Name}] 升级失败: {ex.Message}");
+            operException = ex;
+            isRollingBack = false;
         }
 
         item.isOperating = false;
@@ -411,16 +422,22 @@
         }
         catch (Exception ex)
         {
+            operException = ex;
+            isRollingBack = true;
+            StateHasChanged();
+
             try
             {
                 await PluginMarketService.InstallPlugins(toUpgrade.Select(x => (x.plugin, x.oldVersion)));
-                MessageService.Warning($"升级失败，已回滚 {toUpgrade.Count} 个插件");
+                MessageService.Warning($"已回滚 {toUpgrade.Count} 个插件");
                 RefreshLocal();
             }
-            catch
+            catch (Exception rollbackEx)
             {
-                MessageService.Error($"升级失败且回滚失败: {ex.Message}");
+                operException = rollbackEx;
             }
+
+            isRollingBack = false;
         }
 
         isUpgrading = false;

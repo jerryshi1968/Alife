@@ -6,9 +6,8 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Alife.Function.Interpreter;
 
-namespace Alife.Function.FunctionCaller;
+namespace Alife.Function.Interpreter;
 
 public class XmlHandler
 {

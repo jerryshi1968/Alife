@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Alife.Function.FunctionCaller;
+namespace Alife.Function.Interpreter;
 
 public enum CallMode
 {

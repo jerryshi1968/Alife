@@ -215,6 +215,11 @@ public class PluginMarketService
         OnInstalled?.Invoke();
     }
 
+    public List<string> GetDependents(string pluginId)
+    {
+        return pluginMarket?.GetDependents(pluginId) ?? [];
+    }
+
     public async Task UninstallPlugin(Plugin plugin)
     {
         if (pluginMarket == null) return;

@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Alife.Function.Interpreter;
 
-namespace Alife.Function.FunctionCaller;
+namespace Alife.Function.Interpreter;
 
 [Flags]
 public enum FunctionMode

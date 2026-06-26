@@ -150,7 +150,9 @@ public class ModuleSystem
                 var syntaxTrees = Directory.GetFiles(source, "*.cs", SearchOption.AllDirectories)
                     .Select(file => CSharpSyntaxTree.ParseText(
                         File.ReadAllText(file),
-                        new CSharpParseOptions(LanguageVersion.Latest)))
+                        new CSharpParseOptions(LanguageVersion.Latest),
+                        path: file,
+                        encoding: System.Text.Encoding.UTF8))
                     .ToList();
 
                 //收集元数据引用（去重）

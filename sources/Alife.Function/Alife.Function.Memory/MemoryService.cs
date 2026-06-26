@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Alife.Platform;
 using Alife.Framework;
 using Alife.Function.FunctionCaller;
+using Alife.Function.Interpreter;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -21,7 +22,7 @@ public record MemoryConfig
     public int BatchSize { get; set; } = 70;
     public float Probability { get; set; } = 0.4f;
     public int MaxCompressionLevel { get; set; } = 7;
-    public List<string> Keywords { get; set; } = ["记得", "记住", "忆", "什么时候", "啥时候", "以前"];
+    public List<string> Keywords { get; set; } = ["记得", "记住", "忆", "时候", "以前", "过去"];
     public string CompressPrompt { get; set; } =
         """
         【来自记忆系统的信息】
@@ -89,25 +90,23 @@ public partial class MemoryService(XmlFunctionCaller functionService)
     : InteractiveModule<MemoryService>, IConfigurable<MemoryConfig>
 {
     [XmlFunction(FunctionMode.OneShot)]
-    [Description("查看记忆存档中保存的完整原始内容。（你要积极使用该功能，因为有些记忆的重要内容被记在了完整内容中，而不是概述里）")]
-    public async Task Recall([Description("存档索引（如：1-20240101120000-20240101130000）")] string index)
+    public async Task ReadMemoryArchive([Description("存档id")] string id)
     {
-        string? memory = await memoryManager.ReadMemory(index);
+        string? memory = await memoryManager.ReadMemory(id);
         Poke(memory != null
-            ? $"读取[记忆存档({index})]内容如下：\n{memory}"
-            : $"未找到[记忆存档({index})]");
+            ? $"读取[记忆存档({id})]内容如下：\n{memory}"
+            : $"未找到[记忆存档({id})]");
     }
 
     [XmlFunction(FunctionMode.OneShot)]
-    [Description($"在归档的记忆存档中搜索内容（搜索到的结果是存档索引，你需要用 {nameof(Recall)} 打开）")]
-    public async Task Search(
-        [Description("用于精确匹配的单关键词（目标不明确时尽量简化词语或置空来提高命中，否则会搜不到东西）")] string? keyword = null,
-        [Description("用于向量搜索排序的提示词，不提供默认按时间排序（错误率很高，建议优先用关键词搜索）")] string? prompt = null,
+    public async Task SearchMemoryArchive(
+        [Description("精准匹配关键词（仅支持一个，不要太具体避免搜不到）")] string? keyword = null,
+        [Description("向量搜索提示词（仅用于排序，为空则基于时间排序）")] string? prompt = null,
         [Description("页码，从1开始")] int page = 1,
         [Description("每页条数")] int count = 5,
-        [Description("存档层级，默认3级（3级信息密度适中，1级最原始但可能冗余，高层信息损失大但结果少）")] int level = 3,
-        [Description("搜索起始时间（ISO-8601），不填则不限")] DateTime? startTime = null,
-        [Description("搜索结束时间（ISO-8601），不填则不限")] DateTime? endTime = null)
+        [Description("存档层级（推荐3级，信息冗余少，损耗适中）")] int level = 3,
+        [Description("ISO-8601格式，不填则不限")] DateTime? startTime = null,
+        [Description("ISO-8601格式，不填则不限")] DateTime? endTime = null)
     {
         keyword = keyword?.Trim() ?? "";
         if (keyword.Contains(' '))
@@ -252,26 +251,16 @@ public partial class MemoryService(XmlFunctionCaller functionService)
         xmlHandler = new(this);
         functionService.RegisterHandlerWithoutDocument(xmlHandler);
         Prompt($$"""
-                 当你需要管理或查找记忆时，请使用该功能。
+                 使用该功能管理或查找你的记忆
 
-                 ## 提供函数
+                 提供函数
                  {{xmlHandler.FunctionDocument()}}
 
-                 ## 记忆存储
-                 所有记忆都直接存储在上下文中，不过早期记忆会被压缩，然后以记忆存档的方式存在上下文中。
-                 每个记忆存档都有一个唯一ID，其格式为`等级-起始日期-截至日期`，例如`2-20260421014905-20260512022747`，就表明这是一个2级记忆存档，存储了从2026年4月21日1点49分到5月12号2点27分的记忆。
-                 记忆存档的等级表示其对原始聊天记录的压缩次数，其中1表示压缩一次，所以3就表示压缩三次。压缩的记忆存档可以通过<{{nameof(Recall)}}>（回忆）解压。1级存档，只要回忆一次就可以拿到最原始的聊天记录；3级存档则需要嵌套回忆至少3次，才能拿到部分记录。
-                 聊天记录被压缩成记忆存档后，其原始信息以及存档信息将会被转储到“{{storagePath}}”中，以“txt格式，存档id为名”的形式按压缩级别分别存放在“L1,L2...”之类的文件夹中，如“/L1/1-20260421014905-20260421022747.txt”。你可以直接通过文件的方式翻阅这些记忆存档。
-
-                 ## 记忆恢复
-                 记忆存档是对记忆的压缩。虽然被压缩的内容将会被移出上下文，但其在外部磁盘上是会被永久存储的。所以利用本服务提供的工具，你有机会恢复这些记忆。
-                 1. 首先你可以先列出你当前上下文中已知的记忆存档，然后基于大概的时间范围，通过<{{nameof(Recall)}}>翻阅这些存档。由于存档是嵌套包裹的，所以只要经过足够多次的调用，你就可以找到所有的原始聊天记录。
-                 2. 如果你不知道记忆的大致范围，你则可以尝试使用<{{nameof(Search)}}>，它会直接在外部的海量原始记录中通过关键词搜索记忆，并按时间排序返回记忆存档，帮你缩小查询范围，但这个结果可能不够精确，所以搜索时要多采用泛用的条件。
-                 (总之只要你愿意回想，就没有找不回的记忆，所以当遇到记不起来的事情时，一定要积极使用上述工具)
-
-                 ## 专属文件夹
-                 你有一个专属文件夹 {{characterStorage}}，作为你的私人存储库。
-                 你可以把你的各种各样的东西都存储到这里面，这样可以一直保存而且不会弄脏其他文件夹。
+                 记忆存储
+                 - 早期聊天记录会被总结为记忆存档，每个存档有唯一ID，格式为`等级-最早日期范围-最大日期范围`。其中等级表示被压缩次数（早期存档也会被二次压缩）
+                 - 可以通过<{{nameof(ReadMemoryArchive)}}>查看存档压缩的内容。内容中可能是嵌套的存档，因此需要多次调用才能拿到最原始的聊天记录
+                 - 存档中被压缩内容不会丢失，而是以存档id为名永久存储在`{{storagePath}}`中，可利用记忆工具或文件工具查看
+                 - 将你的个人文件存放到{{characterStorage}}，此文件夹完全由你管理
                  """);
     }
 

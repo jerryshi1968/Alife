@@ -37,7 +37,7 @@ public class XmlStreamExecutorTests
         XmlHandlerTable table = new XmlHandlerTable();
         table.Register(new XmlHandler(handler));
 
-        XmlStreamParser parser = new XmlStreamParser("script");
+        XmlStreamParser parser = new XmlStreamParser(["script"]);
         // Set minBreakingLength to 1 to force split on every separator
         await using XmlStreamExecutor executor = new XmlStreamExecutor(parser, table, [".", "!"], 1);
 

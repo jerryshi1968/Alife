@@ -47,7 +47,8 @@
 
     <div class="step-nav">
         <Button Size="@ButtonSize.Large" OnClick="@OnPrev" Disabled="@(installProgress != null)">
-            <Icon Type="@IconType.Outline.ArrowLeft"/> 上一步
+            <Icon Type="@IconType.Outline.ArrowLeft"/>
+            上一步
         </Button>
         @if (!installDone && installProgress == null)
         {
@@ -57,14 +58,17 @@
                 </Button>
                 <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large" OnClick="@OnInstall"
                         Loading="@(installProgress != null)" Disabled="@(selectedIds.Count == 0)">
-                    一键安装 <Icon Type="@IconType.Outline.ArrowRight"/>
+                    一键安装
+                    <Icon Type="@IconType.Outline.ArrowRight"/>
                 </Button>
             </Flex>
         }
         else
         {
-            <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large" OnClick="@OnNext" Disabled="@(installProgress != null)">
-                下一步 <Icon Type="@IconType.Outline.ArrowRight"/>
+            <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large" OnClick="@OnNext"
+                    Disabled="@(installProgress != null)">
+                下一步
+                <Icon Type="@IconType.Outline.ArrowRight"/>
             </Button>
         }
     </div>
@@ -75,19 +79,24 @@
     [Parameter] public EventCallback OnNextStep { get; set; }
 
     static readonly string[] RecommendedPluginIds = [
+        //行业标准
+        "Alife.Function.FunctionCaller",
+        "Alife.Function.Mcp",
+        "Alife.Function.Skill",
+        //对话环境
+        "Alife.Function.Memory",
+        "Alife.Function.MessageFilter",
+        "Alife.Function.SystemEvent",
+        "Alife.Function.Developer",
+        //实用工具
+        "Alife.Function.Browser",
+        "Alife.Function.FileService",
+        "Alife.Function.ProcessService",
+        "Alife.Function.DeskPet",
+        //模型接入
         "Alife.Function.AIModelUtility",
         "Alife.Function.Auditory",
         "Alife.Function.Auditory.SenseVoice",
-        "Alife.Function.Browser",
-        "Alife.Function.DeskPet",
-        "Alife.Function.Developer",
-        "Alife.Function.FunctionCaller",
-        "Alife.Function.Mcp",
-        "Alife.Function.Memory",
-        "Alife.Function.MessageFilter",
-        "Alife.Function.Python",
-        "Alife.Function.Skill",
-        "Alife.Function.SystemEvent",
         "Alife.Function.Speech",
         "Alife.Function.Speech.VITS",
         "Alife.Function.Vision",
@@ -100,9 +109,7 @@
     bool installDone;
     int installedCount;
 
-    protected override void OnInitialized()
-    {
-    }
+    protected override void OnInitialized() {}
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -177,19 +184,109 @@
 }
 
 <style>
-.step-icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
-.step-title { margin: 0 0 8px; font-size: 20px; font-weight: 700; color: #1a1a1a; text-align: center; }
-.step-desc { margin: 0 0 20px; font-size: 13px; color: rgba(0,0,0,.45); text-align: center; }
-.preset-status { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; margin-bottom: 16px; background: rgba(82,196,26,.06); border: 1px solid rgba(82,196,26,.15); border-radius: 8px; font-size: 13px; color: #52c41a; font-weight: 500; }
-.progress-tip { margin-bottom: 12px; padding: 8px 12px; background: rgba(24,144,255,.04); border: 1px solid rgba(24,144,255,.1); border-radius: 8px; font-size: 12px; color: #1890ff; display: flex; align-items: center; gap: 6px; }
-.step-nav { display: flex; justify-content: space-between; margin-top: 16px; gap: 12px; }
+    .step-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+    }
 
-.plugin-checklist { display: flex; flex-direction: column; gap: 4px; max-height: 280px; overflow-y: auto; }
-.plugin-check-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-.plugin-check-item:hover { background: rgba(0,0,0,.03); }
-.plugin-check-item.installed { opacity: .55; cursor: default; }
-.plugin-check-item input[type="checkbox"] { margin: 0; cursor: pointer; }
-.plugin-check-item.installed input[type="checkbox"] { cursor: default; }
-.pc-name { font-weight: 500; color: #333; }
-.pc-id { font-size: 11px; color: rgba(0,0,0,.3); }
+    .step-title {
+        margin: 0 0 8px;
+        font-size: 20px;
+        font-weight: 700;
+        color: #1a1a1a;
+        text-align: center;
+    }
+
+    .step-desc {
+        margin: 0 0 20px;
+        font-size: 13px;
+        color: rgba(0, 0, 0, .45);
+        text-align: center;
+    }
+
+    .preset-status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 12px;
+        margin-bottom: 16px;
+        background: rgba(82, 196, 26, .06);
+        border: 1px solid rgba(82, 196, 26, .15);
+        border-radius: 8px;
+        font-size: 13px;
+        color: #52c41a;
+        font-weight: 500;
+    }
+
+    .progress-tip {
+        margin-bottom: 12px;
+        padding: 8px 12px;
+        background: rgba(24, 144, 255, .04);
+        border: 1px solid rgba(24, 144, 255, .1);
+        border-radius: 8px;
+        font-size: 12px;
+        color: #1890ff;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .step-nav {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 16px;
+        gap: 12px;
+    }
+
+    .plugin-checklist {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-height: 280px;
+        overflow-y: auto;
+    }
+
+    .plugin-check-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+    }
+
+    .plugin-check-item:hover {
+        background: rgba(0, 0, 0, .03);
+    }
+
+    .plugin-check-item.installed {
+        opacity: .55;
+        cursor: default;
+    }
+
+    .plugin-check-item input[type="checkbox"] {
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .plugin-check-item.installed input[type="checkbox"] {
+        cursor: default;
+    }
+
+    .pc-name {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .pc-id {
+        font-size: 11px;
+        color: rgba(0, 0, 0, .3);
+    }
 </style>

@@ -173,9 +173,12 @@ public class XmlStreamParser
         parsedAttributes.Clear();
     }
 
-    public XmlStreamParser(IEnumerable<string> plainAreas)
+    public XmlStreamParser(IEnumerable<string>? plainAreas = null)
     {
-        this.plainAreas = new HashSet<string>(plainAreas.Select(t => t.ToLower()));
+        if (plainAreas == null)
+            this.plainAreas = [];
+        else
+            this.plainAreas = [..plainAreas.Select(t => t.ToLower())];
     }
 
     //注释状态

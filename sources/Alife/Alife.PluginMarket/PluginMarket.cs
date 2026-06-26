@@ -159,10 +159,6 @@ public class PluginMarket
 
     public async Task UninstallPlugin(Plugin plugin)
     {
-        List<string> dependents = GetDependents(plugin.Id);
-        if (dependents.Count > 0)
-            throw new Exception($"无法卸载，以下插件依赖 {plugin.Id}: {string.Join(", ", dependents)}");
-
         await pluginInstaller.UninstallPlugin(plugin);
         OnInstalled?.Invoke();
     }

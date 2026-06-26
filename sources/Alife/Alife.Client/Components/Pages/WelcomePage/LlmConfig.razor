@@ -33,7 +33,7 @@
             else
             {
                 <div style="display:flex;gap:6px;">
-                    <Input @bind-Value="@llmConfig.modelId" Placeholder="例如: deepseek-chat" Size="@InputSize.Small" Style="flex:1;"/>
+                    <Input @bind-Value="@llmConfig.modelId" Placeholder="输入模型名 (可尝试点击探测获取)" Size="@InputSize.Small" Style="flex:1;"/>
                     <Button Size="@ButtonSize.Small" Icon="@IconType.Outline.Search" Loading="@isFetchingModels" OnClick="@FetchModels">探测</Button>
                 </div>
             }

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Alife.Framework;
 using Alife.Function.FunctionCaller;
+using Alife.Function.Interpreter;
 using Alife.Platform;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -156,6 +157,7 @@ public class DeveloperService(
              using System.Threading.Tasks;
              using Alife.Framework;
              using Alife.Function.FunctionCaller;
+             using Alife.Function.Interpreter;
              using Microsoft.Extensions.Logging;
 
              public class MyModuleData

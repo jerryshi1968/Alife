@@ -5,20 +5,17 @@
 @inject IMessageService MessageService
 
 <div>
-    <Flex Justify="FlexJustify.SpaceBetween" Align="FlexAlign.Center">
-        @* 左侧：打开配置文件夹 *@
-        @if (!string.IsNullOrEmpty(configFilePath))
-        {
-            <Tooltip Title="@("打开配置文件所在目录")">
-                <Button Type="@ButtonType.Text"
-                        Icon="@IconType.Outline.FolderOpen"
-                        Size="@ButtonSize.Small"
-                        OnClick="@OpenConfigFolder"/>
-            </Tooltip>
-        }
-
-        @* 右侧：保存操作按钮 *@
+    <Flex Justify="FlexJustify.FlexEnd" Align="FlexAlign.Center">
         <Space>
+            @if (!string.IsNullOrEmpty(configFilePath))
+            {
+                <SpaceItem>
+                    <Tooltip Title="@("打开配置文件所在目录")">
+                        <Button Icon="@IconType.Outline.FolderOpen"
+                                OnClick="@OpenConfigFolder"/>
+                    </Tooltip>
+                </SpaceItem>
+            }
             <SpaceItem>
                 <Popconfirm Title="确认保存到全局吗？所有未单独配置的角色将默认使用此配置。" OnConfirm="SaveToGlobal">
                     <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Global">应用到全局</Button>

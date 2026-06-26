@@ -11,12 +11,12 @@
                     <Icon Type="warning"/> @Title
                 </div>
 
-                <div style="margin-bottom: 8px; font-weight: 500;">错误信息：@(Value.Message)</div>
+                <div style="margin-bottom: 8px; font-weight: 500;">错误信息：@errorMessage</div>
 
-                @if (finalException != null)
+                @if (!string.IsNullOrEmpty(innerMessage))
                 {
                     <div style="margin-bottom: 8px; color: #820014;">
-                        内部原因：@(finalException.Message)
+                        内部原因：@innerMessage
                     </div>
                 }
 
@@ -28,7 +28,7 @@
                         border-radius: 4px;
                         white-space: pre-wrap;
                         margin-top: 8px;">
-                    @(finalException != null ? finalException.StackTrace : Value.StackTrace)
+                    @stackTrace
                 </pre>
             </div>
         }
@@ -46,12 +46,21 @@
     [Parameter] public EventCallback<Exception> ValueChanged { get; set; }
     [Parameter] public string Title { get; set; } = "操作失败喵！";
 
-    Exception? finalException;
+    string errorMessage = "";
+    string innerMessage = "";
+    string stackTrace = "";
 
     protected override void OnParametersSet()
     {
-        finalException = Value?.InnerException;
-        while (finalException?.InnerException != null)
-            finalException = finalException.InnerException;
+        if (Value != null)
+        {
+            errorMessage = Value.Message ?? "";
+            stackTrace = Value.StackTrace ?? "";
+
+            var finalException = Value.InnerException;
+            while (finalException?.InnerException != null)
+                finalException = finalException.InnerException;
+            innerMessage = finalException?.Message ?? "";
+        }
     }
 }

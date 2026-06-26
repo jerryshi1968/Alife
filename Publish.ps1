@@ -83,9 +83,15 @@ foreach ($dir in $functionDirs) {
     $target = Join-Path $PluginTarget $dir.Name
     New-Item -ItemType Directory -Path $target -Force | Out-Null
 
-    # Copy .cs files from source directory
-    Get-ChildItem $dir.FullName -Filter "*.cs" -File | ForEach-Object {
-        Copy-Item $_.FullName $target -Force
+    # Copy .cs files from source directory (including subdirectories)
+    Get-ChildItem $dir.FullName -Filter "*.cs" -Recurse -File | Where-Object { $_.FullName -notmatch '\\obj\\' } | ForEach-Object {
+        $relativePath = $_.FullName.Substring($dir.FullName.Length + 1)
+        $destFile = Join-Path $target $relativePath
+        $destDir = Split-Path $destFile -Parent
+        if (-not (Test-Path $destDir)) {
+            New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+        }
+        Copy-Item $_.FullName $destFile -Force
     }
 
     # Copy generated Razor .g.cs files (only if corresponding .razor exists)
