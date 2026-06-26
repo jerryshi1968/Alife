@@ -7,7 +7,7 @@ using Alife.Function.Interpreter;
 
 namespace Alife.Function.ProcessService;
 
-[Module("进程管理", "提供进程创建、管理和管道通信能力",
+[Module("进程操作", "提供进程创建、管理和管道通信能力",
     defaultCategory: "Alife 官方/实用工具"
 )]
 public class ProcessService(XmlFunctionCaller functionCaller) : InteractiveModule<ProcessService>
@@ -105,6 +105,7 @@ public class ProcessService(XmlFunctionCaller functionCaller) : InteractiveModul
 
                  用法示例
                   ```
+                  <clearprocess name="python"/> # 先清空进程输出流，防止被上次内容干扰
                   <writeprocess name="python">a=1;print(a)</writeprocess> # 使用python进程执行代码
                   <readprocess name="python" waiting="2" maxlines="10"/>   # 等待2秒，最多读取10行，结果为1
                   <writeprocess name="python">a+=1;print(a)</writeprocess> # 进程可以持续交互
