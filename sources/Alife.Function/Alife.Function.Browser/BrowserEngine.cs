@@ -236,6 +236,11 @@ public class BrowserEngine : IDisposable
     }
 
     /// <summary>
+    /// 确保浏览器窗口可见并激活
+    /// </summary>
+    public void EnsureVisible() => worker.EnsureVisible();
+
+    /// <summary>
     /// 是否有弹出窗口
     /// </summary>
     public bool HasActivePopup => worker.HasActivePopup;

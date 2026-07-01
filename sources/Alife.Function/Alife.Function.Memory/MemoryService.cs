@@ -244,24 +244,27 @@ public partial class MemoryService(XmlFunctionCaller functionService)
         await base.AwakeAsync(context);
 
         await TryInitializedAsync();
-        storagePath = Path.Combine(AlifePath.StorageFolderPath, context.Character.StorageKey, "Memory");
+
         string characterStorage = Path.Combine(AlifePath.StorageFolderPath, context.Character.StorageKey, "Storage");
         Directory.CreateDirectory(characterStorage);
+        Prompt($"将你的个人文件存放到{characterStorage}，此文件夹完全由你管理");
 
-        xmlHandler = new(this);
-        functionService.RegisterHandlerWithoutDocument(xmlHandler);
-        Prompt($$"""
-                 使用该功能管理或查找你的记忆
+        storagePath = Path.Combine(AlifePath.StorageFolderPath, context.Character.StorageKey, "Memory");
+        xmlHandler = new(this) {
+            Description = "当你想要回忆往事查找记忆时使用",
+            Explanation = $$"""
+                            记忆存储介绍
+                            - 早期聊天记录会被总结为记忆存档，每个存档有唯一ID，格式为`等级-最早日期范围-最大日期范围`。其中等级表示被压缩次数（早期存档也会被二次压缩）
+                            - 可以通过<{{nameof(ReadMemoryArchive)}}>查看存档压缩的内容。内容中可能是嵌套的存档，因此需要多次调用才能拿到最原始的聊天记录
+                            - 存档中被压缩内容不会丢失，而是以存档id为名永久存储在`{{storagePath}}`中，可利用记忆工具或文件工具查看
 
-                 提供函数
-                 {{xmlHandler.FunctionDocument()}}
-
-                 记忆存储
-                 - 早期聊天记录会被总结为记忆存档，每个存档有唯一ID，格式为`等级-最早日期范围-最大日期范围`。其中等级表示被压缩次数（早期存档也会被二次压缩）
-                 - 可以通过<{{nameof(ReadMemoryArchive)}}>查看存档压缩的内容。内容中可能是嵌套的存档，因此需要多次调用才能拿到最原始的聊天记录
-                 - 存档中被压缩内容不会丢失，而是以存档id为名永久存储在`{{storagePath}}`中，可利用记忆工具或文件工具查看
-                 - 将你的个人文件存放到{{characterStorage}}，此文件夹完全由你管理
-                 """);
+                            如何恢复记忆
+                            1. 预估大致时间范围，或根据概述所在存档，通过<{{nameof(ReadMemoryArchive)}}>查看记忆存档的完整内容
+                            2. 根据关键词通过<{{nameof(SearchMemoryArchive)}}>查找疑似存档，然后重复第一步
+                            3. 备选方案，通过文件系统直接浏览搜索存档目录中的所有文件
+                            """
+        };
+        functionService.RegisterHandler(xmlHandler, DocumentMode.Implicit);
     }
 
     public override async Task StartAsync(Kernel kernel, ChatActivity chatActivity)

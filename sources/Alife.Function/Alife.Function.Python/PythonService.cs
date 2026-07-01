@@ -64,14 +64,12 @@ public partial class PythonService
 [Module("脚本执行", "借助Python，让AI几乎可以执行任何任务！",
     defaultCategory: "Alife 官方/实用工具"
 )]
-[Description(@"此服务能让你获得执行python的能力，可用于文件管理、设备控制、绘画演奏等各种复杂的自定义能力。
-如果缺少环境你还可以利用`subprocess.check_call([sys.executable, ""-m"", ""pip"", ""install"", package_name])`来安装环境。")]
 public partial class PythonService(XmlFunctionCaller functionCaller) : InteractiveModule<PythonService>
 {
     [XmlFunction(FunctionMode.Content)]
-    [Description("执行python脚本（使用后需等待结果返回）（注意：不要写注释判断等非必要内容，用最短的代码，最少的行数写，然后直接执行功能！）。")]
+    [Description("执行python脚本")]
     public async Task Python(XmlExecutorContext context, [XmlContent] string script,
-        [Description("程序预估运行持续时间（单位秒）")] int timeout, CancellationToken cancellationToken)
+        [Description("预估运行时间（单位秒）")] int timeout, CancellationToken cancellationToken)
     {
         if (context.CallMode == CallMode.Closing)
         {
@@ -84,9 +82,21 @@ public partial class PythonService(XmlFunctionCaller functionCaller) : Interacti
         }
     }
 
+    [XmlFunction(FunctionMode.OneShot)]
+    public async Task DownloadFile(string url, string path)
+    {
+        await AlifePlatform.DownloadFileAsync(url, path);
+        Poke("已下载");
+    }
+
     public override async Task AwakeAsync(AwakeContext context)
     {
         await base.AwakeAsync(context);
-        functionCaller.RegisterHandler(this, nameof(Python));
+        
+        XmlHandler xmlHandler = new(this) {
+            Description = "利用python实现文件管理、设备控制、绘画演奏等各种复杂的自定义能力。",
+            Explanation = "如果缺少环境可使用`subprocess.check_call([sys.executable, \"-m\", \"pip\", \"install\", package_name])`安装"
+        };
+        functionCaller.RegisterHandler(xmlHandler, nameof(Python));
     }
 }

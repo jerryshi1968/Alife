@@ -104,10 +104,10 @@ public class FileService(XmlFunctionCaller functionCaller) : InteractiveModule<F
     {
         await base.AwakeAsync(context);
 
-        XmlHandler xmlHandler = new(this) {
-            Description = "当你需要读写、编辑、搜索文件时调用"
-        };
-        functionCaller.RegisterHandler(xmlHandler);
         functionCaller.AddPlainAreas(nameof(Write));
+        XmlHandler xmlHandler = new(this) {
+            Description = "当你需要更方便快捷的查找编辑文件时使用，例如用于编程工作"
+        };
+        functionCaller.RegisterHandler(xmlHandler, DocumentMode.Implicit);
     }
 }

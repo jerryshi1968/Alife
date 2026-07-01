@@ -1,6 +1,7 @@
-using System.ComponentModel;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Alife.Platform;
 using Alife.Framework;
@@ -9,15 +10,34 @@ using Alife.Function.Interpreter;
 
 namespace Alife.Function.Skill;
 
-[Module("Skill工具", "Skill 是一种渐进式（按需加载省token）的工具包，通过预编写的手册引导和规范AI完成各种各样的复杂任务。\n你可以使用“modelscope skills add”来手动添加新的技能。",
-    defaultCategory: "Alife 官方/功能底座")]
-public class SkillService(XmlFunctionCaller functionService) : InteractiveModule<SkillService>
+public class SkillConfig
 {
+    public List<string> Blacklist { get; set; } = [];
+}
+
+public class SkillInfo
+{
+    public string Name { get; set; } = "";
+    public string Description { get; set; } = "";
+}
+
+[Module("Skill工具", "Skill 是一种渐进式（按需加载省token）的工具包，通过预编写的手册引导和规范AI完成各种各样的复杂任务。\n你可以使用\u201Cmodelscope skills add\u201D来手动添加新的技能。",
+    defaultCategory: "Alife 官方/功能底座", EditorUI = typeof(SkillServiceUI))]
+public class SkillService(XmlFunctionCaller functionService) : InteractiveModule<SkillService>, IConfigurable<SkillConfig>
+{
+    public SkillConfig? Configuration { get; set; }
+
     [XmlFunction(FunctionMode.OneShot)]
-    [Description("快速获取Skill信息")]
     public void StudySkill(string name)
     {
-        string skillDocPath = Path.Combine(skillsPath, name, "SKILL.md");
+        string? skillDir = FindSkillDirectory(name);
+        if (skillDir == null)
+        {
+            ChatBot.Poke($"[{nameof(StudySkill)}] skill \"{name}\" 不存在");
+            return;
+        }
+
+        string skillDocPath = Path.Combine(skillDir, "SKILL.md");
         if (File.Exists(skillDocPath) == false)
         {
             ChatBot.Poke($"[{nameof(StudySkill)}] skill文件不存在");
@@ -25,7 +45,7 @@ public class SkillService(XmlFunctionCaller functionService) : InteractiveModule
         }
 
         string skillDoc = File.ReadAllText(skillDocPath);
-        string[] appendFiles = Directory.GetFiles(Path.Combine(skillsPath, name), "*", SearchOption.AllDirectories);
+        string[] appendFiles = Directory.GetFiles(skillDir, "*", SearchOption.AllDirectories);
 
         Poke(
             $"""
@@ -41,30 +61,98 @@ public class SkillService(XmlFunctionCaller functionService) : InteractiveModule
              """);
     }
 
+    string? FindSkillDirectory(string name)
+    {
+        if (!Directory.Exists(skillsPath)) return null;
+
+        foreach (string dir in Directory.GetDirectories(skillsPath))
+        {
+            string dirName = Path.GetFileName(dir);
+            if (dirName == name) return dir;
+
+            string skillDocPath = Path.Combine(dir, "SKILL.md");
+            if (File.Exists(skillDocPath))
+            {
+                string content = File.ReadAllText(skillDocPath);
+                var (frontName, _) = ParseFrontmatter(content);
+                if (frontName == name) return dir;
+            }
+        }
+
+        return null;
+    }
+
     public override async Task AwakeAsync(AwakeContext context)
     {
         await base.AwakeAsync(context);
 
-        //附加提示词
-        string[] skills = Directory.Exists(skillsPath)
-            ? Directory.GetDirectories(skillsPath).Select(Path.GetFileName).Cast<string>().ToArray()
-            : [];
+        //获取所有skill并解析frontmatter
+        List<SkillInfo> allSkills = [];
+        if (Directory.Exists(skillsPath))
+        {
+            foreach (string dir in Directory.GetDirectories(skillsPath))
+            {
+                string name = Path.GetFileName(dir);
+                string skillDocPath = Path.Combine(dir, "SKILL.md");
+                SkillInfo info = new() { Name = name };
+                if (File.Exists(skillDocPath))
+                {
+                    string content = File.ReadAllText(skillDocPath);
+                    var (frontName, frontDesc) = ParseFrontmatter(content);
+                    if (frontName != null) info.Name = frontName;
+                    if (frontDesc != null) info.Description = frontDesc;
+                }
+                allSkills.Add(info);
+            }
+        }
+
+        //黑名单过滤
+        IEnumerable<SkillInfo> filtered = allSkills;
+        if (Configuration?.Blacklist.Count > 0)
+        {
+            HashSet<string> blacklist = new(Configuration.Blacklist);
+            filtered = allSkills.Where(s => !blacklist.Contains(s.Name));
+        }
+
+        //构建skill列表文本
+        string[] skillLines = filtered
+            .Select(s => string.IsNullOrEmpty(s.Description) ? s.Name : $"{s.Name} - {s.Description}")
+            .ToArray();
 
         //注册函数
         XmlHandler xmlHandler = new(this) {
-            Description = "当你需要使用或管理Skill时调用。",
-            Explanation = $"""
-                           每个skill都是一个文件夹，它由一个SKILL.md（使用手册），和可能附带的脚本、资源文件构成。
-                           所有的skill都存放在{skillsPath}目录中，你可以直接通过该目录管理他们。或者可以参考其中已有的skill，来学习创建自己的Skill。
-
-                           ## 已有Skill
-
-                           - {string.Join("\n- ", skills)}
-
-                           如果要使用 skill，只需要先阅读一下 skillFolder/SKILL.md ，然后按其指导的方式去使用即可（注意手册中提到的文件一般是相对 skillFolder 的路径，你可以用python执行）。
-                           """
+            Explanation = $$"""
+                            已有Skill
+                            - {{(skillLines.Length == 0 ? "无Skill" : string.Join("\n- ", skillLines))}}
+                            
+                            创建Skill
+                            在`{{skillsPath}}`目录下存放一个`{Skill名称}/SKILL.md`即可被识别为Skill，然后你可以在此基础上增加额外的脚本文件等，具体可以参考其中或网络上常见的Skill写法
+                            """
         };
-        functionService.RegisterHandler(xmlHandler, DocumentMode.Implicit);
+        functionService.RegisterHandler(xmlHandler);
+    }
+
+    static readonly Regex FrontmatterRegex = new(@"^---\s*\n(.*?)\n---\s*\n", RegexOptions.Singleline);
+
+    static (string? name, string? description) ParseFrontmatter(string content)
+    {
+        Match match = FrontmatterRegex.Match(content);
+        if (!match.Success) return (null, null);
+
+        string yaml = match.Groups[1].Value;
+        string? name = null;
+        string? description = null;
+
+        foreach (string line in yaml.Split('\n'))
+        {
+            string trimmed = line.Trim();
+            if (trimmed.StartsWith("name:"))
+                name = trimmed["name:".Length..].Trim().Trim('"', '\'');
+            else if (trimmed.StartsWith("description:"))
+                description = trimmed["description:".Length..].Trim().Trim('"', '\'');
+        }
+
+        return (name, description);
     }
 
     readonly string skillsPath = Path.Combine(AlifePath.StorageFolderPath, "Skills");

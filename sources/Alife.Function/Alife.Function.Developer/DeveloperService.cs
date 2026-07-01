@@ -100,6 +100,7 @@ public class DeveloperService(
         Poke(result);
     }
     [XmlFunction(FunctionMode.OneShot)]
+    [Description("关闭然后重新打开程序")]
     public void RestartActivity([Description("为空表示自己")] string? charactorName = null)
     {
         Character? character = FindCharacter(charactorName);
@@ -223,56 +224,55 @@ public class DeveloperService(
         pluginCopyRoot = Path.Combine(AlifePath.TempFolderPath, "PluginsRuntime");
         ReplaceFolder(pluginRoot, pluginCopyRoot);
 
-        XmlHandler xmlHandler = new(this);
-        functionCaller.RegisterHandlerWithoutDocument(xmlHandler);
-        Prompt($$"""
-                 Alife是一款AIAgent，源码在`https://github.com/BDFFZI/Alife`，需要深入研究请下源码
+        XmlHandler xmlHandler = new(this) {
+            Description = "当你需要帮助用户解决当前软件问题或想进行新功能开发时使用",
+            Explanation = $$"""
+                            Alife是一款AIAgent，源码在`https://github.com/BDFFZI/Alife`，需要深入研究请下源码
 
-                 框架结构
-                 Character：存储ai人设功能配置
-                 ChatBot：与llm实际通讯
-                 ChatActivity：创建会话活动，激活插件，连接llm
-                 Module：功能单位，可被热更加载
+                            框架结构
+                            Character：存储ai人设功能配置
+                            ChatBot：与llm实际通讯
+                            ChatActivity：创建会话活动，激活插件，连接llm
+                            Module：功能单位，可被热更加载
 
-                 插件市场
-                 在`https://github.com/BDFFZI/Alife.PluginMarket`获取第三方插件或分享插件。插件是独立功能，可以让你引用nuget、pip包，具体看仓库说明
+                            插件市场
+                            在`https://github.com/BDFFZI/Alife.PluginMarket`获取第三方插件或分享插件。插件是独立功能，可以让你引用nuget、pip包，具体看仓库说明
 
-                 关键插件
-                 FunctionCaller：实现函数调用
-                 MCPService：实现接入MCP协议
-                 SkillService：实现接入Skill协议
+                            关键插件
+                            FunctionCaller：实现函数调用
+                            MCPService：实现接入MCP协议
+                            SkillService：实现接入Skill协议
 
-                 示例插件，建议参考他们写法
-                 Speech.VITS：其通过通用接口扩展模型选项，利用管道通讯调用python运行本地模型，并实现自动下载依赖环境
-                 Memory：其通过ChatBot事件和llm申请机制实现交互拦截，并通过直接读写对话上下文实现记忆压缩，同时实现关键字检测发送额外提示词功能。
+                            示例插件，建议参考他们写法
+                            Speech.VITS：其通过通用接口扩展模型选项，利用管道通讯调用python运行本地模型，并实现自动下载依赖环境
+                            Memory：其通过ChatBot事件和llm申请机制实现交互拦截，并通过直接读写对话上下文实现记忆压缩，同时实现关键字检测发送额外提示词功能。
 
-                 环境目录
-                 应用目录：{{AppContext.BaseDirectory}}
-                 环境目录：{{AlifePath.RuntimeFolderPath}}
-                 存储目录：{{AlifePath.StorageFolderPath}}
-                 插件目录：{{pluginCopyRoot}}
-                 角色目录：{存储目录}/Character/{{Character.Name}}
-                 模块配置：{存储目录}/Configuration
-                 角色模块配置（优先级更高）：{角色目录}/Configuration
+                            环境目录
+                            应用目录：{{AppContext.BaseDirectory}}
+                            环境目录：{{AlifePath.RuntimeFolderPath}}
+                            存储目录：{{AlifePath.StorageFolderPath}}
+                            插件目录：{{pluginCopyRoot}}
+                            角色目录：{存储目录}/Character/{{Character.Name}}
+                            模块配置：{存储目录}/Configuration
+                            角色模块配置（优先级更高）：{角色目录}/Configuration
 
-                 开发工具
-                 {{xmlHandler.FunctionDocument()}}
+                            插件开发方法
+                            1. 在插件目录新增cs脚本，实现模块。然后通过{{nameof(ReloadModules)}}重载
+                            2. 成功后，编辑`{角色目录}/index.json`，将新增模块类名放`Modules`数组中
+                            3. 编辑后用{{nameof(ReloadCharacters)}}重载，并用{{nameof(GetCharacterEnabledModule)}}验证模块启用
+                            4. 如果模块用到配置功能，可编辑`{模块配置}/{模块类名}.json`修改配置
+                            5. 最后用{{nameof(RestartActivity)}}重启自己，模块要在重启后才会生效
 
-                 插件开发方法
-                 1. 在插件目录新增cs脚本，实现模块。然后通过{{nameof(ReloadModules)}}重载
-                 2. 成功后，编辑`{角色目录}/index.json`，将新增模块类名放`Modules`数组中
-                 3. 编辑后用{{nameof(ReloadCharacters)}}重载，并用{{nameof(GetCharacterEnabledModule)}}验证模块启用
-                 4. 如果模块用到配置功能，可编辑`{模块配置}/{模块类名}.json`修改配置
-                 5. 最后用{{nameof(RestartActivity)}}重启自己，模块要在重启后才会生效
+                            模块代码示例
+                            调用<{{nameof(ReadDemoModuleCode)}}>获取
 
-                 模块代码示例
-                 调用<{{nameof(ReadDemoModuleCode)}}>获取
-
-                 注意事项
-                 1. 若开发遇问题，优先尝试参考同目录其他文件写法
-                 2. 开发时不要互动，以最快速度专心执行开发任务
-                 3. 不要听无关通知，专心开发直到需求完成
-                 """);
+                            注意事项
+                            1. 若开发遇问题，优先尝试参考同目录其他文件写法
+                            2. 开发时不要互动，以最快速度专心执行开发任务
+                            3. 不要听无关通知，专心开发直到需求完成
+                            """
+        };
+        functionCaller.RegisterHandler(xmlHandler, DocumentMode.Implicit);
     }
 
     Character? FindCharacter(string? name)

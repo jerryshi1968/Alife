@@ -73,7 +73,7 @@ public class InteractiveModule<T> : InteractiveModule
 
     protected void Prompt(string prompt)
     {
-        ChatHistory.AddSystemMessage($"[{typeof(T).Name}]功能介绍:\n{prompt}");
+        ChatHistory.AddSystemMessage($"[{typeof(T).Name}]说明:\n{prompt}");
     }
 
     protected void Throw(string error)

@@ -1,0 +1,111 @@
+@namespace Alife.Function.Skill
+@inherits Alife.Framework.ModuleUIBase<SkillService, SkillConfig>
+@using AntDesign
+@using Alife.Platform
+@using System.IO
+@using System.Text.RegularExpressions
+
+<div style="background: #fafafa; padding: 24px; border-radius: 12px; border: 1px solid #f0f0f0;">
+    <Flex Direction="FlexDirection.Vertical" Gap="@("24")">
+        <div>
+            <Title Level="4" Style="margin-bottom: 16px;">Skill 管理</Title>
+            <Text Type="TextElementType.Secondary">管理显示给 AI 的 Skill。</Text>
+        </div>
+
+        @if (allSkillNames.Count == 0)
+        {
+            <AntDesign.Text Type="TextElementType.Secondary">未找到任何 Skill，请先在 Skills 目录下添加 Skill。</AntDesign.Text>
+        }
+        else
+        {
+            <Flex Direction="FlexDirection.Vertical" Gap="@("12")">
+                @foreach (string skillName in allSkillNames)
+                {
+                    bool enabled = !IsInBlacklist(skillName);
+                    <Flex Align="FlexAlign.Center" Gap="@("8")">
+                        <Switch Checked="@(enabled)"
+                                CheckedChanged="@((bool v) => ToggleBlacklist(skillName, !v))"/>
+                        <Text>@skillName</Text>
+                        @if (skillDescriptions.TryGetValue(skillName, out string? desc) && !string.IsNullOrEmpty(desc))
+                        {
+                            <AntDesign.Text Type="TextElementType.Secondary" Style="font-size: 12px;">- @desc</AntDesign.Text>
+                        }
+                    </Flex>
+                }
+            </Flex>
+        }
+    </Flex>
+</div>
+
+@code {
+    List<string> allSkillNames = [];
+    Dictionary<string, string> skillDescriptions = new();
+
+    protected override void OnInitialized()
+    {
+        LoadSkills();
+    }
+
+    void LoadSkills()
+    {
+        string skillsPath = Path.Combine(AlifePath.StorageFolderPath, "Skills");
+        if (!Directory.Exists(skillsPath)) return;
+
+        foreach (string dir in Directory.GetDirectories(skillsPath))
+        {
+            string name = Path.GetFileName(dir);
+            allSkillNames.Add(name);
+
+            string skillDocPath = Path.Combine(dir, "SKILL.md");
+            if (File.Exists(skillDocPath))
+            {
+                string content = File.ReadAllText(skillDocPath);
+                var (frontName, frontDesc) = ParseFrontmatter(content);
+                if (frontDesc != null)
+                    skillDescriptions[name] = frontDesc;
+            }
+        }
+    }
+
+    bool IsInBlacklist(string skillName)
+    {
+        return Configuration?.Blacklist.Count > 0 && Configuration.Blacklist.Contains(skillName);
+    }
+
+    void ToggleBlacklist(string skillName, bool disable)
+    {
+        Configuration ??= new();
+        if (disable)
+        {
+            if (!Configuration.Blacklist.Contains(skillName))
+                Configuration.Blacklist.Add(skillName);
+        }
+        else
+        {
+            Configuration.Blacklist.Remove(skillName);
+        }
+    }
+
+    static readonly Regex FrontmatterRegex = new(@"^---\s*\n(.*?)\n---\s*\n", RegexOptions.Singleline);
+
+    static (string? name, string? description) ParseFrontmatter(string content)
+    {
+        Match match = FrontmatterRegex.Match(content);
+        if (!match.Success) return (null, null);
+
+        string yaml = match.Groups[1].Value;
+        string? name = null;
+        string? description = null;
+
+        foreach (string line in yaml.Split('\n'))
+        {
+            string trimmed = line.Trim();
+            if (trimmed.StartsWith("name:"))
+                name = trimmed["name:".Length..].Trim().Trim('"', '\'');
+            else if (trimmed.StartsWith("description:"))
+                description = trimmed["description:".Length..].Trim().Trim('"', '\'');
+        }
+
+        return (name, description);
+    }
+}

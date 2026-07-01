@@ -1,5 +1,6 @@
 @using System.Linq
 @using Alife.Framework
+@using Alife.Components.Services
 @inject CharacterSystem CharacterSystem
 @inject ModuleSystem ModuleSystem
 @inject NavigationManager Navigation
@@ -29,7 +30,7 @@
             <div class="nc-body">
                 <h3 class="nc-title">功能模块</h3>
                 <p class="nc-desc">管理 AI 模型、语音、视觉、桌宠等能力模块</p>
-                <Button Size="@ButtonSize.Small" Block OnClick="@(() => Navigation.NavigateTo("/system"))">前往系统管理</Button>
+                <Button Size="@ButtonSize.Small" Block OnClick="@GoToModuleCenter">前往系统管理</Button>
             </div>
         </div>
         <div class="nav-card">
@@ -39,7 +40,7 @@
             <div class="nc-body">
                 <h3 class="nc-title">插件市场</h3>
                 <p class="nc-desc">浏览和安装社区插件，扩展功能边界</p>
-                <Button Size="@ButtonSize.Small" Block OnClick="@(() => Navigation.NavigateTo("/system"))">前往插件市场</Button>
+                <Button Size="@ButtonSize.Small" Block OnClick="@GoToPluginMarket">前往插件市场</Button>
             </div>
         </div>
     </div>
@@ -69,6 +70,18 @@
             CharacterSystem.SaveCharacter(ch);
             Navigation.NavigateTo($"/agent/{ch.Name}");
         }
+    }
+
+    void GoToPluginMarket()
+    {
+        NavigationHub.RequestTab("plugin");
+        Navigation.NavigateTo("/system");
+    }
+
+    void GoToModuleCenter()
+    {
+        NavigationHub.RequestTab("module");
+        Navigation.NavigateTo("/system");
     }
 }
 

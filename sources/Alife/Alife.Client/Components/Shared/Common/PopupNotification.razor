@@ -1,0 +1,135 @@
+<div class="popup-notification @(isFadingOut ? "fade-out" : "fade-in")" style="@Style">
+    <div class="popup-card">
+        @if (Title != null || Icon != null)
+        {
+            <div class="popup-header">
+                @if (Icon != null)
+                {
+                    <Icon Type="@Icon" Style="font-size: 18px; color: #1890ff;" />
+                }
+                @if (Title != null)
+                {
+                    <span class="popup-title">@Title</span>
+                }
+            </div>
+        }
+
+        @if (Body != null)
+        {
+            <div class="popup-body">@Body</div>
+        }
+
+        @if (ProgressVisible)
+        {
+            <div class="popup-actions">
+                <Progress Percent="@ProgressValue" Status="ProgressStatus.Active" Style="width: 100%;" />
+            </div>
+        }
+        else if (Actions != null)
+        {
+            <div class="popup-actions">@Actions</div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public RenderFragment? Body { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+    [Parameter] public bool Visible { get; set; } = true;
+    [Parameter] public EventCallback VisibleChanged { get; set; }
+    [Parameter] public bool ProgressVisible { get; set; }
+    [Parameter] public int ProgressValue { get; set; }
+    [Parameter] public string? Style { get; set; }
+    [Parameter] public int FadeOutDelay { get; set; } = 500;
+
+    bool isFadingOut;
+
+    public async Task Dismiss()
+    {
+        isFadingOut = true;
+        StateHasChanged();
+        await Task.Delay(FadeOutDelay);
+        isFadingOut = false;
+        Visible = false;
+        await VisibleChanged.InvokeAsync();
+    }
+}
+
+<style>
+    .popup-notification {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 9999;
+        pointer-events: auto;
+    }
+
+    .popup-card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        border: 1px solid #f0f0f0;
+        width: 330px;
+    }
+
+    .popup-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .popup-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: rgba(0, 0, 0, 0.85);
+    }
+
+    .popup-body {
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.45);
+        margin-bottom: 12px;
+        max-height: 60px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+    }
+
+    .popup-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .fade-in {
+        animation: popupSlideIn 0.3s ease-out;
+    }
+
+    .fade-out {
+        animation: popupSlideOut 0.5s ease-in forwards;
+    }
+
+    @@keyframes popupSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes popupSlideOut {
+        from {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+    }
+</style>

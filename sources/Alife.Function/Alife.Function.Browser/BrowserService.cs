@@ -22,6 +22,7 @@ public class BrowserService(XmlFunctionCaller functionService)
             Poke("当前处于弹出窗口中，无法直接导航。请先关闭弹出窗口");
             return;
         }
+        browser.EnsureVisible();
         await browser.NavigateAsync(url);
         Poke("已打开网站");
     }
@@ -59,14 +60,7 @@ public class BrowserService(XmlFunctionCaller functionService)
             Poke($"JS执行结果：\n{result}");
         }
     }
-
-    [XmlFunction(FunctionMode.OneShot)]
-    public async Task DownloadFile(string url, string path)
-    {
-        await AlifePlatform.DownloadFileAsync(url, path);
-        Poke("已下载");
-    }
-
+    
     readonly BrowserEngine browser = new();
 
     public override async Task AwakeAsync(AwakeContext context)
@@ -75,7 +69,7 @@ public class BrowserService(XmlFunctionCaller functionService)
         await browser.WaitToLoadedAsync(TimeSpan.FromSeconds(3));
 
         XmlHandler xmlHandler = new(this) {
-            Description = "这让你有个浏览器，可借此上网，学知识，找话题",
+            Description = "你的专属浏览器，当你需要上网查资料时使用",
             Explanation = """
                           1. 遇到验证或登录，可请求用户，绕过反爬
                           2. 优先使用高质量搜索引擎，开源、个人网站，并跳过收费网站（如爱给网、百度文库等）
@@ -92,7 +86,7 @@ public class BrowserService(XmlFunctionCaller functionService)
                           3. 很多时候不是你的思路有问题，而是元素操作失误，不要过于依赖data-alife-id
                           """
         };
-        functionService.RegisterHandler(xmlHandler);
+        functionService.RegisterHandler(xmlHandler,DocumentMode.Implicit);
         functionService.AddPlainAreas(nameof(RunWebsiteJs));
     }
 

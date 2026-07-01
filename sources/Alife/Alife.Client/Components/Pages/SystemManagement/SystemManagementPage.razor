@@ -1,4 +1,6 @@
 @page "/system"
+@using Alife.Components.Services
+@implements IDisposable
 
 <div
     style="height: calc(100vh - 24px); margin: 12px; overflow: hidden; display: flex; flex-direction: column; background: #fff; border-radius: 8px; border: 1px solid #f0f0f0; animation: fadeIn 0.5s ease-out;">
@@ -8,8 +10,8 @@
     </div>
 
     <div style="flex: 1; overflow: hidden;">
-        <Tabs DefaultActiveKey="1" TabPosition="@TabPosition.Left" Style="height: 100%;">
-            <TabPane Key="1">
+        <Tabs @bind-ActiveKey="activeKey" TabPosition="@TabPosition.Left" Style="height: 100%;">
+            <TabPane Key="overview">
                 <TabTemplate>
                     <Flex Direction="@FlexDirection.Vertical" Align="@FlexAlign.Center" Gap="@("4")">
                         <Icon Type="@IconType.Outline.Home"/>
@@ -21,7 +23,7 @@
                 </ChildContent>
             </TabPane>
 
-            <TabPane Key="0">
+            <TabPane Key="mirror">
                 <TabTemplate>
                     <Flex Direction="@FlexDirection.Vertical" Align="@FlexAlign.Center" Gap="@("4")">
                         <Icon Type="@IconType.Outline.CloudDownload"/>
@@ -33,7 +35,7 @@
                 </ChildContent>
             </TabPane>
 
-            <TabPane Key="2">
+            <TabPane Key="module">
                 <TabTemplate>
                     <Flex Direction="@FlexDirection.Vertical" Align="@FlexAlign.Center" Gap="@("4")">
                         <Icon Type="@IconType.Outline.AppstoreAdd"/>
@@ -45,7 +47,7 @@
                 </ChildContent>
             </TabPane>
 
-            <TabPane Key="4">
+            <TabPane Key="plugin">
                 <TabTemplate>
                     <Flex Direction="@FlexDirection.Vertical" Align="@FlexAlign.Center" Gap="@("4")">
                         <Icon Type="@IconType.Outline.Shop"/>
@@ -77,3 +79,23 @@
         overflow: hidden;
     }
 </style>
+
+@code {
+    string activeKey = "overview";
+
+    protected override void OnInitialized()
+    {
+        NavigationHub.Subscribe(OnTabRequested);
+    }
+
+    void OnTabRequested(string tab)
+    {
+        activeKey = tab;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        NavigationHub.Unsubscribe(OnTabRequested);
+    }
+}

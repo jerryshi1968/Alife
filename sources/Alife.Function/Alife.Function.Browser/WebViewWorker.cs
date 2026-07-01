@@ -20,6 +20,17 @@ public class WebViewWorker : IDisposable
     public bool IsNavigating => isNavigating;
     public bool IsLoaded => isLoaded;
 
+    public void EnsureVisible()
+    {
+        if (window == null) return;
+        window.Dispatcher.Invoke(() => {
+            window.WindowState = WindowState.Normal;
+            window.Activate();
+            window.Topmost = true;
+            window.Topmost = false;
+        });
+    }
+
     public Task<T> AddFormTask<T>(Func<WebView2, Task<T>> action)
     {
         if (window == null)
@@ -124,6 +135,7 @@ public class WebViewWorker : IDisposable
                 window.Closing += (_, _) => System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeShutdown();
 
                 window.Show();
+                window.Activate();
                 System.Windows.Threading.Dispatcher.Run();
             }
             catch (Exception ex)

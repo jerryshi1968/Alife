@@ -89,36 +89,33 @@ public class ProcessService(XmlFunctionCaller functionCaller) : InteractiveModul
         TryCreateDefaultProcess("python", "python", "-X utf8 -u -i");
         TryCreateDefaultProcess("pwsh", "pwsh");
 
-        XmlHandler xmlHandler = new(this);
-        functionCaller.RegisterHandlerWithoutDocument(xmlHandler);
         functionCaller.AddPlainAreas(nameof(WriteProcess));
-        Prompt($$"""
-                 提供创建管理进程并通过管道于其通讯的功能，可以借此实现代码执行，电脑管理，调用外部应用的能力
+        XmlHandler xmlHandler = new(this) {
+            Description = "当你需要启动外部进程并持续通讯时使用",
+            Explanation = """
+                          提供创建管理进程并通过管道于其通讯的功能，可以借此实现代码执行，电脑管理，调用外部应用的能力
 
-                 提供函数
-                 {{xmlHandler.FunctionDocument()}}
+                          预设进程
+                          模块启动时会自动创建以下持久进程，可直接使用：
+                          - `python`（基于如下指令`python -X utf8 -u -i`创建）
+                          - `pwsh`
 
-                 预设进程
-                 模块启动时会自动创建以下持久进程，可直接使用：
-                 - `python`（基于如下指令`python -X utf8 -u -i`创建）
-                 - `pwsh`
+                          用法示例
+                           ```
+                           <clearprocess name="python"/> # 先清空进程输出流，防止被上次内容干扰
+                           <writeprocess name="python">a=1;print(a)</writeprocess> # 使用python进程执行代码
+                           <readprocess name="python" waiting="2" maxlines="10"/>   # 等待2秒，最多读取10行，结果为1
+                           <writeprocess name="python">a+=1;print(a)</writeprocess> # 进程可以持续交互
+                           <readprocess name="python" waiting="1"/> # python变量累加，结果为2
+                           ```
 
-                 用法示例
-                  ```
-                  <clearprocess name="python"/> # 先清空进程输出流，防止被上次内容干扰
-                  <writeprocess name="python">a=1;print(a)</writeprocess> # 使用python进程执行代码
-                  <readprocess name="python" waiting="2" maxlines="10"/>   # 等待2秒，最多读取10行，结果为1
-                  <writeprocess name="python">a+=1;print(a)</writeprocess> # 进程可以持续交互
-                  <readprocess name="python" waiting="1"/> # python变量累加，结果为2
-                  ```
-
-                 使用提示
-                 - 避免执行阻塞操作，否则进程可能会被卡死
-                 - 如果进程异常，可以尝试杀死重新创建
-                 - 创建进程时注意设置编码为 UTF-8
-                 - 如果要执行长段代码，建议先写入外部文件，然后通过调用文件的方式执行
-                 - 当进程不使用时要记得杀死进程
-                 """);
+                          使用提示
+                          - 避免执行阻塞操作，否则进程可能会被卡死。如果进程异常，可以尝试杀死重新创建。创建进程时注意设置编码为 UTF-8
+                          - 如果要执行长代码，应先写入外部脚本文件，然后通过调用脚本的方式来执行，从而避免管道环境的语法问题并方便后续更改
+                          - 当进程不使用时要记得杀死进程
+                          """
+        };
+        functionCaller.RegisterHandler(xmlHandler, DocumentMode.Implicit);
     }
     public override Task DestroyAsync()
     {

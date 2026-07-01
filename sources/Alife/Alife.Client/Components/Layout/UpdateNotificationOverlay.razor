@@ -1,58 +1,115 @@
 @using Alife.Components.Services
+@using Alife.PluginMarket
 @inject UpdateService UpdateService
+@inject PluginMarketService PluginMarketService
+@inject NavigationManager Navigation
 
-@if (updateInfo != null)
+@if (showAppUpdate && updateInfo != null)
 {
-    <div class="update-notification @(isFadingOut ? "fade-out" : "fade-in")">
-        <div class="update-card">
-            <div class="update-header">
-                <Icon Type="@IconType.Outline.Bell" Style="font-size: 18px; color: #1890ff;" />
-                <span class="update-title">发现新版本 v@(updateInfo.Version)</span>
-            </div>
-
+    <PopupNotification @ref="appPopup"
+                       Title="@($"发现新版本 v{updateInfo.Version}")"
+                       Icon="@IconType.Outline.Bell"
+                       ProgressVisible="@isDownloading"
+                       ProgressValue="@downloadProgress">
+        <Body>
             @if (!string.IsNullOrEmpty(updateInfo.ReleaseNotes))
             {
-                <div class="update-notes">@updateInfo.ReleaseNotes</div>
+                @updateInfo.ReleaseNotes
             }
-
-            <div class="update-actions">
-                @if (isDownloading)
-                {
-                    <Progress Percent="@downloadProgress" Status="ProgressStatus.Active" Style="width: 100%;" />
-                }
-                else
-                {
-                    <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" OnClick="StartUpdate">
-                        立即升级
-                    </Button>
-                    <Button Size="@ButtonSize.Small" OnClick="Dismiss">下次再说（会影响插件功能！）</Button>
-                }
-            </div>
-        </div>
-    </div>
+        </Body>
+        <Actions>
+            <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" OnClick="StartUpdate">
+                立即升级
+            </Button>
+            <Button Size="@ButtonSize.Small" OnClick="OnDismissAppUpdate">下次再说（会影响插件功能！）</Button>
+        </Actions>
+    </PopupNotification>
+}
+else if (showPluginUpdate && upgradablePlugins.Length > 0)
+{
+    <PopupNotification @ref="pluginPopup"
+                       Title="@($"发现 {upgradablePlugins.Length} 个插件可升级")"
+                       Icon="@IconType.Outline.Bell">
+        <Body>
+            @string.Join("、", upgradablePlugins.Take(3).Select(p => p.Name))
+            @if (upgradablePlugins.Length > 3)
+            {
+                @($" 等{upgradablePlugins.Length}个插件")
+            }
+        </Body>
+        <Actions>
+            <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small"
+                    OnClick="OnGoToPluginMarket">
+                前往升级
+            </Button>
+            <Button Size="@ButtonSize.Small" OnClick="OnIgnorePluginUpdate">忽略</Button>
+        </Actions>
+    </PopupNotification>
 }
 
 @code {
     UpdateInfo? updateInfo;
-    bool isFadingOut;
+    Plugin[] upgradablePlugins = [];
     bool isDownloading;
     int downloadProgress;
+    bool showAppUpdate;
+    bool showPluginUpdate;
+    PopupNotification? appPopup;
+    PopupNotification? pluginPopup;
 
     protected override async Task OnInitializedAsync()
     {
         updateInfo = await UpdateService.CheckForUpdateAsync();
         if (updateInfo != null)
+        {
+            showAppUpdate = true;
             await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        await CheckPluginUpdates();
     }
 
-    void Dismiss()
+    async Task CheckPluginUpdates()
     {
-        isFadingOut = true;
-        Task.Delay(500).ContinueWith(_ =>
+        try
         {
-            updateInfo = null;
-            InvokeAsync(StateHasChanged);
-        });
+            await PluginMarketService.FetchOnlinePluginsAsync();
+            PluginMarketService.RefreshLocalPlugins();
+
+            var allPlugins = PluginMarketService.GetAllPlugins();
+            upgradablePlugins = allPlugins
+                .Where(p => PluginMarketService.HasUpdate(p))
+                .ToArray();
+
+            if (upgradablePlugins.Length > 0)
+            {
+                showPluginUpdate = true;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    async Task OnDismissAppUpdate()
+    {
+        showAppUpdate = false;
+        await InvokeAsync(StateHasChanged);
+        await CheckPluginUpdates();
+    }
+
+    void OnGoToPluginMarket()
+    {
+        showPluginUpdate = false;
+        NavigationHub.RequestTab("plugin");
+        Navigation.NavigateTo("/system");
+    }
+
+    void OnIgnorePluginUpdate()
+    {
+        showPluginUpdate = false;
     }
 
     async Task StartUpdate()
@@ -79,81 +136,3 @@
         }
     }
 }
-
-<style>
-    .update-notification {
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        z-index: 9999;
-        pointer-events: auto;
-    }
-
-    .update-card {
-        background: #fff;
-        border-radius: 8px;
-        padding: 16px;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-        border: 1px solid #f0f0f0;
-        width: 330px;
-        animation: slideIn 0.3s ease-out;
-    }
-
-    .update-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 12px;
-    }
-
-    .update-title {
-        font-size: 15px;
-        font-weight: 600;
-        color: rgba(0, 0, 0, 0.85);
-    }
-
-    .update-notes {
-        font-size: 12px;
-        color: rgba(0, 0, 0, 0.45);
-        margin-bottom: 12px;
-        max-height: 60px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-    }
-
-    .update-actions {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-    }
-
-    .fade-in {
-        animation: slideIn 0.3s ease-out;
-    }
-
-    .fade-out {
-        animation: slideOut 0.5s ease-in forwards;
-    }
-
-    @@keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @@keyframes slideOut {
-        from {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        to {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-    }
-</style>
