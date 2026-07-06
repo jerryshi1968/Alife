@@ -22,7 +22,7 @@ public partial class App
             base.OnStartup(startupEvent);
 
             string[] args = Environment.GetCommandLineArgs();
-            string defaultModel = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot/model/Mao/Mao.model3.json");
+            string defaultModel = PetModelMetadata.ResolveModelJsonPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot/model"), "Mao");
             string modelPath = args.Length > 1 ? args[1] : defaultModel;
             PetModelMetadata metadata = PetModelMetadata.Load(modelPath);
             MainWindow mainWindow = await DeskPet.MainWindow.Create();

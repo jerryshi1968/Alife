@@ -24,6 +24,17 @@ public class PetModelMetadata
     public Dictionary<string, List<InteractionItem>> Interactions { get; } = new();
     public string ModelPath { get; private set; } = string.Empty;
 
+    public static string ResolveModelJsonPath(string modelRootPath, string modelName)
+    {
+        string model3JsonPath = Path.Combine(modelRootPath, modelName, $"{modelName}.model3.json");
+        if (File.Exists(model3JsonPath)) return model3JsonPath;
+
+        string modelJsonPath = Path.Combine(modelRootPath, modelName, $"{modelName}.model.json");
+        if (File.Exists(modelJsonPath)) return modelJsonPath;
+
+        return model3JsonPath;
+    }
+
     public static PetModelMetadata Load(string jsonPath)
     {
         PetModelMetadata metadata = new();
@@ -70,6 +81,43 @@ public class PetModelMetadata
                                 string? name = nameProp.GetString();
                                 if (string.IsNullOrEmpty(name) == false) metadata.Motions[name] = (groupName, index);
                             }
+                            index++;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (root.TryGetProperty("expressions", out JsonElement exps))
+                {
+                    foreach (JsonElement exp in exps.EnumerateArray())
+                    {
+                        if (exp.TryGetProperty("name", out JsonElement nameProp))
+                        {
+                            string? name = nameProp.GetString();
+                            if (string.IsNullOrEmpty(name) == false) metadata.Expressions.Add(name);
+                        }
+                    }
+                }
+
+                if (root.TryGetProperty("motions", out JsonElement motionsJson))
+                {
+                    foreach (JsonProperty groupProp in motionsJson.EnumerateObject())
+                    {
+                        string groupName = groupProp.Name;
+                        int index = 0;
+                        foreach (JsonElement motionItem in groupProp.Value.EnumerateArray())
+                        {
+                            string? name = null;
+                            if (motionItem.TryGetProperty("name", out JsonElement nameProp))
+                            {
+                                name = nameProp.GetString();
+                            }
+                            if (string.IsNullOrEmpty(name) && motionItem.TryGetProperty("file", out JsonElement fileProp))
+                            {
+                                name = Path.GetFileNameWithoutExtension(fileProp.GetString());
+                            }
+                            if (string.IsNullOrEmpty(name) == false) metadata.Motions[name] = (groupName, index);
                             index++;
                         }
                     }

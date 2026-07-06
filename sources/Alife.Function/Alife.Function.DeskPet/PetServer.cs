@@ -23,7 +23,7 @@ public class PetServer : IAsyncDisposable
     public PetServer(string clientPath, string modelName)
     {
         //加载模型信息
-        string modelJsonPath = Path.Combine(clientPath, $"wwwroot/model/{modelName}/{modelName}.model3.json");
+        string modelJsonPath = PetModelMetadata.ResolveModelJsonPath(Path.Combine(clientPath, "wwwroot/model"), modelName);
         metadata = PetModelMetadata.Load(modelJsonPath);
 
         //创建进程
