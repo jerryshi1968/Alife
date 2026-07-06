@@ -6,6 +6,56 @@ const ui = {
     sendBtn: document.getElementById("send-btn")
 };
 
+function formatLogArg(arg) {
+    if (arg instanceof Error) return `${arg.name}: ${arg.message}\n${arg.stack || ""}`;
+    if (typeof arg === "object") {
+        try {
+            return JSON.stringify(arg);
+        } catch {
+            return String(arg);
+        }
+    }
+    return String(arg);
+}
+
+function postLog(level, ...args) {
+    try {
+        window.chrome.webview.postMessage({
+            type: "log",
+            level,
+            text: args.map(formatLogArg).join(" ")
+        });
+    } catch {
+        // ignored
+    }
+}
+
+{
+    const rawWarn = console.warn.bind(console);
+    const rawError = console.error.bind(console);
+    console.warn = (...args) => {
+        postLog("warn", ...args);
+        rawWarn(...args);
+    };
+    console.error = (...args) => {
+        postLog("error", ...args);
+        rawError(...args);
+    };
+}
+
+window.addEventListener("error", (e) => {
+    const target = e.target;
+    if (target && target !== window) {
+        postLog("resource-error", target.tagName || "unknown", target.src || target.href || "");
+        return;
+    }
+    postLog("error", e.message, `${e.filename}:${e.lineno}:${e.colno}`, e.error || "");
+}, true);
+
+window.addEventListener("unhandledrejection", (e) => {
+    postLog("unhandledrejection", e.reason);
+});
+
 const app = new PIXI.Application({
     view: document.getElementById("canvas"),
     autoStart: true,
@@ -27,10 +77,18 @@ window.chrome.webview.addEventListener("message", (e) => {
             break;
         //修改表情
         case "expression":
+            if (!model) {
+                console.warn("[Pet] Ignore expression because model is not loaded:", msg.id);
+                break;
+            }
             model.expression(msg.id);
             break;
         //修改动作
         case "motion":
+            if (!model) {
+                console.warn("[Pet] Ignore motion because model is not loaded:", msg.group, msg.index);
+                break;
+            }
             model.motion(msg.group, msg.index, PIXI.live2d.MotionPriority.FORCE);
             break;
         //修改气泡文字
@@ -43,6 +101,7 @@ window.chrome.webview.addEventListener("message", (e) => {
             break;
         //修改注视目标
         case "look":
+            if (!model) break;
             model.focus(msg.x, msg.y, msg.instant);
             break;
         //修改状态反馈

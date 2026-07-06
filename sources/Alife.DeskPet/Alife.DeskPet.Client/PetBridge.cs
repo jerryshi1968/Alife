@@ -143,6 +143,11 @@ public class PetBridge : IDisposable
                 case "resize_delta":
                     OnResizeDelta?.Invoke(root.GetProperty("dx").GetDouble(), root.GetProperty("dy").GetDouble());
                     break;
+                case "log":
+                    string level = root.TryGetProperty("level", out JsonElement levelProp) ? levelProp.GetString() ?? "log" : "log";
+                    string text = root.TryGetProperty("text", out JsonElement textProp) ? textProp.GetString() ?? "" : "";
+                    _ = File.AppendAllTextAsync("pet.log", $"[WebView {level}] {text}{Environment.NewLine}");
+                    break;
             }
         }
         catch (Exception ex)
