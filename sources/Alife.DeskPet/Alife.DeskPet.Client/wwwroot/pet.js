@@ -112,6 +112,11 @@ window.chrome.webview.addEventListener("message", (e) => {
                 ui.thinkingIndicator.classList.remove("show");
             }
             break;
+        case "settings":
+            if (Number.isFinite(msg.bubbleTopPercent)) {
+                document.documentElement.style.setProperty('--bubble-top', `${msg.bubbleTopPercent}%`);
+            }
+            break;
     }
 
     async function loadModel(url) {
@@ -199,6 +204,7 @@ window.chrome.webview.addEventListener("message", (e) => {
     //双击触摸反馈
     window.addEventListener("dblclick", async (e) => {
         if (e.target.tagName !== "CANVAS") return;
+        if (!model) return;
         const hitAreas = await model.hitTest(e.clientX, e.clientY);
         console.log("[Pet] hitTest result:", JSON.stringify(hitAreas), "clientX/Y:", e.clientX, e.clientY);
         if (hitAreas.length > 0) postMessage({type: "poke", areas: hitAreas});
@@ -207,6 +213,7 @@ window.chrome.webview.addEventListener("message", (e) => {
     //单击拖动反馈
     window.addEventListener("mousedown", async (e) => {
         if (e.button !== 0 || e.target.tagName !== "CANVAS") return;
+        if (!model) return;
         const hitAreas = await model.hitTest(e.clientX, e.clientY);
         if (!hitAreas || hitAreas.length === 0) {
             isDragging = true;

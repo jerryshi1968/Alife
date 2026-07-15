@@ -11,6 +11,7 @@ html {
 
 :root {
     --ui-scale: 1;
+    --bubble-top: 2%;
 }
 
 #canvas {
@@ -22,7 +23,7 @@ html {
 /* 气泡样式 */
 #bubble-container {
     position: fixed;
-    top: 2%;
+    top: clamp(8px, var(--bubble-top, 2%), calc(100% - 96px));
     left: 50%;
     transform: translateX(-50%) scale(var(--ui-scale));
     transform-origin: top center;

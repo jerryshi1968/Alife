@@ -84,6 +84,7 @@ public class PetServer : IAsyncDisposable
 
     public void PlayMotion(string group, int index) => petProcess.SendInput(new MotionCommand(group, index));
     public void SendStatus(bool working) => petProcess.SendInput(new StatusCommand(working));
+    public void SendSettings(double bubbleTopPercent) => petProcess.SendInput(new PetSettingsCommand(bubbleTopPercent));
 
     public async Task MoveAsync(double x, double y, int duration)
     {

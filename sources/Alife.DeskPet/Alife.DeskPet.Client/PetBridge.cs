@@ -90,6 +90,10 @@ public class PetBridge : IDisposable
     {
         SendCommand(new { type = "status", working });
     }
+    public void SendSettings(double bubbleTopPercent)
+    {
+        SendCommand(new { type = "settings", bubbleTopPercent });
+    }
 
     readonly WebView2 webView;
     readonly PetModelMetadata metadata;

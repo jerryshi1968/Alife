@@ -17,6 +17,12 @@
                     从 <code>wwwroot/model/</code> 目录加载。留空或 "Mao" 为默认角色。
                 </Text>
             </FormItem>
+            <FormItem Label="气泡顶部位置 (%)">
+                <InputNumber TValue="double" @bind-Value="@Configuration.BubbleTopPercent" Min="-10" Max="120" Step="0.5" Style="width: 100%;"/>
+                <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+                    默认 2，数值越小越靠上，数值越大越靠下；过小或过大都会按窗口安全边界显示。
+                </Text>
+            </FormItem>
         </Form>
         
         <Button Type="ButtonType.Default" Icon="folder-open" OnClick="OpenModelFolder">

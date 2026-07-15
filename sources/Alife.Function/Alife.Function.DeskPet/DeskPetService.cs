@@ -100,9 +100,19 @@ public class DeskPetService(XmlFunctionCaller functionService) : InteractiveModu
         Poke($"移动成功，当前位置: x={x}, y={y}");
     }
 
-    public DeskPetServiceConfig? Configuration { get; set; }
+    public DeskPetServiceConfig? Configuration
+    {
+        get => configuration;
+        set
+        {
+            configuration = value;
+            if (client != null)
+                client.SendSettings(configuration?.BubbleTopPercent ?? 2);
+        }
+    }
 
     PetServer? client;
+    DeskPetServiceConfig? configuration;
     long lastBubbleEndTime;
 
     public override async Task AwakeAsync(AwakeContext context)
@@ -110,7 +120,13 @@ public class DeskPetService(XmlFunctionCaller functionService) : InteractiveModu
         await base.AwakeAsync(context);
 
         // 确保 DeskPet.Client 存在
-        string clientPath = Path.Combine(AlifePath.RuntimeFolderPath, "Alife.DeskPet.Client");
+        string runtimeClientPath = Path.Combine(AlifePath.RuntimeFolderPath, "Alife.DeskPet.Client");
+        string clientPath = runtimeClientPath;
+#if DEBUG
+        string debugClientPath = Path.Combine(Path.GetDirectoryName(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar)) ?? "", "Alife.DeskPet.Client");
+        if (File.Exists(Path.Combine(debugClientPath, "Alife.DeskPet.Client.exe")))
+            clientPath = debugClientPath;
+#endif
         if (!Directory.Exists(clientPath))
         {
             string zipUrl = "https://github.com/BDFFZI/Alife.OfficialPluginStorage/raw/refs/heads/main/Alife.DeskPet.Client/1.0.0.zip";
@@ -120,6 +136,15 @@ public class DeskPetService(XmlFunctionCaller functionService) : InteractiveModu
         string? modelName = Configuration?.ModelName;
         if (string.IsNullOrWhiteSpace(modelName))
             modelName = "Mao";
+#if DEBUG
+        if (string.Equals(clientPath, runtimeClientPath, StringComparison.OrdinalIgnoreCase) == false)
+        {
+            string debugModelPath = Path.Combine(clientPath, "wwwroot", "model", modelName);
+            string runtimeModelPath = Path.Combine(runtimeClientPath, "wwwroot", "model", modelName);
+            if (Directory.Exists(debugModelPath) == false && Directory.Exists(runtimeModelPath))
+                CopyDirectory(runtimeModelPath, debugModelPath);
+        }
+#endif
         client = new PetServer(clientPath, modelName);
         string supportedExpressionsDescription = string.Join(", ", client.SupportedExpressions);
         if (string.IsNullOrEmpty(supportedExpressionsDescription)) supportedExpressionsDescription = $"当前不支持<{nameof(Expression)}>功能";
@@ -145,11 +170,27 @@ public class DeskPetService(XmlFunctionCaller functionService) : InteractiveModu
         await base.StartAsync(kernel, chatActivity);
 
         await client!.WaitReadyAsync();
+        client.SendSettings(Configuration?.BubbleTopPercent ?? 2);
         client.OnInput += Chat;
         client.OnInteracted += text => Chat("交互：" + text);
 
         // 启动状态轮询
         _ = UpdateStatusLoop(chatActivity.ChatBot);
+    }
+
+    static void CopyDirectory(string sourcePath, string targetPath)
+    {
+        Directory.CreateDirectory(targetPath);
+        foreach (string filePath in Directory.GetFiles(sourcePath))
+        {
+            string targetFilePath = Path.Combine(targetPath, Path.GetFileName(filePath));
+            File.Copy(filePath, targetFilePath, true);
+        }
+        foreach (string directoryPath in Directory.GetDirectories(sourcePath))
+        {
+            string targetDirectoryPath = Path.Combine(targetPath, Path.GetFileName(directoryPath));
+            CopyDirectory(directoryPath, targetDirectoryPath);
+        }
     }
 
     async Task UpdateStatusLoop(ChatBot chatBot)

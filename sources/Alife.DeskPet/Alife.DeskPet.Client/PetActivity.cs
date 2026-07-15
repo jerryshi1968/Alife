@@ -204,6 +204,7 @@ public class PetActivity : IDisposable
             case MotionCommand m: bridge.PlayMotion(m.Group, m.Index); break;
             case HideBubbleCommand: bridge.HideBubble(); break;
             case StatusCommand s: bridge.SendStatus(s.Working); break;
+            case PetSettingsCommand s: bridge.SendSettings(s.BubbleTopPercent); break;
         }
     }
 }
