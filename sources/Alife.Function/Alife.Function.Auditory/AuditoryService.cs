@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -89,6 +90,8 @@ public class AuditoryService(IAuditoryModel auditoryModel) :
     AudioGraph? graph;
     AudioDeviceInputNode? inputNode;
     AudioFrameOutputNode? outputNode;
+    readonly ConcurrentQueue<float[]> audioQueue = new();
+    int isProcessingAudioQueue;
 
     public override async Task StartAsync(Kernel kernel, ChatActivity chatActivity)
     {
@@ -151,15 +154,32 @@ public class AuditoryService(IAuditoryModel auditoryModel) :
                         Buffer.MemoryCopy(dataInBytes, dest, capacityInBytes, capacityInBytes);
                 }
 
-                ThreadPool.QueueUserWorkItem(_ => {
-                    auditoryModel.AcceptWaveform(samples);
-                });
+                audioQueue.Enqueue(samples);
+                StartProcessingAudioQueue();
             }
         }
         finally
         {
             Marshal.Release(ptr);
         }
+    }
+
+    void StartProcessingAudioQueue()
+    {
+        if (Interlocked.CompareExchange(ref isProcessingAudioQueue, 1, 0) != 0)
+            return;
+
+        ThreadPool.QueueUserWorkItem(_ => {
+            while (true)
+            {
+                while (audioQueue.TryDequeue(out float[]? samples))
+                    auditoryModel.AcceptWaveform(samples);
+
+                Interlocked.Exchange(ref isProcessingAudioQueue, 0);
+                if (audioQueue.IsEmpty || Interlocked.CompareExchange(ref isProcessingAudioQueue, 1, 0) != 0)
+                    break;
+            }
+        });
     }
 
     void UpdateListeningState()
