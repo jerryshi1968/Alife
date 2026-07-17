@@ -140,6 +140,20 @@ public class VitsSpeechModel(
         pythonPipe.OnStderr += line => logger.LogWarning(line);
         await pythonPipe.StartAsync();
         await pythonPipe.InvokeAsync<string>("init", RuntimeFolder);
+        try
+        {
+            string warmupPath = Path.Combine(AlifePath.TempFolderPath, "vits_warmup.wav");
+            await pythonPipe.InvokeAsync<string>("synthesize", "预热", warmupPath,
+                Configuration!.SpeakerId, Configuration.NoiseScale,
+                Configuration.NoiseScaleW, Configuration.LengthScale);
+            if (File.Exists(warmupPath))
+                File.Delete(warmupPath);
+            logger.LogInformation("VITS 语音合成预热完成。");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning($"VITS warmup failed: {ex.Message}");
+        }
     }
     public async ValueTask DisposeAsync()
     {

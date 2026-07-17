@@ -70,15 +70,16 @@ public class SpeechService(
     async Task QueueSpeakAsync(string text, CancellationToken cancellationToken = default)
     {
         // 收到新的语音播报任务，先进行语音合成
-        Stopwatch synthStopwatch = Stopwatch.StartNew();
-        logger.LogInformation("[Perf][TTS] synthesis started textLength={TextLength}", text.Length);
-        audioSynthesizingTask = speechModel.GenerateSpeechFileAsync(text, cancellationToken);
+        audioSynthesizingTask = GenerateSpeechFileWithLoggingAsync(text, cancellationToken);
         // 如果当前有音频在播放，则等待占用结束
         if (IsSpeaking)
         {
             try
             {
+                Stopwatch waitStopwatch = Stopwatch.StartNew();
                 await playAudioTask;
+                waitStopwatch.Stop();
+                logger.LogInformation("[Perf][TTS] playback queue wait elapsed={ElapsedMs}ms", waitStopwatch.ElapsedMilliseconds);
             }
             catch (OperationCanceledException)
             {
@@ -87,24 +88,31 @@ public class SpeechService(
         }
 
         // 可以播放音频
-        string? audioFile = null;
+        string? audioFile = await audioSynthesizingTask;// 等待合成任务完成
+
+        if (audioFile == null)
+            return;// 没有可朗读的文本
+
+        playAudioTask = PlayAudioAsync(audioFile, cancellationToken);
+    }
+    async Task<string?> GenerateSpeechFileWithLoggingAsync(string text, CancellationToken cancellationToken = default)
+    {
+        Stopwatch synthStopwatch = Stopwatch.StartNew();
+        logger.LogInformation("[Perf][TTS] synthesis started textLength={TextLength}", text.Length);
         try
         {
-            audioFile = await audioSynthesizingTask;// 等待合成任务完成
+            string? audioFile = await speechModel.GenerateSpeechFileAsync(text, cancellationToken);
             synthStopwatch.Stop();
             logger.LogInformation("[Perf][TTS] synthesis finished elapsed={ElapsedMs}ms hasAudio={HasAudio}", synthStopwatch.ElapsedMilliseconds, audioFile != null);
+            return audioFile;
         }
         catch (Exception e)
         {
             synthStopwatch.Stop();
             logger.LogInformation("[Perf][TTS] synthesis finished elapsed={ElapsedMs}ms hasAudio={HasAudio}", synthStopwatch.ElapsedMilliseconds, false);
             logger.LogWarning(e.ToString());
+            return null;
         }
-
-        if (audioFile == null)
-            return;// 没有可朗读的文本
-
-        playAudioTask = PlayAudioAsync(audioFile, cancellationToken);
     }
     async Task PlayAudioAsync(string filePath, CancellationToken cancellationToken = default)
     {

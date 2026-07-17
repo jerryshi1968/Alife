@@ -28,12 +28,22 @@ public class SenseVoiceAuditoryModel :
         }
     }
 
-    public SenseVoiceAuditoryModelConfig? Configuration { get; set; }
+    public SenseVoiceAuditoryModelConfig? Configuration
+    {
+        get => configuration;
+        set
+        {
+            configuration = value ?? new SenseVoiceAuditoryModelConfig();
+            RecreateModels();
+        }
+    }
 
     public event Action<string>? Recognized;
     public void AcceptWaveform(float[] samples)
     {
         var detector = vad;
+        if (detector == null)
+            return;
         lock (detector)
         {
             detector.AcceptWaveform(samples);
@@ -49,16 +59,23 @@ public class SenseVoiceAuditoryModel :
 
     const string SenseVoiceId = "pengzhendong/sherpa-onnx-sense-voice-zh-en-ja-ko-yue";
     const string VadId = "pengzhendong/silero-vad";
-    readonly OfflineRecognizer recognizer;
-    readonly VoiceActivityDetector vad;
+    readonly string senseVoicePath;
+    readonly string vadModelPath;
     readonly ILogger<SenseVoiceAuditoryModel> logger;
+    SenseVoiceAuditoryModelConfig configuration = new();
+    OfflineRecognizer? recognizer;
+    VoiceActivityDetector? vad;
 
     void ProcessSegment(float[] samples)
     {
+        var currentRecognizer = recognizer;
+        if (currentRecognizer == null)
+            return;
+
         Stopwatch stopwatch = Stopwatch.StartNew();
-        using OfflineStream stream = recognizer.CreateStream();
+        using OfflineStream stream = currentRecognizer.CreateStream();
         stream.AcceptWaveform(16000, samples);
-        recognizer.Decode(stream);
+        currentRecognizer.Decode(stream);
         stopwatch.Stop();
 
         string text = stream.Result.Text;
@@ -73,30 +90,38 @@ public class SenseVoiceAuditoryModel :
     public SenseVoiceAuditoryModel(ILogger<SenseVoiceAuditoryModel> logger)
     {
         this.logger = logger;
-        string senseVoicePath = Alife.Function.AIModelUtility.AIModelUtility.EnsureModelExisting(SenseVoiceId);
-        string vadModelPath = Alife.Function.AIModelUtility.AIModelUtility.EnsureModelExisting(VadId, "silero_vad.onnx");
+        senseVoicePath = Alife.Function.AIModelUtility.AIModelUtility.EnsureModelExisting(SenseVoiceId);
+        vadModelPath = Alife.Function.AIModelUtility.AIModelUtility.EnsureModelExisting(VadId, "silero_vad.onnx");
+        RecreateModels();
+    }
+
+    void RecreateModels()
+    {
+        recognizer?.Dispose();
+        vad?.Dispose();
 
         OfflineRecognizerConfig config = new();
         config.ModelConfig.SenseVoice.Model = Path.Combine(senseVoicePath, "model.int8.onnx");
-        config.ModelConfig.SenseVoice.Language = Configuration?.Language ?? "zh";
-        config.ModelConfig.SenseVoice.UseInverseTextNormalization = (Configuration?.UseInverseTextNormalization ?? true) ? 1 : 0;
+        config.ModelConfig.SenseVoice.Language = configuration.Language;
+        config.ModelConfig.SenseVoice.UseInverseTextNormalization = configuration.UseInverseTextNormalization ? 1 : 0;
         config.ModelConfig.Tokens = Path.Combine(senseVoicePath, "tokens.txt");
-        config.ModelConfig.NumThreads = Configuration?.NumThreads ?? 1;
+        config.ModelConfig.NumThreads = configuration.NumThreads;
         config.ModelConfig.Debug = 0;
         recognizer = new OfflineRecognizer(config);
 
         VadModelConfig vadConfig = new();
         vadConfig.SileroVad.Model = vadModelPath;
-        vadConfig.SileroVad.Threshold = Configuration?.VadThreshold ?? 0.5f;
-        vadConfig.SileroVad.MinSilenceDuration = Configuration?.VadMinSilenceDuration ?? 0.5f;
-        vadConfig.SileroVad.MinSpeechDuration = Configuration?.VadMinSpeechDuration ?? 0.25f;
+        vadConfig.SileroVad.Threshold = configuration.VadThreshold;
+        vadConfig.SileroVad.MinSilenceDuration = configuration.VadMinSilenceDuration;
+        vadConfig.SileroVad.MinSpeechDuration = configuration.VadMinSpeechDuration;
         vadConfig.SampleRate = 16000;
         vad = new VoiceActivityDetector(vadConfig, bufferSizeInSeconds: 30);
+        logger.LogInformation("[Perf][ASR] VAD configured threshold={Threshold} minSilence={MinSilence}s minSpeech={MinSpeech}s threads={Threads}", configuration.VadThreshold, configuration.VadMinSilenceDuration, configuration.VadMinSpeechDuration, configuration.NumThreads);
     }
     public void Dispose()
     {
-        recognizer.Dispose();
-        vad.Dispose();
+        recognizer?.Dispose();
+        vad?.Dispose();
         GC.SuppressFinalize(this);
     }
 }

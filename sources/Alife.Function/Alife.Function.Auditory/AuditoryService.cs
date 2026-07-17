@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -92,7 +93,10 @@ public class AuditoryService(IAuditoryModel auditoryModel, ILogger<AuditoryServi
     AudioDeviceInputNode? inputNode;
     AudioFrameOutputNode? outputNode;
     readonly ConcurrentQueue<float[]> audioQueue = new();
+    readonly List<string> pendingRecognizedTexts = new();
+    readonly object pendingRecognizedTextLock = new();
     int isProcessingAudioQueue;
+    int recognizedTextVersion;
 
     public override async Task StartAsync(Kernel kernel, ChatActivity chatActivity)
     {
@@ -103,6 +107,11 @@ public class AuditoryService(IAuditoryModel auditoryModel, ILogger<AuditoryServi
     public override async Task DestroyAsync()
     {
         auditoryModel.Recognized -= OnRecognized;
+        lock (pendingRecognizedTextLock)
+        {
+            pendingRecognizedTexts.Clear();
+            recognizedTextVersion++;
+        }
         await base.DestroyAsync();
     }
     public void Dispose()
@@ -208,7 +217,49 @@ public class AuditoryService(IAuditoryModel auditoryModel, ILogger<AuditoryServi
     }
     void OnRecognized(string text)
     {
-        logger.LogInformation("[Perf][Voice] recognized text enters chat textLength={TextLength} text={Text}", text.Length, text);
+        text = text.Trim();
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        int delayMs = Math.Max(0, Configuration?.EndOfSpeechDelayMs ?? 800);
+        int version;
+        int pendingSegments;
+        lock (pendingRecognizedTextLock)
+        {
+            pendingRecognizedTexts.Add(text);
+            version = ++recognizedTextVersion;
+            pendingSegments = pendingRecognizedTexts.Count;
+        }
+
+        logger.LogInformation("[Perf][Voice] recognized text buffered delay={DelayMs}ms pendingSegments={PendingSegments} textLength={TextLength} text={Text}", delayMs, pendingSegments, text.Length, text);
+        _ = CancelCurrentChatAsync();
+        _ = CommitRecognizedTextAsync(version, delayMs);
+    }
+    async Task CancelCurrentChatAsync()
+    {
+        try
+        {
+            await ChatBot.ChatBreakTokenSource.CancelAsync();
+        }
+        catch (ObjectDisposedException) {}
+    }
+    async Task CommitRecognizedTextAsync(int version, int delayMs)
+    {
+        await Task.Delay(delayMs);
+
+        string text;
+        int segmentCount;
+        lock (pendingRecognizedTextLock)
+        {
+            if (version != recognizedTextVersion || pendingRecognizedTexts.Count == 0)
+                return;
+
+            segmentCount = pendingRecognizedTexts.Count;
+            text = string.Join(Environment.NewLine, pendingRecognizedTexts);
+            pendingRecognizedTexts.Clear();
+        }
+
+        logger.LogInformation("[Perf][Voice] recognized text enters chat after debounce delay={DelayMs}ms segments={Segments} textLength={TextLength} text={Text}", delayMs, segmentCount, text.Length, text);
         Chat(text);
     }
 }
