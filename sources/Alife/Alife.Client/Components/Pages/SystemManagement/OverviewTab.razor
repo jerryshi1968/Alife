@@ -35,7 +35,7 @@
         <DescriptionsItem Title="当前版本">
             <Text Code Style="font-size: 12px;">v@(_currentVersion)</Text>
         </DescriptionsItem>
-        @if (_latestVersion != null)
+        @if (UpdateService.IsUpdateEnabled && _latestVersion != null)
         {
             <DescriptionsItem Title="最新版本">
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -52,6 +52,8 @@
             </DescriptionsItem>
         }
     </Descriptions>
+    @if (UpdateService.IsUpdateEnabled)
+    {
     <div style="margin-top: 8px;">
         @if (_isChecking)
         {
@@ -62,6 +64,7 @@
             <Button Size="@ButtonSize.Small" OnClick="CheckForUpdate">检查更新</Button>
         }
     </div>
+    }
 
     <Divider Style="margin: 16px 0;"/>
 

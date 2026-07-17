@@ -59,6 +59,9 @@ else if (showPluginUpdate && upgradablePlugins.Length > 0)
 
     protected override async Task OnInitializedAsync()
     {
+        if (UpdateService.IsUpdateEnabled == false && PluginMarketService.IsPluginUpgradeEnabled == false)
+            return;
+
         updateInfo = await UpdateService.CheckForUpdateAsync();
         if (updateInfo != null)
         {
@@ -72,6 +75,9 @@ else if (showPluginUpdate && upgradablePlugins.Length > 0)
 
     async Task CheckPluginUpdates()
     {
+        if (PluginMarketService.IsPluginUpgradeEnabled == false)
+            return;
+
         try
         {
             await PluginMarketService.FetchOnlinePluginsAsync();

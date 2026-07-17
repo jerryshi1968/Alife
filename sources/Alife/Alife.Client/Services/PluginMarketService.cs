@@ -13,6 +13,7 @@ public class PluginMarketConfig
 
 public class PluginMarketService
 {
+    static readonly bool EnablePluginUpgrade = false;
     readonly StorageSystem storageSystem;
     readonly FileSystemPluginManager localManager;
     readonly NuGetEnvironmentInstaller nugetInstaller;
@@ -72,6 +73,8 @@ public class PluginMarketService
     {
         get => GetConfig().SourceUrl;
     }
+
+    public bool IsPluginUpgradeEnabled => EnablePluginUpgrade;
 
     public void SetSource(string sourceUrl)
     {
@@ -151,6 +154,9 @@ public class PluginMarketService
 
     public bool HasUpdate(Plugin plugin)
     {
+        if (EnablePluginUpgrade == false)
+            return false;
+
         string? installedVersion = GetInstalledVersion(plugin.Id);
         if (installedVersion == null || plugin.Releases == null)
             return false;

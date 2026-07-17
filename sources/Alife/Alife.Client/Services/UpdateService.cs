@@ -12,6 +12,9 @@ public record UpdateInfo(string Version, string? ReleaseNotes, string DownloadUr
 public class UpdateService
 {
     const string RawGitHubApiUrl = "https://api.github.com/repos/BDFFZI/Alife/releases/latest";
+    static readonly bool EnableAppUpdate = false;
+
+    public bool IsUpdateEnabled => EnableAppUpdate;
 
     public string GetCurrentVersion()
     {
@@ -20,6 +23,9 @@ public class UpdateService
 
     public async Task<UpdateInfo?> CheckForUpdateAsync()
     {
+        if (EnableAppUpdate == false)
+            return null;
+
         try
         {
             var response = await AlifePlatform.FetchStringAsync(RawGitHubApiUrl);
@@ -51,6 +57,9 @@ public class UpdateService
 
     public async Task ApplyUpdateAsync(UpdateInfo updateInfo, Action<int>? onProgress = null)
     {
+        if (EnableAppUpdate == false)
+            throw new InvalidOperationException("Application update is disabled in this fork.");
+
         string tempDir = Path.Combine(AlifePath.TempFolderPath, "Update");
         if (Directory.Exists(tempDir))
             Directory.Delete(tempDir, true);
