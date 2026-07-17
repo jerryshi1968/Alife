@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Alife.Framework;
@@ -69,6 +70,8 @@ public class SpeechService(
     async Task QueueSpeakAsync(string text, CancellationToken cancellationToken = default)
     {
         // 收到新的语音播报任务，先进行语音合成
+        Stopwatch synthStopwatch = Stopwatch.StartNew();
+        logger.LogInformation("[Perf][TTS] synthesis started textLength={TextLength}", text.Length);
         audioSynthesizingTask = speechModel.GenerateSpeechFileAsync(text, cancellationToken);
         // 如果当前有音频在播放，则等待占用结束
         if (IsSpeaking)
@@ -88,9 +91,13 @@ public class SpeechService(
         try
         {
             audioFile = await audioSynthesizingTask;// 等待合成任务完成
+            synthStopwatch.Stop();
+            logger.LogInformation("[Perf][TTS] synthesis finished elapsed={ElapsedMs}ms hasAudio={HasAudio}", synthStopwatch.ElapsedMilliseconds, audioFile != null);
         }
         catch (Exception e)
         {
+            synthStopwatch.Stop();
+            logger.LogInformation("[Perf][TTS] synthesis finished elapsed={ElapsedMs}ms hasAudio={HasAudio}", synthStopwatch.ElapsedMilliseconds, false);
             logger.LogWarning(e.ToString());
         }
 
@@ -101,6 +108,8 @@ public class SpeechService(
     }
     async Task PlayAudioAsync(string filePath, CancellationToken cancellationToken = default)
     {
+        Stopwatch playStopwatch = Stopwatch.StartNew();
+        logger.LogInformation("[Perf][TTS] playback started file={File}", filePath);
         TaskCompletionSource tcs = new();
 
         await using AudioFileReader reader = new(filePath);//音频读取
@@ -112,6 +121,9 @@ public class SpeechService(
 
         await using CancellationTokenRegistration registration = cancellationToken.Register(() => speaker.Stop());
         await tcs.Task;//等待播放完毕
+
+        playStopwatch.Stop();
+        logger.LogInformation("[Perf][TTS] playback finished elapsed={ElapsedMs}ms", playStopwatch.ElapsedMilliseconds);
 
         void OnPlaybackStopped(object? _, StoppedEventArgs e)
         {

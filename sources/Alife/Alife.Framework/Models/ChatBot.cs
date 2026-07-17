@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -77,6 +79,11 @@ public class ChatBot : IAsyncDisposable
             Exception? error = null;
             StringBuilder cleanResponseBuilder = new();// 用于存储不含思考过程的最终回复
 
+            Stopwatch llmStopwatch = Stopwatch.StartNew();
+            bool firstReasoningLogged = false;
+            bool firstResponseLogged = false;
+            logger?.LogInformation("[Perf][LLM] request started inputLength={InputLength}", message.Length);
+
             await using IAsyncEnumerator<AgentResponseItem<StreamingChatMessageContent>> enumerator = chatCompletionAgent
                 .InvokeStreamingAsync(chatHistoryAgentThread, cancellationToken: chatBreakSource.Token)
                 .GetAsyncEnumerator();
@@ -106,11 +113,21 @@ public class ChatBot : IAsyncDisposable
                         string reasoningPart = content.Substring(ThinkContentPrefix.Length);
                         if (!string.IsNullOrEmpty(reasoningPart))
                         {
+                            if (!firstReasoningLogged)
+                            {
+                                firstReasoningLogged = true;
+                                logger?.LogInformation("[Perf][LLM] first reasoning chunk elapsed={ElapsedMs}ms chunkLength={ChunkLength}", llmStopwatch.ElapsedMilliseconds, reasoningPart.Length);
+                            }
                             ReasoningReceived?.Invoke(reasoningPart);
                         }
                     }
                     else
                     {
+                        if (!firstResponseLogged)
+                        {
+                            firstResponseLogged = true;
+                            logger?.LogInformation("[Perf][LLM] first response chunk elapsed={ElapsedMs}ms chunkLength={ChunkLength}", llmStopwatch.ElapsedMilliseconds, content.Length);
+                        }
                         yield return content;
                         ChatReceived?.Invoke(content);
                         cleanResponseBuilder.Append(content);
@@ -127,6 +144,11 @@ public class ChatBot : IAsyncDisposable
                         string? reasoningStr = reasoning?.ToString();
                         if (!string.IsNullOrEmpty(reasoningStr))
                         {
+                            if (!firstReasoningLogged)
+                            {
+                                firstReasoningLogged = true;
+                                logger?.LogInformation("[Perf][LLM] first reasoning chunk elapsed={ElapsedMs}ms chunkLength={ChunkLength}", llmStopwatch.ElapsedMilliseconds, reasoningStr.Length);
+                            }
                             ReasoningReceived?.Invoke(reasoningStr);
                         }
                     }
@@ -144,6 +166,8 @@ public class ChatBot : IAsyncDisposable
 
             // 在同步历史记录前，清洗掉可能存入 ChatHistory 的思考内容（防止污染上下文）
             string aiMessage = cleanResponseBuilder.ToString();
+            llmStopwatch.Stop();
+            logger?.LogInformation("[Perf][LLM] request finished elapsed={ElapsedMs}ms outputLength={OutputLength} error={HasError}", llmStopwatch.ElapsedMilliseconds, aiMessage.Length, error != null);
             if (chatHistoryAgentThread.ChatHistory.Count > 0)
             {
                 ChatMessageContent lastMsg = chatHistoryAgentThread.ChatHistory[^1];
@@ -207,6 +231,7 @@ public class ChatBot : IAsyncDisposable
 
     readonly ChatCompletionAgent chatCompletionAgent;
     readonly ChatHistoryAgentThread chatHistoryAgentThread;
+    readonly ILogger<ChatBot>? logger;
     readonly ConcurrentQueue<string> messageCache;
     readonly SemaphoreSlim chatSemaphore;
     CancellationTokenSource chatBreakSource = new();
@@ -220,10 +245,11 @@ public class ChatBot : IAsyncDisposable
     const int DeltaTime = 1;
 
 
-    public ChatBot(ChatCompletionAgent chatCompletionAgent, ChatHistoryAgentThread chatHistoryAgentThread)
+    public ChatBot(ChatCompletionAgent chatCompletionAgent, ChatHistoryAgentThread chatHistoryAgentThread, ILogger<ChatBot>? logger = null)
     {
         this.chatCompletionAgent = chatCompletionAgent;
         this.chatHistoryAgentThread = chatHistoryAgentThread;
+        this.logger = logger;
         messageCache = new ConcurrentQueue<string>();
         chatSemaphore = new SemaphoreSlim(1, 1);
 

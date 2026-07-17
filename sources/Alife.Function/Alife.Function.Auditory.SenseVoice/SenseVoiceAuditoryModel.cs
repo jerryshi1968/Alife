@@ -1,9 +1,11 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using SherpaOnnx;
 using Alife.Framework;
 using Alife.Function.AIModelUtility;
 using Alife.Function.Auditory;
+using Microsoft.Extensions.Logging;
 
 namespace Alife.Function.Auditory.SenseVoice;
 
@@ -49,23 +51,28 @@ public class SenseVoiceAuditoryModel :
     const string VadId = "pengzhendong/silero-vad";
     readonly OfflineRecognizer recognizer;
     readonly VoiceActivityDetector vad;
+    readonly ILogger<SenseVoiceAuditoryModel> logger;
 
     void ProcessSegment(float[] samples)
     {
+        Stopwatch stopwatch = Stopwatch.StartNew();
         using OfflineStream stream = recognizer.CreateStream();
         stream.AcceptWaveform(16000, samples);
         recognizer.Decode(stream);
+        stopwatch.Stop();
 
         string text = stream.Result.Text;
         if (string.IsNullOrWhiteSpace(text))
             return;
         if (text == "。")
             return;
+        logger.LogInformation("[Perf][ASR] segment recognized duration={DurationMs:F0}ms decode={DecodeMs}ms textLength={TextLength} text={Text}", samples.Length / 16f, stopwatch.ElapsedMilliseconds, text.Length, text);
         Recognized?.Invoke(text);
     }
 
-    public SenseVoiceAuditoryModel()
+    public SenseVoiceAuditoryModel(ILogger<SenseVoiceAuditoryModel> logger)
     {
+        this.logger = logger;
         string senseVoicePath = Alife.Function.AIModelUtility.AIModelUtility.EnsureModelExisting(SenseVoiceId);
         string vadModelPath = Alife.Function.AIModelUtility.AIModelUtility.EnsureModelExisting(VadId, "silero_vad.onnx");
 

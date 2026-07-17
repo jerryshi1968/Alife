@@ -8,6 +8,7 @@ using Windows.Media.Capture;
 using Windows.Media.MediaProperties;
 using Windows.Media.Render;
 using Alife.Framework;
+using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 
 namespace Alife.Function.Auditory;
@@ -15,7 +16,7 @@ namespace Alife.Function.Auditory;
 [Module("语音识别", "为AI增加语音识别能力。",
     defaultCategory: "Alife 官方/交互方式",
     EditorUI = typeof(AuditoryServiceUI))]
-public class AuditoryService(IAuditoryModel auditoryModel) :
+public class AuditoryService(IAuditoryModel auditoryModel, ILogger<AuditoryService> logger) :
     InteractiveModule<AuditoryService>,
     IConfigurable<AuditoryServiceConfig>,
     IDisposable
@@ -207,6 +208,7 @@ public class AuditoryService(IAuditoryModel auditoryModel) :
     }
     void OnRecognized(string text)
     {
+        logger.LogInformation("[Perf][Voice] recognized text enters chat textLength={TextLength} text={Text}", text.Length, text);
         Chat(text);
     }
 }

@@ -143,7 +143,7 @@ public partial class ChatActivity
                     Kernel = kernelService,
                     Arguments = new KernelArguments(languageModel.ProvidePromptExecutionSettings()),
                 };
-                chatBot = new ChatBot(chatCompletionAgent, contextBuilder);
+                chatBot = new ChatBot(chatCompletionAgent, contextBuilder, moduleContainer.Resolve<ILogger<ChatBot>>());
             }
 
             return new(character, kernelService, moduleContainer, chatBot, allEventModules);
